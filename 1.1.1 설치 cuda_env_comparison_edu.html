@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CUDA 있는 환경 vs 없는 환경 — 하드웨어별 AI 설정 완전 가이드</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --blue: #2563EB; --blue-l: #DBEAFE; --blue-d: #1E3A8A;
+      --green: #059669; --green-l: #D1FAE5; --green-d: #064E3B;
+      --amber: #D97706; --amber-l: #FEF3C7; --amber-d: #78350F;
+      --red: #DC2626; --red-l: #FEE2E2; --red-d: #7F1D1D;
+      --purple: #7C3AED; --purple-l: #EDE9FE; --purple-d: #4C1D95;
+      --teal: #0891B2; --teal-l: #CFFAFE; --teal-d: #164E63;
+      --gray: #64748B; --border: #E2E8F0; --surface: #F8FAFC; --card: #fff; --text: #1E293B;
+    }
+    body { font-family: 'Noto Sans KR', sans-serif; color: var(--text); background: var(--surface); line-height: 1.75; }
+    code, pre { font-family: 'JetBrains Mono', monospace; }
+    .wrap { max-width: 940px; margin: 0 auto; padding: 0 1.5rem; }
+    section { padding: 3rem 0; border-top: 2px solid var(--border); }
+    h2 { font-size: 1.8rem; font-weight: 700; margin-bottom: .5rem; }
+    h3 { font-size: 1.15rem; font-weight: 700; color: var(--blue); margin: 2rem 0 .75rem; }
+    p { margin-bottom: 1rem; line-height: 1.8; font-size: .97rem; }
+
+    /* 히어로 */
+    .hero { background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 40%, #7C3AED 100%); color: #fff; padding: 4.5rem 0 3.5rem; }
+    .hero-tags { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1.5rem; }
+    .hero-tag { background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3); border-radius: 999px; padding: .3rem .95rem; font-size: .8rem; font-weight: 600; }
+    .hero h1 { font-size: 2.5rem; font-weight: 900; line-height: 1.2; margin-bottom: 1.1rem; }
+    .hero-sub { font-size: 1.05rem; opacity: .85; max-width: 640px; margin-bottom: 1.5rem; line-height: 1.7; }
+    .hero-meta { display: flex; gap: 1.5rem; flex-wrap: wrap; font-size: .85rem; opacity: .65; }
+
+    /* 목차 */
+    .toc { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 1.75rem; margin: 2rem 0; }
+    .toc h4 { font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; color: var(--gray); margin-bottom: .85rem; }
+    .toc ol { padding-left: 1.25rem; }
+    .toc li { padding: .28rem 0; }
+    .toc a { color: var(--blue); text-decoration: none; font-size: .93rem; font-weight: 500; }
+    .toc a:hover { text-decoration: underline; }
+
+    /* 섹션 헤더 */
+    .shdr { display: flex; align-items: center; gap: .85rem; margin-bottom: 1.75rem; }
+    .snum { width: 2.6rem; height: 2.6rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1.1rem; color: #fff; flex-shrink: 0; }
+    .stag { display: inline-block; border-radius: 6px; padding: .2rem .65rem; font-size: .76rem; font-weight: 700; margin-bottom: .35rem; letter-spacing: .02em; }
+
+    /* 대형 계층 스택 다이어그램 */
+    .stack-big { margin: 2rem 0; display: flex; flex-direction: column; gap: 0; }
+    .sl { position: relative; padding: 1.4rem 1.75rem; border-radius: 12px; margin: 0; }
+    .sl-star { border-width: 2.5px !important; }
+    .sl-label { font-size: .72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; margin-bottom: .35rem; }
+    .sl-title { font-size: 1.05rem; font-weight: 700; margin-bottom: .2rem; }
+    .sl-desc { font-size: .85rem; opacity: .85; }
+    .sl-badge { position: absolute; right: 1.4rem; top: 50%; transform: translateY(-50%); font-size: .72rem; font-weight: 700; padding: .28rem .75rem; border-radius: 999px; }
+    .sl-arrow { text-align: center; font-size: 1.3rem; color: var(--gray); padding: .2rem 0; }
+
+    /* 비유 박스 */
+    .anl { display: flex; gap: 1.25rem; padding: 1.5rem 1.75rem; border-radius: 14px; margin: 1.5rem 0; }
+    .anl-icon { font-size: 2.5rem; flex-shrink: 0; }
+    .anl-title { font-weight: 700; font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; margin-bottom: .4rem; }
+    .anl-txt { font-size: .95rem; line-height: 1.75; }
+    .anl-real { margin-top: .75rem; padding-top: .75rem; border-top: 1px dashed var(--border); font-size: .87rem; color: var(--gray); }
+    .a-blue { background: var(--blue-l); border-left: 4px solid var(--blue); }
+    .a-blue .anl-title { color: var(--blue); }
+    .a-green { background: var(--green-l); border-left: 4px solid var(--green); }
+    .a-green .anl-title { color: var(--green); }
+    .a-amber { background: var(--amber-l); border-left: 4px solid var(--amber); }
+    .a-amber .anl-title { color: var(--amber); }
+    .a-red { background: var(--red-l); border-left: 4px solid var(--red); }
+    .a-red .anl-title { color: var(--red); }
+    .a-purple { background: var(--purple-l); border-left: 4px solid var(--purple); }
+    .a-purple .anl-title { color: var(--purple); }
+
+    /* 핵심 2단 비교 카드 */
+    .big-split { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin: 2rem 0; }
+    .split-card { border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,.1); }
+    .split-head { padding: 1.5rem 1.75rem; color: #fff; }
+    .split-head-tag { font-size: .72rem; font-weight: 700; letter-spacing: .08em; opacity: .8; margin-bottom: .4rem; }
+    .split-head h3 { color: #fff; margin: 0; font-size: 1.15rem; }
+    .split-head-sub { font-size: .83rem; opacity: .8; margin-top: .3rem; }
+    .split-body { background: var(--card); padding: 1.25rem 1.5rem; }
+    .si { display: flex; justify-content: space-between; align-items: center; padding: .6rem 0; border-bottom: 1px solid var(--border); font-size: .87rem; }
+    .si:last-child { border-bottom: none; }
+    .si-l { color: var(--gray); font-weight: 500; }
+    .si-v { font-weight: 700; }
+    .ok { color: var(--green); } .ng { color: var(--red); } .warn { color: var(--amber); }
+
+    /* 하드웨어 카드 그리드 */
+    .hw-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.25rem; margin: 1.75rem 0; }
+    .hw-card { border-radius: 14px; overflow: hidden; box-shadow: 0 3px 12px rgba(0,0,0,.08); }
+    .hw-head { padding: 1.25rem; color: #fff; text-align: center; }
+    .hw-icon { font-size: 2.5rem; margin-bottom: .5rem; }
+    .hw-name { font-weight: 900; font-size: 1rem; margin-bottom: .2rem; }
+    .hw-spec { font-size: .76rem; opacity: .8; }
+    .hw-body { background: var(--card); padding: 1rem 1.1rem; }
+    .hw-row { display: flex; justify-content: space-between; padding: .45rem 0; border-bottom: 1px solid var(--border); font-size: .82rem; }
+    .hw-row:last-child { border-bottom: none; }
+    .hw-label { color: var(--gray); }
+    .hw-val { font-weight: 700; }
+    .badge { display: inline-block; padding: .15rem .5rem; border-radius: 5px; font-size: .72rem; font-weight: 700; }
+    .b-ok { background: var(--green-l); color: var(--green); }
+    .b-ng { background: var(--red-l); color: var(--red); }
+    .b-warn { background: var(--amber-l); color: var(--amber); }
+    .b-blue { background: var(--blue-l); color: var(--blue); }
+
+    /* 플로우 */
+    .flow { display: flex; align-items: center; justify-content: center; gap: .5rem; padding: 1.75rem; background: var(--surface); border-radius: 16px; flex-wrap: wrap; margin: 1.5rem 0; }
+    .fn { background: var(--card); border: 2px solid var(--nc, var(--blue)); border-radius: 12px; padding: 1rem 1.25rem; text-align: center; min-width: 115px; }
+    .fn-icon { font-size: 1.8rem; margin-bottom: .35rem; }
+    .fn-t { font-weight: 700; font-size: .87rem; }
+    .fn-d { font-size: .76rem; color: var(--gray); margin-top: .2rem; }
+    .farr { font-size: 1.4rem; color: var(--gray); flex-shrink: 0; }
+
+    /* 코드 */
+    .code { background: #0F172A; color: #E2E8F0; border-radius: 12px; padding: 1.4rem 1.6rem; margin: 1.1rem 0; font-size: .84rem; line-height: 1.85; overflow-x: auto; white-space: pre; }
+    .cm { color: #475569; } .ck { color: #7DD3FC; } .cs { color: #86EFAC; }
+    .cn { color: #FCA5A5; } .c-ok { color: #4ADE80; } .c-bad { color: #F87171; }
+    .c-hi { color: #FCD34D; font-weight: 700; }
+
+    /* 콜아웃 */
+    .note { display: flex; gap: .75rem; padding: 1rem 1.25rem; border-radius: 10px; margin: 1rem 0; align-items: flex-start; font-size: .92rem; line-height: 1.65; }
+    .note-icon { font-size: 1.15rem; flex-shrink: 0; }
+    .n-tip { background: var(--green-l); border-left: 3px solid var(--green); }
+    .n-warn { background: var(--amber-l); border-left: 3px solid var(--amber); }
+    .n-info { background: var(--blue-l); border-left: 3px solid var(--blue); }
+    .n-key { background: var(--purple-l); border-left: 3px solid var(--purple); }
+
+    /* 테이블 */
+    .tbl { width: 100%; border-collapse: collapse; font-size: .87rem; margin: 1.5rem 0; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+    .tbl th { padding: .85rem 1rem; font-weight: 700; text-align: left; }
+    .tbl td { padding: .72rem 1rem; border-top: 1px solid var(--border); vertical-align: middle; }
+    .tbl tr:nth-child(even) td { background: #F8FAFC; }
+    .th-dk { background: #1E293B; color: #fff; }
+    .th-cuda { background: #76b900; color: #fff; }
+    .th-nocuda { background: #7C3AED; color: #fff; }
+
+    /* 최종 배너 */
+    .finale { background: linear-gradient(135deg, #0F172A, #1E3A8A, #7C3AED); color: #fff; border-radius: 18px; padding: 2.25rem 2rem; margin: 2.5rem 0; }
+    .finale h3 { color: #fff; font-size: 1.4rem; margin: 0 0 1.25rem; }
+    .f-item { background: rgba(255,255,255,.1); border-radius: 10px; padding: .85rem 1.1rem; margin-bottom: .65rem; font-size: .92rem; line-height: 1.6; }
+    .f-item strong { color: #93C5FD; }
+    .f-item .f-ok { color: #86EFAC; }
+    .f-item .f-ng { color: #FCA5A5; }
+
+    /* 설치 체크리스트 */
+    .checklist { list-style: none; padding: 0; }
+    .checklist li { display: flex; gap: .85rem; padding: .65rem 0; border-bottom: 1px solid var(--border); font-size: .92rem; align-items: flex-start; }
+    .checklist li:last-child { border-bottom: none; }
+    .check-num { width: 1.6rem; height: 1.6rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .72rem; flex-shrink: 0; margin-top: .1rem; }
+
+    /* 반응형 */
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 1.8rem; }
+      .big-split { grid-template-columns: 1fr; }
+      .hw-grid { grid-template-columns: repeat(2, 1fr); }
+      .flow { flex-direction: column; }
+      .farr { transform: rotate(90deg); }
+    }
+    @media print {
+      .hero { background: #fff !important; color: #000 !important; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- 히어로 -->
+<header class="hero">
+  <div class="wrap">
+    <div class="hero-tags">
+      <span class="hero-tag">CUDA 있는 환경</span>
+      <span class="hero-tag">CUDA 없는 환경</span>
+      <span class="hero-tag">RTX 4090 · 4070 · 3080</span>
+      <span class="hero-tag">Jetson AGX Orin</span>
+      <span class="hero-tag">Raspberry Pi 5</span>
+      <span class="hero-tag">Intel NUC</span>
+      <span class="hero-tag">PyTorch · 드라이버</span>
+    </div>
+    <h1>CUDA 있는 환경 vs 없는 환경<br>하드웨어별 AI 설정 완전 가이드</h1>
+    <p class="hero-sub">RTX 4090·4070·3080·AGX Orin처럼 NVIDIA GPU가 있는 환경과 Raspberry Pi 5·NUC처럼 없는 환경에서 무엇이 달라지는지, 설정부터 실행까지 완전히 이해합니다.</p>
+    <div class="hero-meta">
+      <span>📅 2026년 3월 기준</span>
+      <span>🎯 재직자 실무 교육 4편</span>
+      <span>⚙️ 현장 적용 관점</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- 목차 -->
+  <div class="toc">
+    <h4>목차</h4>
+    <ol>
+      <li><a href="#s1">계층 관계 완전 정리 — PyTorch → CUDA → 드라이버 → GPU</a></li>
+      <li><a href="#s2">CUDA가 있는 환경 — RTX 4090 · 4070 · 3080 · AGX Orin</a></li>
+      <li><a href="#s3">CUDA가 없는 환경 — Raspberry Pi 5 · Intel NUC</a></li>
+      <li><a href="#s4">하드웨어별 설정 차이 한눈에 비교</a></li>
+      <li><a href="#s5">실제 설치 순서 — CUDA 있는 환경</a></li>
+      <li><a href="#s6">실제 설치 순서 — CUDA 없는 환경</a></li>
+      <li><a href="#s7">AI 워크플로우 — 학습(CUDA) → 배포(Pi5/NUC)</a></li>
+    </ol>
+  </div>
+
+  <!-- ===== S1: 계층 관계 ===== -->
+  <section id="s1">
+    <div class="shdr">
+      <div class="snum" style="background:var(--blue)">1</div>
+      <div>
+        <div class="stag" style="background:var(--blue-l);color:var(--blue)">핵심 구조</div>
+        <h2>계층 관계 완전 정리</h2>
+      </div>
+    </div>
+
+    <div class="anl a-blue">
+      <div class="anl-icon">🚗</div>
+      <div>
+        <div class="anl-title">핵심 비유 — 자동차</div>
+        <p class="anl-txt">
+          <strong>PyTorch = 운전자</strong> (방향 결정, 무엇을 계산할지)<br>
+          <strong>CUDA = 엔진</strong> (실제 동력, 어떻게 GPU로 처리할지)<br>
+          <strong>드라이버 = 계기판·제어 장치</strong> (엔진 상태 관리, 번역)<br>
+          <strong>GPU = 도로 + 연료</strong> (실제 수학 계산 수행)
+        </p>
+        <p class="anl-real">💡 "운전자(PyTorch)가 엔진(CUDA) 역할도 하면 되지 않나?" → 완전히 다른 전문 영역입니다. CUDA 없이 PyTorch만으로는 GPU를 제어할 수 없어요.</p>
+      </div>
+    </div>
+
+    <!-- 계층 다이어그램 -->
+    <div class="stack-big">
+      <div class="sl" style="background:var(--purple-l);border:2px solid var(--purple);">
+        <div class="sl-label" style="color:var(--purple)">최상위 — 내 코드</div>
+        <div class="sl-title">Python / PyTorch 코드</div>
+        <div class="sl-desc">tensor.cuda() · model.cuda() · LeRobot 호출</div>
+        <div class="sl-badge" style="background:var(--purple);color:#fff;">내가 씀</div>
+      </div>
+      <div class="sl-arrow">↓ 호출</div>
+
+      <div class="sl sl-star" style="background:var(--blue-l);border:2.5px solid var(--blue);">
+        <div class="sl-label" style="color:var(--blue)">5층 — AI 학습 엔진 ★</div>
+        <div class="sl-title">PyTorch 2.10 — "무엇을 계산할지 결정"</div>
+        <div class="sl-desc">텐서 연산 · 자동 미분(Autograd) · 신경망 설계 · 사전 학습 모델</div>
+        <div class="sl-badge" style="background:var(--blue);color:#fff;">항상 필요</div>
+      </div>
+      <div class="sl-arrow">↓ 위임 (CUDA 환경만)</div>
+
+      <div class="sl sl-star" style="background:#F0FDF4;border:2.5px solid #76b900;">
+        <div class="sl-label" style="color:#4a7c00">4층 — GPU 가속 플랫폼 ★ (CUDA 있는 환경만!)</div>
+        <div class="sl-title">CUDA Toolkit + Runtime Library (libcudart.so)</div>
+        <div class="sl-desc">GPU 메모리 관리 · 10,000개 스레드 병렬 실행 · 커널 실행 엔진</div>
+        <div class="sl-badge" style="background:#76b900;color:#fff;">CUDA 환경만</div>
+      </div>
+      <div class="sl-arrow">↓ 번역·제어</div>
+
+      <div class="sl sl-star" style="background:var(--green-l);border:2.5px solid var(--green);">
+        <div class="sl-label" style="color:var(--green)">3층 — 하드웨어 번역기 ★</div>
+        <div class="sl-title">NVIDIA GPU 드라이버 — "소프트웨어 ↔ 하드웨어 번역기"</div>
+        <div class="sl-desc">명령어 → 기계어 번역 · GPU 자원 관리 · 오류 감지 · 전력 제어</div>
+        <div class="sl-badge" style="background:var(--green);color:#fff;">CUDA 환경만</div>
+      </div>
+      <div class="sl-arrow">↓ 직접 제어</div>
+
+      <div class="sl" style="background:var(--red-l);border:2px solid var(--red);">
+        <div class="sl-label" style="color:var(--red)">1층 — 물리적 하드웨어</div>
+        <div class="sl-title">NVIDIA GPU (RTX 4090 · 4070 · 3080 · A100 · AGX Orin)</div>
+        <div class="sl-desc">수천~수만 개 CUDA 코어 · VRAM (비디오 전용 메모리) · 실제 수학 계산</div>
+        <div class="sl-badge" style="background:var(--red);color:#fff;">물리 부품</div>
+      </div>
+    </div>
+
+    <div class="note n-key">
+      <div class="note-icon">🔑</div>
+      <div><strong>핵심 포인트:</strong> CUDA(4층)와 드라이버(3층)는 <strong>NVIDIA GPU가 있을 때만 존재</strong>합니다. Raspberry Pi 5나 NUC처럼 NVIDIA GPU가 없는 환경에서는 이 두 층이 아예 없고, PyTorch가 CPU로 직접 계산합니다.</div>
+    </div>
+  </section>
+
+  <!-- ===== S2: CUDA 있는 환경 ===== -->
+  <section id="s2">
+    <div class="shdr">
+      <div class="snum" style="background:#76b900">2</div>
+      <div>
+        <div class="stag" style="background:#F0FDF4;color:#4a7c00">CUDA 환경</div>
+        <h2>CUDA가 있는 환경 — RTX 4090 · 4070 · 3080 · AGX Orin</h2>
+      </div>
+    </div>
+
+    <div class="anl a-green">
+      <div class="anl-icon">🏭</div>
+      <div>
+        <div class="anl-title">한 줄 요약</div>
+        <p class="anl-txt">NVIDIA GPU가 탑재된 장비입니다. CUDA가 있기 때문에 <strong>AI 학습(Training)</strong>과 <strong>빠른 추론(Inference)</strong> 모두 가능합니다. GPU 수천 개 코어가 동시에 계산하므로 CPU 대비 수십~수백 배 빠릅니다.</p>
+      </div>
+    </div>
+
+    <!-- 하드웨어 카드 -->
+    <div class="hw-grid">
+      <div class="hw-card">
+        <div class="hw-head" style="background:linear-gradient(135deg,#1a1a2e,#16213e)">
+          <div class="hw-icon">🖥️</div>
+          <div class="hw-name">RTX 4090</div>
+          <div class="hw-spec">데스크탑 / 워크스테이션</div>
+        </div>
+        <div class="hw-body">
+          <div class="hw-row"><span class="hw-label">CUDA 코어</span><span class="hw-val">16,384개</span></div>
+          <div class="hw-row"><span class="hw-label">VRAM</span><span class="hw-val">24GB GDDR6X</span></div>
+          <div class="hw-row"><span class="hw-label">용도</span><span class="hw-val">AI 모델 학습</span></div>
+          <div class="hw-row"><span class="hw-label">CUDA</span><span class="hw-val"><span class="badge b-ok">필수 설치</span></span></div>
+          <div class="hw-row"><span class="hw-label">드라이버</span><span class="hw-val"><span class="badge b-ok">필수 설치</span></span></div>
+        </div>
+      </div>
+
+      <div class="hw-card">
+        <div class="hw-head" style="background:linear-gradient(135deg,#1a1a2e,#2d3561)">
+          <div class="hw-icon">💻</div>
+          <div class="hw-name">RTX 4070 · 3080</div>
+          <div class="hw-spec">데스크탑 / 노트북</div>
+        </div>
+        <div class="hw-body">
+          <div class="hw-row"><span class="hw-label">CUDA 코어</span><span class="hw-val">5,888~8,704개</span></div>
+          <div class="hw-row"><span class="hw-label">VRAM</span><span class="hw-val">10~12GB</span></div>
+          <div class="hw-row"><span class="hw-label">용도</span><span class="hw-val">학습 + 추론</span></div>
+          <div class="hw-row"><span class="hw-label">CUDA</span><span class="hw-val"><span class="badge b-ok">필수 설치</span></span></div>
+          <div class="hw-row"><span class="hw-label">드라이버</span><span class="hw-val"><span class="badge b-ok">필수 설치</span></span></div>
+        </div>
+      </div>
+
+      <div class="hw-card">
+        <div class="hw-head" style="background:linear-gradient(135deg,#064E3B,#059669)">
+          <div class="hw-icon">🤖</div>
+          <div class="hw-name">Jetson AGX Orin</div>
+          <div class="hw-spec">엣지 AI 컴퓨터</div>
+        </div>
+        <div class="hw-body">
+          <div class="hw-row"><span class="hw-label">CUDA 코어</span><span class="hw-val">2,048개 (Ampere)</span></div>
+          <div class="hw-row"><span class="hw-label">통합 메모리</span><span class="hw-val">32GB (CPU+GPU 공유)</span></div>
+          <div class="hw-row"><span class="hw-label">용도</span><span class="hw-val">공장 현장 AI 추론</span></div>
+          <div class="hw-row"><span class="hw-label">CUDA</span><span class="hw-val"><span class="badge b-ok">JetPack 포함</span></span></div>
+          <div class="hw-row"><span class="hw-label">드라이버</span><span class="hw-val"><span class="badge b-ok">JetPack 포함</span></span></div>
+        </div>
+      </div>
+
+      <div class="hw-card">
+        <div class="hw-head" style="background:linear-gradient(135deg,#4C1D95,#7C3AED)">
+          <div class="hw-icon">🏢</div>
+          <div class="hw-name">A100 · H100</div>
+          <div class="hw-spec">데이터센터 서버</div>
+        </div>
+        <div class="hw-body">
+          <div class="hw-row"><span class="hw-label">CUDA 코어</span><span class="hw-val">6,912~14,592개</span></div>
+          <div class="hw-row"><span class="hw-label">VRAM</span><span class="hw-val">80GB HBM3</span></div>
+          <div class="hw-row"><span class="hw-label">용도</span><span class="hw-val">대형 LLM 학습</span></div>
+          <div class="hw-row"><span class="hw-label">CUDA</span><span class="hw-val"><span class="badge b-ok">필수 설치</span></span></div>
+          <div class="hw-row"><span class="hw-label">드라이버</span><span class="hw-val"><span class="badge b-ok">필수 설치</span></span></div>
+        </div>
+      </div>
+    </div>
+
+    <h3>CUDA 환경에서 소프트웨어 스택</h3>
+    <div class="flow">
+      <div class="fn" style="--nc:var(--purple)"><div class="fn-icon">🐍</div><div class="fn-t">Python 코드</div><div class="fn-d">LeRobot / 내 AI 코드</div></div>
+      <div class="farr">→</div>
+      <div class="fn" style="--nc:var(--blue)"><div class="fn-icon">🔥</div><div class="fn-t">PyTorch 2.10</div><div class="fn-d">AI 학습 엔진</div></div>
+      <div class="farr">→</div>
+      <div class="fn" style="--nc:#76b900"><div class="fn-icon">⚡</div><div class="fn-t">CUDA 12.x</div><div class="fn-d">GPU 명령 + Runtime</div></div>
+      <div class="farr">→</div>
+      <div class="fn" style="--nc:var(--green)"><div class="fn-icon">🔧</div><div class="fn-t">NVIDIA 드라이버</div><div class="fn-d">하드웨어 번역기</div></div>
+      <div class="farr">→</div>
+      <div class="fn" style="--nc:var(--red)"><div class="fn-icon">💻</div><div class="fn-t">GPU 하드웨어</div><div class="fn-d">수천 코어 병렬 계산</div></div>
+    </div>
+
+    <div class="code"><span class="cm"># CUDA 있는 환경에서 PyTorch 확인</span>
+<span class="ck">import</span> torch
+
+<span class="c-ok">print</span>(torch.cuda.is_available())   <span class="cm"># → True ✅</span>
+<span class="c-ok">print</span>(torch.cuda.device_count())   <span class="cm"># → 1 (GPU 수)</span>
+<span class="c-ok">print</span>(torch.cuda.get_device_name()) <span class="cm"># → "NVIDIA GeForce RTX 4090"</span>
+<span class="c-ok">print</span>(torch.version.cuda)           <span class="cm"># → "12.1"</span>
+
+<span class="cm"># GPU로 텐서 이동 (CUDA 사용)</span>
+tensor = torch.randn(1000, 1000).<span class="c-hi">cuda()</span>  <span class="cm">← GPU 메모리(VRAM)로!</span>
+result = torch.mm(tensor, tensor)          <span class="cm">← GPU 병렬 계산!</span>
+<span class="c-ok">print</span>(result.device)               <span class="cm"># → "cuda:0"</span></div>
+  </section>
+
+  <!-- ===== S3: CUDA 없는 환경 ===== -->
+  <section id="s3">
+    <div class="shdr">
+      <div class="snum" style="background:var(--purple)">3</div>
+      <div>
+        <div class="stag" style="background:var(--purple-l);color:var(--purple)">비CUDA 환경</div>
+        <h2>CUDA가 없는 환경 — Raspberry Pi 5 · Intel NUC</h2>
+      </div>
+    </div>
+
+    <div class="anl a-purple">
+      <div class="anl-icon">🍓</div>
+      <div>
+        <div class="anl-title">한 줄 요약</div>
+        <p class="anl-txt">NVIDIA GPU가 없는 장비입니다. CUDA도 없고 NVIDIA 드라이버도 없습니다. PyTorch는 설치되지만 <strong>CPU로만 계산</strong>합니다. AI 추론(실행)은 가능하지만 학습(Training)은 매우 느립니다. <strong>르키위의 호스트 역할에 최적</strong>입니다.</p>
+      </div>
+    </div>
+
+    <div class="hw-grid">
+      <div class="hw-card">
+        <div class="hw-head" style="background:linear-gradient(135deg,#7C3AED,#C026D3)">
+          <div class="hw-icon">🍓</div>
+          <div class="hw-name">Raspberry Pi 5</div>
+          <div class="hw-spec">르키위 호스트 / 엣지 컴퓨터</div>
+        </div>
+        <div class="hw-body">
+          <div class="hw-row"><span class="hw-label">CPU</span><span class="hw-val">Cortex-A76 4코어</span></div>
+          <div class="hw-row"><span class="hw-label">RAM</span><span class="hw-val">4GB / 8GB</span></div>
+          <div class="hw-row"><span class="hw-label">NVIDIA GPU</span><span class="hw-val"><span class="badge b-ng">없음</span></span></div>
+          <div class="hw-row"><span class="hw-label">CUDA</span><span class="hw-val"><span class="badge b-ng">설치 불필요</span></span></div>
+          <div class="hw-row"><span class="hw-label">NVIDIA 드라이버</span><span class="hw-val"><span class="badge b-ng">설치 불필요</span></span></div>
+          <div class="hw-row"><span class="hw-label">PyTorch</span><span class="hw-val"><span class="badge b-ok">CPU 버전만</span></span></div>
+        </div>
+      </div>
+
+      <div class="hw-card">
+        <div class="hw-head" style="background:linear-gradient(135deg,#0891B2,#06B6D4)">
+          <div class="hw-icon">📦</div>
+          <div class="hw-name">Intel NUC</div>
+          <div class="hw-spec">소형 PC / 엣지 서버</div>
+        </div>
+        <div class="hw-body">
+          <div class="hw-row"><span class="hw-label">CPU</span><span class="hw-val">Intel Core i5~i9</span></div>
+          <div class="hw-row"><span class="hw-label">RAM</span><span class="hw-val">16~64GB</span></div>
+          <div class="hw-row"><span class="hw-label">NVIDIA GPU</span><span class="hw-val"><span class="badge b-ng">없음 (내장 GPU만)</span></span></div>
+          <div class="hw-row"><span class="hw-label">CUDA</span><span class="hw-val"><span class="badge b-ng">설치 불필요</span></span></div>
+          <div class="hw-row"><span class="hw-label">NVIDIA 드라이버</span><span class="hw-val"><span class="badge b-ng">설치 불필요</span></span></div>
+          <div class="hw-row"><span class="hw-label">PyTorch</span><span class="hw-val"><span class="badge b-ok">CPU 버전만</span></span></div>
+        </div>
+      </div>
+
+      <div class="hw-card">
+        <div class="hw-head" style="background:linear-gradient(135deg,#374151,#6B7280)">
+          <div class="hw-icon">💻</div>
+          <div class="hw-name">일반 맥북 / 노트북</div>
+          <div class="hw-spec">Intel CPU (NVIDIA GPU 없는 경우)</div>
+        </div>
+        <div class="hw-body">
+          <div class="hw-row"><span class="hw-label">CPU</span><span class="hw-val">Intel / AMD</span></div>
+          <div class="hw-row"><span class="hw-label">NVIDIA GPU</span><span class="hw-val"><span class="badge b-warn">없는 경우 많음</span></span></div>
+          <div class="hw-row"><span class="hw-label">CUDA</span><span class="hw-val"><span class="badge b-ng">불필요</span></span></div>
+          <div class="hw-row"><span class="hw-label">Apple M1~M4</span><span class="hw-val"><span class="badge b-warn">MPS 사용 (별도)</span></span></div>
+          <div class="hw-row"><span class="hw-label">PyTorch</span><span class="hw-val"><span class="badge b-ok">CPU 버전</span></span></div>
+        </div>
+      </div>
+
+      <div class="hw-card">
+        <div class="hw-head" style="background:linear-gradient(135deg,#064E3B,#065F46)">
+          <div class="hw-icon">🏭</div>
+          <div class="hw-name">산업용 PLC / HMI</div>
+          <div class="hw-spec">공장 제어 컴퓨터</div>
+        </div>
+        <div class="hw-body">
+          <div class="hw-row"><span class="hw-label">CPU</span><span class="hw-val">x86 / ARM 산업용</span></div>
+          <div class="hw-row"><span class="hw-label">NVIDIA GPU</span><span class="hw-val"><span class="badge b-ng">없음</span></span></div>
+          <div class="hw-row"><span class="hw-label">CUDA</span><span class="hw-val"><span class="badge b-ng">불필요</span></span></div>
+          <div class="hw-row"><span class="hw-label">역할</span><span class="hw-val">AI 모델 실행만</span></div>
+          <div class="hw-row"><span class="hw-label">연동</span><span class="hw-val">OPC-UA · MQTT</span></div>
+        </div>
+      </div>
+    </div>
+
+    <h3>CUDA 없는 환경에서 소프트웨어 스택 (단순!)</h3>
+    <div class="flow">
+      <div class="fn" style="--nc:var(--purple)"><div class="fn-icon">🐍</div><div class="fn-t">Python 코드</div><div class="fn-d">LeRobot / 르키위 제어</div></div>
+      <div class="farr">→</div>
+      <div class="fn" style="--nc:var(--blue)"><div class="fn-icon">🔥</div><div class="fn-t">PyTorch (CPU)</div><div class="fn-d">CPU 전용 버전</div></div>
+      <div class="farr">→</div>
+      <div class="fn" style="--nc:var(--teal)"><div class="fn-icon">⚙️</div><div class="fn-t">ARM Compute Lib</div><div class="fn-d">CPU 코어 최적화</div></div>
+      <div class="farr">→</div>
+      <div class="fn" style="--nc:var(--purple)"><div class="fn-icon">🖥️</div><div class="fn-t">CPU 하드웨어</div><div class="fn-d">Cortex-A76 4코어</div></div>
+    </div>
+
+    <div class="note n-tip">
+      <div class="note-icon">💡</div>
+      <div><strong>CUDA 없는 환경의 장점:</strong> 설정이 훨씬 단순합니다. NVIDIA 드라이버 설치, CUDA 버전 호환성 확인, VRAM 관리 — 이런 복잡한 작업이 전혀 없습니다. <code>pip install torch</code> 한 줄로 끝납니다.</div>
+    </div>
+
+    <div class="code"><span class="cm"># CUDA 없는 환경 (Pi 5, NUC)에서 PyTorch 확인</span>
+<span class="ck">import</span> torch
+
+<span class="c-ok">print</span>(torch.cuda.is_available())   <span class="cm"># → False (당연함!)</span>
+<span class="c-ok">print</span>(torch.version.cuda)           <span class="cm"># → None</span>
+
+<span class="cm"># CPU로 자동 사용 (따로 설정 불필요)</span>
+device = <span class="cs">"cuda"</span> <span class="ck">if</span> torch.cuda.is_available() <span class="ck">else</span> <span class="cs">"cpu"</span>
+<span class="c-ok">print</span>(device)  <span class="cm"># → "cpu"</span>
+
+tensor = torch.randn(1000, 1000)  <span class="cm"># CPU 메모리(RAM)에 생성</span>
+result = torch.mm(tensor, tensor)  <span class="cm"># CPU 4코어로 계산</span>
+<span class="c-ok">print</span>(result.device)  <span class="cm"># → "cpu"</span>
+
+<span class="cm"># nvidia-smi 실행하면?</span>
+<span class="c-bad"># → "NVIDIA-SMI has failed because it couldn't communicate..."</span>
+<span class="cm"># → 정상! NVIDIA GPU 없으니 당연한 오류</span></div>
+  </section>
+
+  <!-- ===== S4: 비교 ===== -->
+  <section id="s4">
+    <div class="shdr">
+      <div class="snum" style="background:var(--amber)">4</div>
+      <div>
+        <div class="stag" style="background:var(--amber-l);color:var(--amber)">핵심 비교</div>
+        <h2>하드웨어별 설정 차이 한눈에 비교</h2>
+      </div>
+    </div>
+
+    <div class="big-split">
+      <div class="split-card">
+        <div class="split-head" style="background:linear-gradient(135deg,#4a7c00,#76b900)">
+          <div class="split-head-tag">CUDA 있는 환경</div>
+          <h3>RTX 4090 · 4070 · 3080 · AGX Orin</h3>
+          <div class="split-head-sub">복잡하지만 강력 — AI 학습 가능</div>
+        </div>
+        <div class="split-body">
+          <div class="si"><span class="si-l">NVIDIA 드라이버</span><span class="si-v ok">필수 설치</span></div>
+          <div class="si"><span class="si-l">CUDA 설치</span><span class="si-v ok">필수 (PyTorch에 포함)</span></div>
+          <div class="si"><span class="si-l">설정 복잡도</span><span class="si-v warn">높음 (버전 호환 확인)</span></div>
+          <div class="si"><span class="si-l">AI 학습 속도</span><span class="si-v ok">수십~수백 배 빠름</span></div>
+          <div class="si"><span class="si-l">AI 추론 속도</span><span class="si-v ok">매우 빠름</span></div>
+          <div class="si"><span class="si-l">nvidia-smi</span><span class="si-v ok">정상 동작</span></div>
+          <div class="si"><span class="si-l">torch.cuda.is_available()</span><span class="si-v ok">True</span></div>
+          <div class="si"><span class="si-l">VRAM 관리</span><span class="si-v warn">별도 관리 필요</span></div>
+          <div class="si"><span class="si-l">현장 역할</span><span class="si-v ok">모델 학습 서버</span></div>
+        </div>
+      </div>
+
+      <div class="split-card">
+        <div class="split-head" style="background:linear-gradient(135deg,#4C1D95,#7C3AED)">
+          <div class="split-head-tag">CUDA 없는 환경</div>
+          <h3>Raspberry Pi 5 · Intel NUC</h3>
+          <div class="split-head-sub">단순하지만 충분 — 르키위 호스트에 최적</div>
+        </div>
+        <div class="split-body">
+          <div class="si"><span class="si-l">NVIDIA 드라이버</span><span class="si-v ng">불필요 (없음)</span></div>
+          <div class="si"><span class="si-l">CUDA 설치</span><span class="si-v ng">불필요 (없음)</span></div>
+          <div class="si"><span class="si-l">설정 복잡도</span><span class="si-v ok">낮음 (pip만으로 끝)</span></div>
+          <div class="si"><span class="si-l">AI 학습 속도</span><span class="si-v warn">느림 (CPU만)</span></div>
+          <div class="si"><span class="si-l">AI 추론 속도</span><span class="si-v warn">보통 (소형 모델 가능)</span></div>
+          <div class="si"><span class="si-l">nvidia-smi</span><span class="si-v ng">오류 (정상!)</span></div>
+          <div class="si"><span class="si-l">torch.cuda.is_available()</span><span class="si-v ng">False (정상!)</span></div>
+          <div class="si"><span class="si-l">메모리 관리</span><span class="si-v ok">RAM만 관리</span></div>
+          <div class="si"><span class="si-l">현장 역할</span><span class="si-v ok">로봇 호스트 / 추론 실행</span></div>
+        </div>
+      </div>
+    </div>
+
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th class="th-dk">항목</th>
+          <th class="th-cuda">RTX 4090</th>
+          <th class="th-cuda">RTX 4070</th>
+          <th class="th-cuda">AGX Orin</th>
+          <th class="th-nocuda">Pi 5</th>
+          <th class="th-nocuda">NUC</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>NVIDIA 드라이버</td>
+          <td><span class="badge b-ok">필수</span></td>
+          <td><span class="badge b-ok">필수</span></td>
+          <td><span class="badge b-ok">JetPack</span></td>
+          <td><span class="badge b-ng">불필요</span></td>
+          <td><span class="badge b-ng">불필요</span></td>
+        </tr>
+        <tr>
+          <td>CUDA 설치</td>
+          <td><span class="badge b-ok">필수</span></td>
+          <td><span class="badge b-ok">필수</span></td>
+          <td><span class="badge b-ok">JetPack 포함</span></td>
+          <td><span class="badge b-ng">없음</span></td>
+          <td><span class="badge b-ng">없음</span></td>
+        </tr>
+        <tr>
+          <td>PyTorch 설치</td>
+          <td>CUDA 버전</td>
+          <td>CUDA 버전</td>
+          <td>Jetson 전용</td>
+          <td>CPU 버전</td>
+          <td>CPU 버전</td>
+        </tr>
+        <tr>
+          <td>AI 학습</td>
+          <td><span class="badge b-ok">매우 빠름</span></td>
+          <td><span class="badge b-ok">빠름</span></td>
+          <td><span class="badge b-warn">가능(중간)</span></td>
+          <td><span class="badge b-ng">매우 느림</span></td>
+          <td><span class="badge b-ng">느림</span></td>
+        </tr>
+        <tr>
+          <td>르키위 호스트</td>
+          <td><span class="badge b-warn">과스펙</span></td>
+          <td><span class="badge b-warn">과스펙</span></td>
+          <td><span class="badge b-ok">최적</span></td>
+          <td><span class="badge b-ok">최적</span></td>
+          <td><span class="badge b-ok">적합</span></td>
+        </tr>
+        <tr>
+          <td>현장 배포</td>
+          <td>학습 서버</td>
+          <td>개발 PC</td>
+          <td>엣지 AI</td>
+          <td>로봇 호스트</td>
+          <td>엣지 서버</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ===== S5: 설치 순서 (CUDA) ===== -->
+  <section id="s5">
+    <div class="shdr">
+      <div class="snum" style="background:#76b900">5</div>
+      <div>
+        <div class="stag" style="background:#F0FDF4;color:#4a7c00">설치 가이드</div>
+        <h2>실제 설치 순서 — CUDA 있는 환경 (Ubuntu 24.04 + RTX GPU)</h2>
+      </div>
+    </div>
+
+    <div class="note n-warn">
+      <div class="note-icon">⚠️</div>
+      <div><strong>순서가 매우 중요합니다!</strong> 드라이버 → CUDA(PyTorch에 포함) → PyTorch 순서로 설치해야 합니다. 순서가 틀리면 버전 충돌이 발생합니다.</div>
+    </div>
+
+    <ul class="checklist">
+      <li>
+        <div class="check-num" style="background:var(--blue);color:#fff;">1</div>
+        <div>
+          <strong>NVIDIA 드라이버 설치</strong> — 가장 먼저!<br>
+          <span style="font-size:.87rem;color:var(--gray);">Ubuntu 소프트웨어 업데이트 → 추가 드라이버 탭 → NVIDIA driver 선택 → 적용</span>
+          <div class="code" style="margin-top:.5rem;">ubuntu-drivers autoinstall          <span class="cm"># 자동 설치 (권장)</span>
+sudo apt install nvidia-driver-535  <span class="cm"># 직접 지정 설치</span>
+sudo reboot                         <span class="cm"># 재부팅 필수!</span>
+nvidia-smi                          <span class="cm"># 설치 확인 → GPU 정보 표시되면 성공</span></div>
+        </div>
+      </li>
+      <li>
+        <div class="check-num" style="background:#76b900;color:#fff;">2</div>
+        <div>
+          <strong>Miniforge (Conda) 설치</strong><br>
+          <span style="font-size:.87rem;color:var(--gray);">Python 환경 분리를 위해 시스템 Python 건드리지 않고 Conda 사용</span>
+          <div class="code" style="margin-top:.5rem;">wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh
+bash Miniforge3-Linux-x86_64.sh</div>
+        </div>
+      </li>
+      <li>
+        <div class="check-num" style="background:var(--purple);color:#fff;">3</div>
+        <div>
+          <strong>PyTorch CUDA 버전 설치</strong> — CUDA Toolkit이 자동 포함됨<br>
+          <span style="font-size:.87rem;color:var(--gray);">PyTorch 2.0부터 CUDA Runtime Library가 PyTorch 안에 포함 → 별도 설치 불필요!</span>
+          <div class="code" style="margin-top:.5rem;">conda create -n lerobot python=3.10
+conda activate lerobot
+
+<span class="cm"># CUDA 12.1 버전 PyTorch 설치 (CUDA Toolkit 포함)</span>
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+
+<span class="cm"># 설치 확인</span>
+python -c "import torch; print(torch.cuda.is_available())"  <span class="cm"># → True ✅</span></div>
+        </div>
+      </li>
+      <li>
+        <div class="check-num" style="background:var(--green);color:#fff;">4</div>
+        <div>
+          <strong>LeRobot 설치</strong><br>
+          <div class="code" style="margin-top:.5rem;">pip install lerobot
+<span class="cm"># 또는 개발용 설치</span>
+git clone https://github.com/huggingface/lerobot
+pip install -e ".[feetech]"</div>
+        </div>
+      </li>
+      <li>
+        <div class="check-num" style="background:var(--amber);color:#fff;">5</div>
+        <div>
+          <strong>최종 확인</strong><br>
+          <div class="code" style="margin-top:.5rem;">nvidia-smi                              <span class="cm"># GPU 상태</span>
+python -c "import torch; print(torch.cuda.get_device_name())"  <span class="cm"># GPU 이름</span>
+python -c "import torch; print(torch.version.cuda)"            <span class="cm"># CUDA 버전</span></div>
+        </div>
+      </li>
+    </ul>
+  </section>
+
+  <!-- ===== S6: 설치 순서 (비CUDA) ===== -->
+  <section id="s6">
+    <div class="shdr">
+      <div class="snum" style="background:var(--purple)">6</div>
+      <div>
+        <div class="stag" style="background:var(--purple-l);color:var(--purple)">설치 가이드</div>
+        <h2>실제 설치 순서 — CUDA 없는 환경 (Pi 5 + Raspberry Pi OS / Ubuntu 24.04)</h2>
+      </div>
+    </div>
+
+    <div class="note n-tip">
+      <div class="note-icon">💡</div>
+      <div><strong>훨씬 단순합니다!</strong> NVIDIA 드라이버, CUDA 설정, VRAM 관리 — 이런 복잡한 단계가 전혀 없습니다. Python + PyTorch만 설치하면 끝입니다.</div>
+    </div>
+
+    <ul class="checklist">
+      <li>
+        <div class="check-num" style="background:var(--teal);color:#fff;">1</div>
+        <div>
+          <strong>OS 설치 확인</strong> — 드라이버 없음, 이게 정상!<br>
+          <div class="code" style="margin-top:.5rem;">nvidia-smi  <span class="c-bad"># → 오류 발생 → 정상! NVIDIA GPU 없으니 당연</span>
+uname -m    <span class="cm"># → aarch64 (ARM 64비트 확인)</span></div>
+        </div>
+      </li>
+      <li>
+        <div class="check-num" style="background:var(--purple);color:#fff;">2</div>
+        <div>
+          <strong>Miniforge (ARM64) 설치</strong><br>
+          <div class="code" style="margin-top:.5rem;"><span class="cm"># Pi 5는 ARM64 버전 설치!</span>
+wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-aarch64.sh
+bash Miniforge3-Linux-aarch64.sh</div>
+        </div>
+      </li>
+      <li>
+        <div class="check-num" style="background:var(--blue);color:#fff;">3</div>
+        <div>
+          <strong>PyTorch CPU 버전 설치</strong> — CUDA 없이!<br>
+          <div class="code" style="margin-top:.5rem;">conda create -n lerobot python=3.10
+conda activate lerobot
+
+<span class="cm"># CPU 전용 PyTorch 설치 (CUDA 관련 설정 전혀 없음)</span>
+pip install torch torchvision  <span class="cm"># ← 그냥 이게 끝!</span>
+
+<span class="cm"># 설치 확인</span>
+python -c "import torch; print(torch.cuda.is_available())"  <span class="cm"># → False (정상!)</span>
+python -c "import torch; print(torch.__version__)"          <span class="cm"># → 2.x.x+cpu</span></div>
+        </div>
+      </li>
+      <li>
+        <div class="check-num" style="background:var(--green);color:#fff;">4</div>
+        <div>
+          <strong>LeRobot + 르키위 설치</strong><br>
+          <div class="code" style="margin-top:.5rem;">pip install lerobot
+pip install pyzmq feetech-servo-sdk  <span class="cm"># 르키위 통신 필요</span>
+
+<span class="cm"># 르키위 카메라 테스트</span>
+python -m lerobot.find_cameras opencv</div>
+        </div>
+      </li>
+    </ul>
+  </section>
+
+  <!-- ===== S7: AI 워크플로우 ===== -->
+  <section id="s7">
+    <div class="shdr">
+      <div class="snum" style="background:var(--red)">7</div>
+      <div>
+        <div class="stag" style="background:var(--red-l);color:var(--red)">현장 워크플로우</div>
+        <h2>AI 워크플로우 — 학습(CUDA 서버) → 배포(Pi 5 / NUC)</h2>
+      </div>
+    </div>
+
+    <div class="anl a-amber">
+      <div class="anl-icon">🏭</div>
+      <div>
+        <div class="anl-title">핵심 개념 — 분업</div>
+        <p class="anl-txt">학습과 배포는 다른 장비에서 합니다. <strong>PC/서버(CUDA)</strong>에서 무거운 AI 학습을 하고, 완성된 모델만 <strong>Pi 5 / AGX Orin</strong>에 올려서 실행합니다. 공장에서 매번 현장 장비로 학습하지 않아요.</p>
+      </div>
+    </div>
+
+    <!-- 워크플로우 다이어그램 -->
+    <div style="background:var(--surface);border-radius:16px;padding:2rem;margin:1.5rem 0;">
+      <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:1rem;align-items:center;">
+        <!-- 왼쪽: 학습 환경 -->
+        <div style="background:var(--card);border:2.5px solid #76b900;border-radius:14px;padding:1.5rem;">
+          <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#4a7c00;margin-bottom:.5rem;">학습 환경 (개발실 / 서버실)</div>
+          <div style="font-size:2rem;text-align:center;margin:.5rem 0;">🖥️</div>
+          <div style="font-weight:700;text-align:center;margin-bottom:.75rem;">PC + RTX 4090/4070</div>
+          <div style="font-size:.82rem;color:var(--gray);line-height:1.7;">
+            ✅ Ubuntu 24.04<br>
+            ✅ NVIDIA 드라이버<br>
+            ✅ CUDA 12.x<br>
+            ✅ PyTorch (CUDA 버전)<br>
+            ✅ LeRobot 학습 실행<br>
+            📁 model.pth 저장
+          </div>
+        </div>
+
+        <!-- 화살표 -->
+        <div style="text-align:center;">
+          <div style="font-size:2rem;">→</div>
+          <div style="font-size:.78rem;color:var(--gray);margin-top:.25rem;">모델 파일<br>전송</div>
+        </div>
+
+        <!-- 오른쪽: 배포 환경 -->
+        <div style="background:var(--card);border:2.5px solid var(--purple);border-radius:14px;padding:1.5rem;">
+          <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--purple);margin-bottom:.5rem;">배포 환경 (공장 현장)</div>
+          <div style="font-size:2rem;text-align:center;margin:.5rem 0;">🍓</div>
+          <div style="font-weight:700;text-align:center;margin-bottom:.75rem;">Pi 5 / AGX Orin</div>
+          <div style="font-size:.82rem;color:var(--gray);line-height:1.7;">
+            ✅ Ubuntu 24.04 / Pi OS<br>
+            ❌ NVIDIA 드라이버 불필요<br>
+            ❌ CUDA 불필요<br>
+            ✅ PyTorch (CPU 버전)<br>
+            ✅ 모델 로드 → 실행<br>
+            ✅ 르키위 로봇 제어
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="code"><span class="cm"># ─── 학습 서버 (RTX 4090, CUDA 있음) ───</span>
+model = MyRobotModel()
+model = model.to(<span class="cs">"cuda"</span>)            <span class="cm"># GPU 학습</span>
+
+<span class="cm"># 1000번 에피소드 학습 (GPU로 30분)</span>
+<span class="ck">for</span> episode <span class="ck">in</span> range(1000):
+    loss = train_step(model, data)
+
+torch.save(model.state_dict(), <span class="cs">"lekiwi_model.pth"</span>)  <span class="cm"># 모델 저장</span>
+
+<span class="cm"># ─── Pi 5 현장 (CUDA 없음) ───</span>
+model = MyRobotModel()
+model.load_state_dict(
+    torch.load(<span class="cs">"lekiwi_model.pth"</span>, map_location=<span class="cs">"cpu"</span>)  <span class="cm">← CPU로 로드!</span>
+)
+model.eval()
+
+<span class="cm"># 카메라 영상으로 실시간 추론 (CPU로 충분)</span>
+<span class="ck">while</span> <span class="ck">True</span>:
+    frame = camera.read()
+    action = model(frame)      <span class="cm"># CPU 추론 → 충분히 빠름</span>
+    lekiwi.move(action)        <span class="cm"># 르키위 모터 제어</span></div>
+
+    <!-- 최종 배너 -->
+    <div class="finale">
+      <h3>🎯 하드웨어별 설정 핵심 7줄 요약</h3>
+      <div class="f-item"><strong>① RTX 4090 · 4070 · 3080:</strong> <span class="f-ok">NVIDIA 드라이버 → PyTorch CUDA 버전 → AI 학습</span> — 3단계 필수</div>
+      <div class="f-item"><strong>② AGX Orin:</strong> <span class="f-ok">JetPack 설치로 드라이버+CUDA 한번에 해결</span> — 현장 엣지 AI에 최적</div>
+      <div class="f-item"><strong>③ Raspberry Pi 5:</strong> <span class="f-ok">pip install torch만으로 끝</span> — CUDA · 드라이버 설정 전혀 불필요</div>
+      <div class="f-item"><strong>④ Intel NUC:</strong> <span class="f-ok">Pi 5와 동일 — CPU 전용 PyTorch만 설치</span></div>
+      <div class="f-item"><strong>⑤ 핵심 구분법:</strong> <span class="f-ok">nvidia-smi 동작하면 CUDA 환경 / 오류나면 비CUDA 환경 (오류가 정상!)</span></div>
+      <div class="f-item"><strong>⑥ 워크플로우:</strong> PC(CUDA)에서 학습 → model.pth 파일 → Pi5/Orin에서 실행</div>
+      <div class="f-item"><strong>⑦ 재직자 교육:</strong> CUDA 환경(PC)에서 학습 원리 이해 → 비CUDA 환경(Pi5)에서 현장 배포 실습</div>
+    </div>
+  </section>
+
+</div>
+
+<footer style="background:#0F172A;color:#475569;padding:2rem 0;margin-top:4rem;text-align:center;font-size:.83rem;">
+  <div class="wrap">
+    <p>CUDA 있는 환경 vs 없는 환경 — 하드웨어별 AI 설정 완전 가이드 | 2026년 3월</p>
+    <p style="margin-top:.5rem;opacity:.6;">AI 로봇 교육 시리즈 4편 | 1편: 환경구축 · 2편: Python/GIL/LSE · 3편: PyTorch/CUDA/드라이버</p>
+  </div>
+</footer>
+
+</body>
+</html>

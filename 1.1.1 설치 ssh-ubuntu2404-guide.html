@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SSH 완전 가이드 — Ubuntu 24.04</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-primary: #0891B2;
+      --color-primary-light: #CFFAFE;
+      --color-secondary: #7C3AED;
+      --color-secondary-light: #EDE9FE;
+      --color-success: #059669;
+      --color-success-light: #D1FAE5;
+      --color-warning: #D97706;
+      --color-warning-light: #FEF3C7;
+      --color-danger: #DC2626;
+      --color-danger-light: #FEE2E2;
+      --color-surface: #F0F9FF;
+      --color-card: #FFFFFF;
+      --color-text: #1E293B;
+      --color-muted: #64748B;
+      --color-border: #E2E8F0;
+    }
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      color: var(--color-text);
+      background: var(--color-surface);
+      line-height: 1.75;
+    }
+    code, pre, .mono { font-family: 'JetBrains Mono', monospace; }
+    .container { max-width: 900px; margin: 0 auto; padding: 0 1.5rem; }
+    section { padding: 3.5rem 0; }
+    section + section { border-top: 2px dashed var(--color-border); }
+    h2 { font-size: 1.75rem; font-weight: 700; margin-bottom: 0.5rem; }
+    h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 0.75rem; color: var(--color-text); }
+    p { line-height: 1.85; margin-bottom: 0.75rem; }
+
+    /* ── 히어로 ── */
+    .hero {
+      background: linear-gradient(135deg, #164E63 0%, #0e7490 55%, #0891B2 100%);
+      color: white;
+      padding: 4rem 0 3rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::after {
+      content: 'SSH';
+      position: absolute;
+      right: 3rem; top: 50%;
+      transform: translateY(-50%);
+      font-size: 9rem; font-weight: 900;
+      opacity: 0.07; font-family: 'JetBrains Mono';
+      line-height: 1; pointer-events: none;
+    }
+    .hero-tags { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.25rem; }
+    .hero-tag {
+      padding: 0.3rem 1rem; border-radius: 999px;
+      font-size: 0.78rem; font-weight: 700; letter-spacing: 0.05em;
+    }
+    .tag-teal { background: rgba(255,255,255,0.15); color: white; }
+    .tag-green { background: rgba(16,185,129,0.3); color: #6EE7B7; }
+    .tag-yellow { background: rgba(251,191,36,0.3); color: #FDE68A; }
+    .hero h1 {
+      font-size: clamp(2rem, 5vw, 2.8rem);
+      font-weight: 900; line-height: 1.2; margin-bottom: 1rem;
+    }
+    .hero-subtitle { font-size: 1.05rem; opacity: 0.85; max-width: 600px; line-height: 1.7; }
+
+    /* ── 섹션 배지 ── */
+    .section-badge {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      background: var(--color-primary-light);
+      color: var(--color-primary);
+      padding: 0.3rem 0.9rem; border-radius: 999px;
+      font-size: 0.78rem; font-weight: 700; letter-spacing: 0.05em;
+      margin-bottom: 0.75rem;
+    }
+
+    /* ── 비유 박스 ── */
+    .analogy-box {
+      display: flex; gap: 1.25rem; padding: 1.5rem;
+      background: var(--color-primary-light);
+      border-radius: 12px; border-left: 4px solid var(--color-primary);
+      margin: 1.5rem 0;
+    }
+    .analogy-icon { font-size: 2.5rem; flex-shrink: 0; }
+    .analogy-title {
+      font-weight: 700; font-size: 0.78rem; color: var(--color-primary);
+      text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.4rem;
+    }
+    .analogy-text { line-height: 1.75; color: var(--color-text); }
+    .analogy-real {
+      margin-top: 0.75rem; padding-top: 0.75rem;
+      border-top: 1px dashed #67E8F9;
+      font-size: 0.9rem; color: var(--color-muted);
+    }
+
+    /* ── callout ── */
+    .callout {
+      display: flex; gap: 0.75rem; padding: 1rem 1.25rem;
+      border-radius: 10px; align-items: flex-start; margin: 1rem 0;
+    }
+    .callout-icon { font-size: 1.2rem; flex-shrink: 0; padding-top: 0.1rem; }
+    .callout-content { font-size: 0.95rem; line-height: 1.65; }
+    .callout-tip { background: var(--color-success-light); border-left: 3px solid var(--color-success); }
+    .callout-warning { background: var(--color-warning-light); border-left: 3px solid var(--color-warning); }
+    .callout-danger { background: var(--color-danger-light); border-left: 3px solid var(--color-danger); }
+    .callout-info { background: var(--color-primary-light); border-left: 3px solid var(--color-primary); }
+
+    /* ── 플로우 다이어그램 ── */
+    .flow-wrap {
+      background: #0F172A; border-radius: 16px; padding: 2rem;
+      margin: 1.5rem 0; overflow-x: auto;
+    }
+    .flow-row {
+      display: flex; align-items: center; justify-content: center;
+      gap: 0.75rem; flex-wrap: nowrap; min-width: max-content;
+    }
+    .flow-node {
+      background: #1E293B; border: 2px solid var(--nc, #0891B2);
+      border-radius: 12px; padding: 1rem 1.25rem;
+      text-align: center; min-width: 120px;
+      transition: transform 0.2s;
+    }
+    .flow-node:hover { transform: translateY(-3px); }
+    .flow-icon { font-size: 1.75rem; margin-bottom: 0.4rem; }
+    .flow-title { font-weight: 700; font-size: 0.88rem; color: white; }
+    .flow-desc { font-size: 0.75rem; color: #94A3B8; margin-top: 0.2rem; }
+    .flow-arr { color: #0891B2; font-size: 1.5rem; flex-shrink: 0; }
+
+    /* ── 비교 카드 ── */
+    .compare-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.25rem; margin: 1.5rem 0;
+    }
+    .compare-card { border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08); background: var(--color-card); }
+    .compare-header { padding: 1.25rem; color: white; text-align: center; }
+    .compare-header h4 { margin: 0.4rem 0 0; font-size: 1rem; }
+    .compare-icon { font-size: 2rem; }
+    .compare-body { padding: 1rem; }
+    .compare-item {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      padding: 0.65rem 0; border-bottom: 1px solid var(--color-border);
+      gap: 0.5rem;
+    }
+    .compare-item:last-child { border-bottom: none; }
+    .compare-label { color: var(--color-muted); font-size: 0.85rem; flex-shrink: 0; }
+    .compare-value { font-weight: 700; font-size: 0.88rem; color: var(--color-text); text-align: right; }
+
+    /* ── 터미널 단계 박스 ── */
+    .step-card {
+      background: var(--color-card); border-radius: 14px;
+      border: 1px solid var(--color-border);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      margin: 1.5rem 0; overflow: hidden;
+    }
+    .step-header {
+      display: flex; align-items: center; gap: 1rem;
+      padding: 1rem 1.5rem;
+      background: linear-gradient(90deg, #164E63, #0891B2);
+      color: white;
+    }
+    .step-num {
+      width: 2.2rem; height: 2.2rem; border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900; font-size: 1rem; flex-shrink: 0;
+    }
+    .step-header-text h4 { font-size: 1rem; font-weight: 700; }
+    .step-header-text p { font-size: 0.82rem; opacity: 0.85; margin: 0; }
+    .step-body { padding: 1.25rem 1.5rem; }
+    .step-body p { font-size: 0.95rem; margin-bottom: 0.75rem; }
+
+    /* ── 터미널 명령어 블록 ── */
+    .terminal {
+      background: #0F172A; border-radius: 10px;
+      padding: 1rem 1.25rem; margin: 0.75rem 0;
+      font-family: 'JetBrains Mono'; font-size: 0.875rem;
+      line-height: 1.9;
+    }
+    .t-comment { color: #475569; }
+    .t-prompt { color: #34D399; font-weight: 700; user-select: none; }
+    .t-cmd { color: #E2E8F0; }
+    .t-arg { color: #60A5FA; }
+    .t-flag { color: #A78BFA; }
+    .t-string { color: #FCD34D; }
+    .t-out { color: #94A3B8; font-style: italic; }
+    .t-ok { color: #34D399; }
+    .t-err { color: #F87171; }
+    .t-label {
+      display: inline-block; background: #1E293B; color: #64748B;
+      font-size: 0.72rem; padding: 0.15rem 0.6rem; border-radius: 4px;
+      margin-bottom: 0.5rem; letter-spacing: 0.05em;
+    }
+
+    /* ── 기대 출력 박스 ── */
+    .expect-box {
+      background: #064E3B; border-radius: 8px; padding: 0.85rem 1.1rem;
+      margin-top: 0.5rem; font-family: 'JetBrains Mono'; font-size: 0.82rem;
+      line-height: 1.8; color: #6EE7B7;
+    }
+    .expect-label { color: #34D399; font-size: 0.72rem; font-weight: 700; margin-bottom: 0.35rem; letter-spacing: 0.07em; }
+
+    /* ── SSH 구조 다이어그램 ── */
+    .ssh-arch {
+      display: flex; align-items: center; justify-content: center;
+      gap: 1.5rem; padding: 2rem;
+      background: #0F172A; border-radius: 16px; margin: 1.5rem 0;
+      flex-wrap: wrap;
+    }
+    .ssh-machine {
+      background: #1E293B; border-radius: 14px; padding: 1.25rem 1.5rem;
+      text-align: center; min-width: 160px;
+    }
+    .ssh-machine-icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+    .ssh-machine-name { font-weight: 700; color: white; font-size: 0.95rem; }
+    .ssh-machine-sub { font-size: 0.78rem; color: #64748B; margin-top: 0.2rem; }
+    .ssh-tunnel {
+      display: flex; flex-direction: column; align-items: center; gap: 0.35rem;
+    }
+    .ssh-tunnel-line {
+      width: 120px; height: 4px;
+      background: linear-gradient(90deg, #0891B2, #06B6D4);
+      border-radius: 2px;
+    }
+    .ssh-tunnel-label {
+      font-size: 0.72rem; color: #0891B2; font-weight: 700;
+      font-family: 'JetBrains Mono'; letter-spacing: 0.05em;
+    }
+    .ssh-lock { font-size: 1.25rem; }
+
+    /* ── 키 인증 시각화 ── */
+    .key-visual {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.5rem 0;
+    }
+    .key-card { border-radius: 12px; overflow: hidden; border: 1px solid var(--color-border); }
+    .key-header { padding: 0.85rem 1.1rem; font-weight: 700; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem; }
+    .kh-private { background: #FEF3C7; color: #92400E; }
+    .kh-public  { background: #D1FAE5; color: #065F46; }
+    .key-body { background: #0F172A; padding: 1rem 1.1rem; font-family: 'JetBrains Mono'; font-size: 0.78rem; line-height: 1.7; }
+    .key-priv { color: #FBBF24; }
+    .key-pub  { color: #34D399; }
+
+    /* ── 비교표 ── */
+    .info-table {
+      width: 100%; border-collapse: collapse; margin: 1.25rem 0;
+      border-radius: 12px; overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .info-table th {
+      background: var(--color-primary); color: white;
+      padding: 0.85rem 1.25rem; font-size: 0.88rem; text-align: left;
+    }
+    .info-table td {
+      padding: 0.8rem 1.25rem; border-bottom: 1px solid var(--color-border);
+      font-size: 0.9rem;
+    }
+    .info-table tr:last-child td { border-bottom: none; }
+    .info-table tr:nth-child(even) td { background: #F0F9FF; }
+    .info-table code { font-family: 'JetBrains Mono'; font-weight: 700; background: #F1F5F9; padding: 0.1rem 0.35rem; border-radius: 4px; font-size: 0.85rem; }
+    .badge-ok { background: var(--color-success-light); color: #065F46; padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.78rem; font-weight: 700; }
+    .badge-no { background: var(--color-danger-light); color: #991B1B; padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.78rem; font-weight: 700; }
+
+    /* ── accordion ── */
+    .accordion { border: 1px solid var(--color-border); border-radius: 10px; overflow: hidden; margin: 1rem 0; }
+    .accordion-toggle { display: none; }
+    .accordion-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 1rem 1.25rem; cursor: pointer; font-weight: 600;
+      background: var(--color-surface); user-select: none; font-size: 0.95rem;
+    }
+    .accordion-body {
+      max-height: 0; overflow: hidden;
+      transition: max-height 0.35s ease, padding 0.3s ease;
+      padding: 0 1.25rem; background: var(--color-card);
+    }
+    .accordion-toggle:checked ~ .accordion-body { max-height: 1500px; padding: 1.25rem; }
+    .accordion-toggle:checked ~ .accordion-header .acc-chevron { transform: rotate(90deg); }
+    .acc-chevron { transition: transform 0.2s; color: var(--color-muted); }
+
+    /* ── 진행 체크리스트 ── */
+    .checklist { list-style: none; padding: 0; margin: 1rem 0; }
+    .checklist li {
+      display: flex; align-items: flex-start; gap: 0.75rem;
+      padding: 0.65rem 0; border-bottom: 1px solid var(--color-border);
+      font-size: 0.95rem;
+    }
+    .checklist li:last-child { border-bottom: none; }
+    .cl-num {
+      width: 1.8rem; height: 1.8rem; border-radius: 50%;
+      background: var(--color-primary); color: white;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.8rem; font-weight: 900; flex-shrink: 0; margin-top: 0.1rem;
+    }
+
+    /* ── 트러블슈팅 ── */
+    .trouble-item {
+      background: var(--color-card); border-radius: 10px;
+      border: 1px solid var(--color-border); margin: 0.75rem 0; overflow: hidden;
+    }
+    .trouble-err {
+      background: #1E293B; padding: 0.75rem 1.25rem;
+      font-family: 'JetBrains Mono'; font-size: 0.85rem; color: #F87171;
+    }
+    .trouble-body { padding: 1rem 1.25rem; font-size: 0.9rem; }
+    .trouble-cause { color: var(--color-muted); margin-bottom: 0.5rem; }
+
+    /* ── 반응형 ── */
+    @media (max-width: 768px) {
+      .flow-row { flex-direction: column; min-width: auto; }
+      .flow-arr { transform: rotate(90deg); }
+      .ssh-arch { flex-direction: column; }
+      .ssh-tunnel { flex-direction: row; }
+      .ssh-tunnel-line { width: 60px; height: 4px; }
+      .key-visual { grid-template-columns: 1fr; }
+      .compare-grid { grid-template-columns: 1fr; }
+      .hero::after { display: none; }
+    }
+    @media print {
+      .hero { background: #0891B2 !important; }
+      .accordion-body { max-height: none !important; padding: 1.25rem !important; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════ 히어로 ══════════════════ -->
+<header class="hero">
+  <div class="container">
+    <div class="hero-tags">
+      <span class="hero-tag tag-teal">SSH</span>
+      <span class="hero-tag tag-green">Ubuntu 24.04</span>
+      <span class="hero-tag tag-yellow">Network / 보안</span>
+    </div>
+    <h1>SSH 완전 가이드<br>개념 + 단계별 설치</h1>
+    <p class="hero-subtitle">
+      SSH가 무엇인지 초등학생도 이해할 수 있는 비유로 설명하고,
+      Ubuntu 24.04에서 단계별로 설치·설정·접속·키 인증까지 한 번에 정리합니다.
+    </p>
+  </div>
+</header>
+
+<!-- ══════════════════ CH1: SSH가 뭐야? ══════════════════ -->
+<section>
+  <div class="container">
+    <div class="section-badge">🔐 CHAPTER 1</div>
+    <h2>SSH가 무엇인가요?</h2>
+
+    <!-- 한 줄 요약 -->
+    <div class="callout callout-info" style="margin-bottom:1.5rem;">
+      <div class="callout-icon">💡</div>
+      <div class="callout-content">
+        <strong>한 줄 요약</strong> — SSH(Secure Shell)는 멀리 있는 컴퓨터를 <em>안전하게</em> 원격으로 조종하는 통신 방법이에요.
+      </div>
+    </div>
+
+    <!-- 비유 -->
+    <div class="analogy-box">
+      <div class="analogy-icon">📞</div>
+      <div>
+        <div class="analogy-title">이렇게 생각해 보세요!</div>
+        <p class="analogy-text">
+          옛날에는 선생님 방에 들어가서 직접 말해야 했어요. 그런데 전화가 생기면서
+          멀리서도 선생님과 대화할 수 있게 됐죠.<br><br>
+          SSH는 이 전화와 비슷한데, 일반 전화가 아니라 <strong>도청 불가능한 암호 전화</strong>예요.
+          내가 타이핑하는 명령어가 암호화되어 전달되고, 서버의 답장도 암호화되어 돌아와요.
+          중간에 누가 훔쳐봐도 알아볼 수 없어요!
+        </p>
+        <p class="analogy-real">
+          💡 <strong>실제로는</strong> — SSH는 공개키 암호화(Public Key Cryptography)와
+          대칭키 암호화를 함께 사용해서 통신 채널을 암호화합니다.
+          포트 기본값은 <strong>22번</strong>이에요.
+        </p>
+      </div>
+    </div>
+
+    <!-- SSH 구조 다이어그램 -->
+    <h3>SSH 연결 구조</h3>
+    <div class="ssh-arch">
+      <div class="ssh-machine">
+        <div class="ssh-machine-icon">💻</div>
+        <div class="ssh-machine-name">내 PC (클라이언트)</div>
+        <div class="ssh-machine-sub">명령어를 입력하는 곳<br>서울 사무실</div>
+      </div>
+      <div class="ssh-tunnel">
+        <div class="ssh-lock">🔒</div>
+        <div class="ssh-tunnel-line"></div>
+        <div class="ssh-tunnel-label">암호화 터널 (Port 22)</div>
+        <div class="ssh-tunnel-line"></div>
+        <div class="ssh-lock">🔒</div>
+      </div>
+      <div class="ssh-machine">
+        <div class="ssh-machine-icon">🖥️</div>
+        <div class="ssh-machine-name">원격 서버</div>
+        <div class="ssh-machine-sub">실제로 실행되는 곳<br>부산 데이터센터</div>
+      </div>
+    </div>
+
+    <!-- SSH vs Telnet 비교 -->
+    <h3>왜 SSH를 써야 하나요? — SSH vs Telnet</h3>
+    <table class="info-table">
+      <thead><tr><th>항목</th><th>Telnet (옛날 방식)</th><th>SSH (현재 표준)</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>암호화</td>
+          <td><span class="badge-no">❌ 없음</span> — 평문 전송</td>
+          <td><span class="badge-ok">✅ 있음</span> — 완전 암호화</td>
+        </tr>
+        <tr>
+          <td>비밀번호 보호</td>
+          <td><span class="badge-no">❌ 그대로 노출</span></td>
+          <td><span class="badge-ok">✅ 암호화 전송</span></td>
+        </tr>
+        <tr>
+          <td>파일 전송</td>
+          <td>별도 프로그램 필요</td>
+          <td><span class="badge-ok">✅ SCP/SFTP 기본 내장</span></td>
+        </tr>
+        <tr>
+          <td>포트</td>
+          <td>23번</td>
+          <td>22번</td>
+        </tr>
+        <tr>
+          <td>현재 사용</td>
+          <td><span class="badge-no">거의 사용 안 함</span></td>
+          <td><span class="badge-ok">업계 표준</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- SSH로 할 수 있는 것들 -->
+    <h3 style="margin-top:2rem;">SSH로 할 수 있는 것들</h3>
+    <div class="compare-grid">
+      <div class="compare-card">
+        <div class="compare-header" style="background:#0891B2;">
+          <div class="compare-icon">🖥️</div>
+          <h4>원격 터미널</h4>
+        </div>
+        <div class="compare-body">
+          <div class="compare-item"><span class="compare-label">용도</span><span class="compare-value">멀리서 명령어 실행</span></div>
+          <div class="compare-item"><span class="compare-label">명령어</span><span class="compare-value mono">ssh user@IP</span></div>
+          <div class="compare-item"><span class="compare-label">예시</span><span class="compare-value">Jetson에 원격 접속</span></div>
+        </div>
+      </div>
+      <div class="compare-card">
+        <div class="compare-header" style="background:#7C3AED;">
+          <div class="compare-icon">📁</div>
+          <h4>파일 전송 (SCP)</h4>
+        </div>
+        <div class="compare-body">
+          <div class="compare-item"><span class="compare-label">용도</span><span class="compare-value">안전하게 파일 복사</span></div>
+          <div class="compare-item"><span class="compare-label">명령어</span><span class="compare-value mono">scp file user@IP:~/</span></div>
+          <div class="compare-item"><span class="compare-label">예시</span><span class="compare-value">코드를 서버에 전송</span></div>
+        </div>
+      </div>
+      <div class="compare-card">
+        <div class="compare-header" style="background:#059669;">
+          <div class="compare-icon">⚡</div>
+          <h4>포트 포워딩</h4>
+        </div>
+        <div class="compare-body">
+          <div class="compare-item"><span class="compare-label">용도</span><span class="compare-value">원격 서비스 접속</span></div>
+          <div class="compare-item"><span class="compare-label">명령어</span><span class="compare-value mono">ssh -L 8080:...</span></div>
+          <div class="compare-item"><span class="compare-label">예시</span><span class="compare-value">Jupyter, Grafana 터널</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════ CH2: 연결 원리 ══════════════════ -->
+<section>
+  <div class="container">
+    <div class="section-badge">🔑 CHAPTER 2</div>
+    <h2>SSH 연결 원리 — 어떻게 안전한가요?</h2>
+
+    <div class="analogy-box">
+      <div class="analogy-icon">🏦</div>
+      <div>
+        <div class="analogy-title">은행 금고 비유</div>
+        <p class="analogy-text">
+          은행 금고에는 두 개의 열쇠가 있어요. 하나는 은행(서버)이 보관하는
+          <strong>자물쇠(공개키)</strong>고, 다른 하나는 내가 갖고 있는
+          <strong>열쇠(개인키)</strong>예요.<br><br>
+          은행에 자물쇠를 미리 맡겨두면, 내 열쇠로만 금고를 열 수 있어요.
+          열쇠 없는 사람은 아무리 시도해도 열 수 없죠!
+        </p>
+        <p class="analogy-real">
+          💡 <strong>실제로는</strong> — SSH 키 페어(Key Pair)는 <strong>공개키(public key)</strong>와
+          <strong>개인키(private key)</strong>로 구성돼요. 공개키는 서버에 등록하고,
+          개인키는 절대 외부에 유출하면 안 됩니다.
+        </p>
+      </div>
+    </div>
+
+    <!-- 키 페어 시각화 -->
+    <h3>공개키 / 개인키 구조</h3>
+    <div class="key-visual">
+      <div class="key-card">
+        <div class="key-header kh-private">🔑 개인키 (Private Key) — 내 PC 보관</div>
+        <div class="key-body">
+          <div class="key-priv">-----BEGIN OPENSSH PRIVATE KEY-----</div>
+          <div class="key-priv">b3BlbnNzaC1rZXktdjEAAAAA...</div>
+          <div class="key-priv">AAA...절대 외부 유출 금지!...</div>
+          <div class="key-priv">-----END OPENSSH PRIVATE KEY-----</div>
+          <div style="margin-top:0.5rem; color:#F59E0B; font-size:0.75rem;">📍 ~/.ssh/id_ed25519</div>
+        </div>
+      </div>
+      <div class="key-card">
+        <div class="key-header kh-public">🔓 공개키 (Public Key) — 서버에 등록</div>
+        <div class="key-body">
+          <div class="key-pub">ssh-ed25519 AAAAC3NzaC1lZDI1NTE5...</div>
+          <div class="key-pub">AAAAB3NzaC1yc2EAAA... zeta@zeta-MS-7E12</div>
+          <div style="margin-top:0.5rem; color:#34D399; font-size:0.75rem;">📍 서버의 ~/.ssh/authorized_keys</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 인증 흐름 -->
+    <h3 style="margin-top:1.5rem;">SSH 접속 순서 (키 인증 방식)</h3>
+    <div class="flow-wrap">
+      <div class="flow-row">
+        <div class="flow-node" style="--nc:#0891B2;">
+          <div class="flow-icon">💻</div>
+          <div class="flow-title">① 접속 요청</div>
+          <div class="flow-desc">ssh bcc@192.168.x.x</div>
+        </div>
+        <div class="flow-arr">→</div>
+        <div class="flow-node" style="--nc:#7C3AED;">
+          <div class="flow-icon">🎲</div>
+          <div class="flow-title">② 챌린지 발송</div>
+          <div class="flow-desc">서버가 랜덤 문제 생성</div>
+        </div>
+        <div class="flow-arr">→</div>
+        <div class="flow-node" style="--nc:#D97706;">
+          <div class="flow-icon">🔑</div>
+          <div class="flow-title">③ 개인키로 서명</div>
+          <div class="flow-desc">클라이언트가 개인키로 풀어 전송</div>
+        </div>
+        <div class="flow-arr">→</div>
+        <div class="flow-node" style="--nc:#059669;">
+          <div class="flow-icon">✅</div>
+          <div class="flow-title">④ 공개키로 검증</div>
+          <div class="flow-desc">서버가 공개키로 맞는지 확인</div>
+        </div>
+        <div class="flow-arr">→</div>
+        <div class="flow-node" style="--nc:#34D399;">
+          <div class="flow-icon">🚀</div>
+          <div class="flow-title">⑤ 접속 완료</div>
+          <div class="flow-desc">비밀번호 없이 로그인!</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════ CH3: 단계별 설치 ══════════════════ -->
+<section>
+  <div class="container">
+    <div class="section-badge">🛠️ CHAPTER 3</div>
+    <h2>Ubuntu 24.04 SSH 단계별 설치</h2>
+
+    <div class="callout callout-tip" style="margin-bottom:1.5rem;">
+      <div class="callout-icon">💡</div>
+      <div class="callout-content">
+        <strong>Ubuntu 24.04</strong>는 OpenSSH가 기본 포함되어 있어서
+        설치는 간단합니다. 아래 단계를 순서대로 따라하세요.
+      </div>
+    </div>
+
+    <!-- 단계 1 -->
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">1</div>
+        <div class="step-header-text">
+          <h4>패키지 목록 업데이트</h4>
+          <p>최신 패키지 정보를 가져옵니다</p>
+        </div>
+      </div>
+      <div class="step-body">
+        <p>설치 전에 항상 패키지 목록을 먼저 업데이트해야 최신 버전을 받을 수 있어요.</p>
+        <div class="terminal">
+          <div class="t-comment"># 패키지 목록을 최신 상태로 갱신</div>
+          <div><span class="t-prompt">zeta@zeta-MS-7E12:~$</span> <span class="t-cmd">sudo apt </span><span class="t-arg">update</span></div>
+        </div>
+        <div class="expect-box">
+          <div class="expect-label">📤 예상 출력</div>
+          <div>Hit:1 http://archive.ubuntu.com/ubuntu noble InRelease</div>
+          <div>Get:2 http://archive.ubuntu.com/ubuntu noble-updates InRelease</div>
+          <div>...</div>
+          <div style="color:#34D399;">Reading package lists... Done</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 단계 2 -->
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">2</div>
+        <div class="step-header-text">
+          <h4>OpenSSH 서버 설치</h4>
+          <p>SSH 서버 데몬을 설치합니다</p>
+        </div>
+      </div>
+      <div class="step-body">
+        <p>
+          <strong>OpenSSH Server</strong>는 내 컴퓨터를 원격 접속 가능하게 만드는 프로그램이에요.
+          이것을 설치해야 다른 PC에서 SSH로 접속해 올 수 있어요.
+        </p>
+        <div class="terminal">
+          <div class="t-comment"># OpenSSH 서버 설치 (-y 는 설치 확인을 자동으로 Yes 처리)</div>
+          <div><span class="t-prompt">zeta@zeta-MS-7E12:~$</span> <span class="t-cmd">sudo apt install </span><span class="t-arg">openssh-server</span> <span class="t-flag">-y</span></div>
+        </div>
+        <div class="expect-box">
+          <div class="expect-label">📤 예상 출력</div>
+          <div>Reading package lists... Done</div>
+          <div>Building dependency tree... Done</div>
+          <div>The following packages will be installed:</div>
+          <div>&nbsp;&nbsp;openssh-server openssh-sftp-server</div>
+          <div style="color:#34D399;">Setting up openssh-server... Done</div>
+        </div>
+        <div class="callout callout-tip" style="margin-top:0.75rem;">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            Ubuntu 24.04는 이미 설치된 경우가 많아요. 그럴 때는 <code>already the newest version</code> 메시지가 나오면 정상이에요!
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 단계 3 -->
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">3</div>
+        <div class="step-header-text">
+          <h4>SSH 서비스 상태 확인</h4>
+          <p>서버가 제대로 실행 중인지 확인합니다</p>
+        </div>
+      </div>
+      <div class="step-body">
+        <p>설치 후 SSH 서비스가 정상적으로 실행 중인지 확인해 보세요.</p>
+        <div class="terminal">
+          <div class="t-comment"># SSH 서비스 상태 확인</div>
+          <div><span class="t-prompt">zeta@zeta-MS-7E12:~$</span> <span class="t-cmd">sudo systemctl </span><span class="t-arg">status</span> <span class="t-string">ssh</span></div>
+        </div>
+        <div class="expect-box">
+          <div class="expect-label">📤 정상 출력 (active 확인!)</div>
+          <div>● ssh.service - OpenBSD Secure Shell server</div>
+          <div>&nbsp;&nbsp;Loaded: loaded (/lib/systemd/system/ssh.service)</div>
+          <div style="color:#34D399;">&nbsp;&nbsp;<strong>Active: active (running)</strong> since Mon 2025-01-01 10:00:00</div>
+          <div>&nbsp;&nbsp;Process: ... sshd -D</div>
+        </div>
+        <div class="callout callout-warning" style="margin-top:0.75rem;">
+          <div class="callout-icon">⚠️</div>
+          <div class="callout-content">
+            <code>inactive (dead)</code> 가 보이면 아직 실행이 안 된 것이에요.
+            다음 명령어로 시작하세요: <code>sudo systemctl start ssh</code>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 단계 4 -->
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">4</div>
+        <div class="step-header-text">
+          <h4>자동 시작 설정 & 서비스 시작</h4>
+          <p>부팅 시 자동으로 SSH가 실행되도록 설정합니다</p>
+        </div>
+      </div>
+      <div class="step-body">
+        <div class="terminal">
+          <div class="t-comment"># 부팅 시 자동 시작 등록 (한 번만 설정하면 됨)</div>
+          <div><span class="t-prompt">zeta@zeta-MS-7E12:~$</span> <span class="t-cmd">sudo systemctl </span><span class="t-arg">enable</span> <span class="t-string">ssh</span></div>
+          <div style="margin-top:0.5rem;" class="t-comment"># SSH 서비스 지금 바로 시작</div>
+          <div><span class="t-prompt">zeta@zeta-MS-7E12:~$</span> <span class="t-cmd">sudo systemctl </span><span class="t-arg">start</span> <span class="t-string">ssh</span></div>
+        </div>
+        <div class="expect-box">
+          <div class="expect-label">📤 enable 예상 출력</div>
+          <div style="color:#34D399;">Synchronizing state of ssh.service...</div>
+          <div>Created symlink /etc/systemd/system/sshd.service → /lib/systemd/system/ssh.service</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 단계 5 -->
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">5</div>
+        <div class="step-header-text">
+          <h4>방화벽 설정 (UFW)</h4>
+          <p>SSH 포트 22번을 허용합니다</p>
+        </div>
+      </div>
+      <div class="step-body">
+        <p>
+          UFW는 Ubuntu의 기본 방화벽이에요. 방화벽이 활성화되어 있다면
+          SSH 포트를 열어줘야 해요.
+        </p>
+        <div class="terminal">
+          <div class="t-comment"># 현재 방화벽 상태 확인</div>
+          <div><span class="t-prompt">zeta@zeta-MS-7E12:~$</span> <span class="t-cmd">sudo ufw </span><span class="t-arg">status</span></div>
+          <div>&nbsp;</div>
+          <div class="t-comment"># SSH(22번 포트) 허용</div>
+          <div><span class="t-prompt">zeta@zeta-MS-7E12:~$</span> <span class="t-cmd">sudo ufw allow </span><span class="t-string">ssh</span></div>
+          <div>&nbsp;</div>
+          <div class="t-comment"># UFW 방화벽 활성화 (비활성화 상태라면)</div>
+          <div><span class="t-prompt">zeta@zeta-MS-7E12:~$</span> <span class="t-cmd">sudo ufw </span><span class="t-arg">enable</span></div>
+          <div>&nbsp;</div>
+          <div class="t-comment"># 최종 상태 확인</div>
+          <div><span class="t-prompt">zeta@zeta-MS-7E12:~$</span> <span class="t-cmd">sudo ufw </span><span class="t-arg">status verbose</span></div>
+        </div>
+        <div class="expect-box">
+          <div class="expect-label">📤 ufw status 정상 출력</div>
+          <div>Status: active</div>
+          <div>&nbsp;</div>
+          <div>To&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Action&nbsp;&nbsp;&nbsp;&nbsp;From</div>
+          <div>--&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;------&nbsp;&nbsp;&nbsp;&nbsp;----</div>
+          <div style="color:#34D399;">22/tcp&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ALLOW IN&nbsp;&nbsp;Anywhere</div>
+          <div style="color:#34D399;">22/tcp (v6)&nbsp;&nbsp;ALLOW IN&nbsp;&nbsp;Anywhere (v6)</div>
+        </div>
+        <div class="callout callout-info">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            방화벽이 <code>inactive</code>면 UFW가 꺼진 상태예요. 이 경우 별도로 허용하지 않아도 SSH 접속이 됩니다.
+            하지만 보안을 위해 UFW를 활성화하고 SSH만 열어두는 것을 권장해요.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 단계 6 -->
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">6</div>
+        <div class="step-header-text">
+          <h4>내 IP 주소 확인</h4>
+          <p>다른 PC에서 접속할 때 필요한 주소를 확인합니다</p>
+        </div>
+      </div>
+      <div class="step-body">
+        <div class="terminal">
+          <div class="t-comment"># IP 주소 간단히 확인</div>
+          <div><span class="t-prompt">zeta@zeta-MS-7E12:~$</span> <span class="t-cmd">hostname </span><span class="t-flag">-I</span></div>
+          <div>&nbsp;</div>
+          <div class="t-comment"># 상세 네트워크 정보 확인 (인터페이스별)</div>
+          <div><span class="t-prompt">zeta@zeta-MS-7E12:~$</span> <span class="t-cmd">ip </span><span class="t-arg">addr</span></div>
+        </div>
+        <div class="expect-box">
+          <div class="expect-label">📤 hostname -I 출력 예시</div>
+          <div style="color:#34D399;">192.168.1.100&nbsp;&nbsp; <span style="color:#64748B;"># ← 이 주소를 사용!</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 단계 7: 접속 테스트 -->
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">7</div>
+        <div class="step-header-text">
+          <h4>다른 PC에서 접속 테스트</h4>
+          <p>실제로 SSH 접속이 되는지 확인합니다</p>
+        </div>
+      </div>
+      <div class="step-body">
+        <p>다른 PC(같은 네트워크)의 터미널에서 아래 명령어를 입력하세요.</p>
+        <div class="terminal">
+          <div class="t-comment"># ssh 사용자명@서버IP주소</div>
+          <div><span class="t-prompt">다른PC:~$</span> <span class="t-cmd">ssh </span><span class="t-string">zeta</span><span class="t-cmd">@</span><span class="t-arg">192.168.1.100</span></div>
+        </div>
+        <div class="expect-box">
+          <div class="expect-label">📤 처음 접속 시 나오는 메시지 (yes 입력!)</div>
+          <div>The authenticity of host '192.168.1.100' can't be established.</div>
+          <div>ED25519 key fingerprint is SHA256:abc123...</div>
+          <div style="color:#FCD34D;">Are you sure you want to continue connecting (yes/no)? <strong>yes</strong></div>
+          <div style="color:#34D399;">Warning: Permanently added '192.168.1.100' to known hosts.</div>
+          <div style="color:#A78BFA;">zeta@192.168.1.100's password: <span style="color:#64748B;">(비밀번호 입력)</span></div>
+          <div style="color:#34D399; margin-top:0.5rem;">zeta@zeta-MS-7E12:~$&nbsp;&nbsp; ← 접속 성공!</div>
+        </div>
+        <div class="callout callout-tip">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            비밀번호를 입력할 때 화면에 아무것도 표시되지 않아요. 이건 정상이에요! 그냥 입력하고 엔터를 누르세요.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══════════════════ CH4: 키 기반 인증 ══════════════════ -->
+<section>
+  <div class="container">
+    <div class="section-badge">🔑 CHAPTER 4</div>
+    <h2>SSH 키 기반 인증 설정 (비밀번호 없이 접속)</h2>
+
+    <div class="callout callout-info" style="margin-bottom:1.5rem;">
+      <div class="callout-icon">⭐</div>
+      <div class="callout-content">
+        실제 서버 운영 환경에서는 비밀번호 방식보다 <strong>키 기반 인증</strong>을 사용하는 것이 훨씬 안전하고 편리합니다.
+        Jetson, Raspberry Pi, 원격 서버 모두 키 인증으로 관리하는 것을 권장해요.
+      </div>
+    </div>
+
+    <!-- 키 생성 -->
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">1</div>
+        <div class="step-header-text">
+          <h4>내 PC에서 키 페어 생성</h4>
+          <p>접속하는 클라이언트(내 PC)에서 실행!</p>
+        </div>
+      </div>
+      <div class="step-body">
+        <div class="terminal">
+          <div class="t-comment"># ed25519 방식으로 키 생성 (최신 권장 방식)</div>
+          <div><span class="t-prompt">zeta@zeta-MS-7E12:~$</span> <span class="t-cmd">ssh-keygen </span><span class="t-flag">-t</span> <span class="t-arg">ed25519</span> <span class="t-flag">-C</span> <span class="t-string">"zeta-key"</span></div>
+        </div>
+        <div class="expect-box">
+          <div class="expect-label">📤 대화식 출력 (엔터 3번이면 끝!)</div>
+          <div>Generating public/private ed25519 key pair.</div>
+          <div style="color:#FCD34D;">Enter file in which to save the key (~/.ssh/id_ed25519): <span style="color:#94A3B8;">[엔터]</span></div>
+          <div style="color:#FCD34D;">Enter passphrase (empty for no passphrase): <span style="color:#94A3B8;">[엔터]</span></div>
+          <div style="color:#FCD34D;">Enter same passphrase again: <span style="color:#94A3B8;">[엔터]</span></div>
+          <div style="color:#34D399; margin-top:0.35rem;">Your identification has been saved in /home/zeta/.ssh/id_ed25519</div>
+          <div style="color:#34D399;">Your public key has been saved in /home/zeta/.ssh/id_ed25519.pub</div>
+        </div>
+        <div class="callout callout-warning" style="margin-top:0.75rem;">
+          <div class="callout-icon">⚠️</div>
+          <div class="callout-content">
+            <code>id_ed25519</code> 가 개인키, <code>id_ed25519.pub</code> 가 공개키예요.
+            <strong>개인키는 절대 다른 사람에게 주거나 서버에 올리면 안 돼요!</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 공개키 복사 -->
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">2</div>
+        <div class="step-header-text">
+          <h4>서버에 공개키 등록</h4>
+          <p>한 번만 등록하면 이후부터 비밀번호 없이 접속!</p>
+        </div>
+      </div>
+      <div class="step-body">
+        <div class="terminal">
+          <div class="t-comment"># 공개키를 서버에 자동으로 복사 (ssh-copy-id 사용)</div>
+          <div><span class="t-prompt">zeta@zeta-MS-7E12:~$</span> <span class="t-cmd">ssh-copy-id </span><span class="t-string">zeta</span><span class="t-cmd">@</span><span class="t-arg">192.168.1.100</span></div>
+        </div>
+        <div class="expect-box">
+          <div class="expect-label">📤 예상 출력</div>
+          <div>/usr/bin/ssh-copy-id: INFO: Source of key(s) to be installed</div>
+          <div style="color:#FCD34D;">zeta@192.168.1.100's password: <span style="color:#64748B;">(마지막으로 비밀번호 입력)</span></div>
+          <div style="color:#34D399; margin-top:0.35rem;">Number of key(s) added: 1</div>
+          <div style="color:#34D399;">Now try logging into the machine: 'ssh zeta@192.168.1.100'</div>
+        </div>
+
+        <div class="callout callout-info" style="margin-top:0.75rem;">
+          <div class="callout-icon">🔧</div>
+          <div class="callout-content">
+            <strong>ssh-copy-id가 없는 경우</strong> (Windows 등) 수동으로 등록:
+            <div class="terminal" style="margin-top:0.5rem; font-size:0.8rem;">
+              <div class="t-comment"># 공개키 내용 출력 → 복사</div>
+              <div><span class="t-prompt">$</span> <span class="t-cmd">cat</span> ~/.ssh/id_ed25519.pub</div>
+              <div class="t-comment"># 서버에서 직접 붙여넣기</div>
+              <div><span class="t-prompt">서버$</span> <span class="t-cmd">echo</span> <span class="t-string">"공개키내용"</span> >> ~/.ssh/authorized_keys</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 키 인증 접속 테스트 -->
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">3</div>
+        <div class="step-header-text">
+          <h4>비밀번호 없이 접속 확인</h4>
+          <p>키 인증이 잘 되는지 테스트합니다</p>
+        </div>
+      </div>
+      <div class="step-body">
+        <div class="terminal">
+          <div class="t-comment"># 이제 비밀번호 없이 바로 접속!</div>
+          <div><span class="t-prompt">zeta@zeta-MS-7E12:~$</span> <span class="t-cmd">ssh </span><span class="t-string">zeta</span><span class="t-cmd">@</span><span class="t-arg">192.168.1.100</span></div>
+        </div>
+        <div class="expect-box">
+          <div class="expect-label">📤 비밀번호 묻지 않고 바로 접속!</div>
+          <div>Welcome to Ubuntu 24.04 LTS (GNU/Linux 6.8.0 x86_64)</div>
+          <div>&nbsp;</div>
+          <div style="color:#34D399;">zeta@remote-server:~$&nbsp;&nbsp; ← 바로 접속 성공!</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══════════════════ CH5: sshd_config 설정 ══════════════════ -->
+<section>
+  <div class="container">
+    <div class="section-badge">⚙️ CHAPTER 5</div>
+    <h2>SSH 서버 설정 파일 — sshd_config</h2>
+
+    <p style="margin-bottom:1.25rem; color:var(--color-muted);">
+      SSH 서버 동작 방식은 <code>/etc/ssh/sshd_config</code> 파일로 제어합니다.
+      아래 주요 항목들을 알아두세요.
+    </p>
+
+    <div class="terminal" style="margin-bottom:1rem;">
+      <div class="t-comment"># 설정 파일 편집</div>
+      <div><span class="t-prompt">zeta@zeta-MS-7E12:~$</span> <span class="t-cmd">sudo nano</span> <span class="t-arg">/etc/ssh/sshd_config</span></div>
+    </div>
+
+    <table class="info-table">
+      <thead><tr><th>설정 항목</th><th>기본값</th><th>권장값</th><th>설명</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>Port</code></td>
+          <td>22</td>
+          <td>22 또는 변경</td>
+          <td>SSH 포트 번호. 22 외 다른 번호로 바꾸면 스캔 공격 감소</td>
+        </tr>
+        <tr>
+          <td><code>PermitRootLogin</code></td>
+          <td>prohibit-password</td>
+          <td><strong>no</strong></td>
+          <td>root 직접 로그인 차단. 반드시 no로 설정 권장</td>
+        </tr>
+        <tr>
+          <td><code>PasswordAuthentication</code></td>
+          <td>yes</td>
+          <td><strong>no</strong> (키 설정 후)</td>
+          <td>비밀번호 로그인 허용. 키 인증 설정 후 no로 변경</td>
+        </tr>
+        <tr>
+          <td><code>PubkeyAuthentication</code></td>
+          <td>yes</td>
+          <td>yes</td>
+          <td>공개키 인증 허용. 키 인증 사용 시 필수</td>
+        </tr>
+        <tr>
+          <td><code>MaxAuthTries</code></td>
+          <td>6</td>
+          <td>3</td>
+          <td>인증 실패 허용 횟수. 줄일수록 무차별 대입 공격 방어</td>
+        </tr>
+        <tr>
+          <td><code>ClientAliveInterval</code></td>
+          <td>0</td>
+          <td>300</td>
+          <td>300초마다 클라이언트 생존 확인. 끊긴 세션 정리</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="terminal" style="margin-top:1rem;">
+      <div class="t-comment"># 설정 변경 후 반드시 재시작!</div>
+      <div><span class="t-prompt">zeta@zeta-MS-7E12:~$</span> <span class="t-cmd">sudo systemctl </span><span class="t-arg">restart</span> <span class="t-string">ssh</span></div>
+      <div>&nbsp;</div>
+      <div class="t-comment"># 설정 파일 문법 검사 (재시작 전에 확인하면 좋음)</div>
+      <div><span class="t-prompt">zeta@zeta-MS-7E12:~$</span> <span class="t-cmd">sudo sshd </span><span class="t-flag">-t</span></div>
+      <div class="t-comment"># 오류 없으면 아무 출력 없이 끝남 = 정상</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════ CH6: 트러블슈팅 ══════════════════ -->
+<section>
+  <div class="container">
+    <div class="section-badge">🔧 CHAPTER 6</div>
+    <h2>자주 발생하는 오류 해결</h2>
+
+    <div class="trouble-item">
+      <div class="trouble-err">❌ ssh: connect to host 192.168.1.100 port 22: Connection refused</div>
+      <div class="trouble-body">
+        <div class="trouble-cause">→ 원인: SSH 서비스가 실행 중이지 않거나, 방화벽이 막고 있어요.</div>
+        <div class="terminal" style="font-size:0.82rem;">
+          <div class="t-comment"># 서버에서 SSH 서비스 시작</div>
+          <div><span class="t-prompt">$</span> sudo systemctl start ssh</div>
+          <div class="t-comment"># 방화벽 허용 확인</div>
+          <div><span class="t-prompt">$</span> sudo ufw allow ssh</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="trouble-item">
+      <div class="trouble-err">❌ WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!</div>
+      <div class="trouble-body">
+        <div class="trouble-cause">→ 원인: 서버를 재설치했거나 IP를 다른 서버가 사용 중이에요. known_hosts 파일에서 기존 키를 삭제하면 됩니다.</div>
+        <div class="terminal" style="font-size:0.82rem;">
+          <div class="t-comment"># 내 PC에서 해당 호스트 키 삭제</div>
+          <div><span class="t-prompt">$</span> ssh-keygen <span class="t-flag">-R</span> <span class="t-arg">192.168.1.100</span></div>
+          <div class="t-comment"># 이후 다시 접속하면 됨</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="trouble-item">
+      <div class="trouble-err">❌ Permission denied (publickey)</div>
+      <div class="trouble-body">
+        <div class="trouble-cause">→ 원인: 키 인증 실패. 공개키가 서버에 제대로 등록되지 않았어요.</div>
+        <div class="terminal" style="font-size:0.82rem;">
+          <div class="t-comment"># 서버에서 authorized_keys 파일 확인</div>
+          <div><span class="t-prompt">서버$</span> cat ~/.ssh/authorized_keys</div>
+          <div class="t-comment"># 파일/디렉토리 권한 확인 (반드시 맞춰야 함!)</div>
+          <div><span class="t-prompt">서버$</span> chmod 700 ~/.ssh</div>
+          <div><span class="t-prompt">서버$</span> chmod 600 ~/.ssh/authorized_keys</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="trouble-item">
+      <div class="trouble-err">❌ ssh: Could not resolve hostname</div>
+      <div class="trouble-body">
+        <div class="trouble-cause">→ 원인: 호스트명이나 IP 주소가 틀렸어요. IP를 다시 확인하세요.</div>
+        <div class="terminal" style="font-size:0.82rem;">
+          <div class="t-comment"># 서버에서 IP 재확인</div>
+          <div><span class="t-prompt">서버$</span> hostname <span class="t-flag">-I</span></div>
+          <div><span class="t-prompt">서버$</span> ip addr show</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══════════════════ 요약 ══════════════════ -->
+<section style="background:#0F172A; border-top: none;">
+  <div class="container">
+    <div class="section-badge" style="background:rgba(8,145,178,0.2); color:#22D3EE;">✅ 전체 요약</div>
+    <h2 style="color:white; margin-bottom:1.5rem;">SSH 핵심 명령어 모음</h2>
+
+    <div class="terminal" style="font-size:0.88rem;">
+      <div class="t-label">📦 설치</div>
+      <div><span class="t-prompt">$</span> sudo apt update && sudo apt install <span class="t-arg">openssh-server</span> <span class="t-flag">-y</span></div>
+      <div>&nbsp;</div>
+      <div class="t-label">⚙️ 서비스 관리</div>
+      <div><span class="t-prompt">$</span> sudo systemctl <span class="t-arg">status</span> ssh &nbsp;&nbsp;<span class="t-comment"># 상태 확인</span></div>
+      <div><span class="t-prompt">$</span> sudo systemctl <span class="t-arg">enable</span> ssh &nbsp;&nbsp;<span class="t-comment"># 자동 시작 등록</span></div>
+      <div><span class="t-prompt">$</span> sudo systemctl <span class="t-arg">restart</span> ssh &nbsp;<span class="t-comment"># 재시작</span></div>
+      <div>&nbsp;</div>
+      <div class="t-label">🔥 방화벽</div>
+      <div><span class="t-prompt">$</span> sudo ufw allow ssh &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-comment"># SSH 허용</span></div>
+      <div>&nbsp;</div>
+      <div class="t-label">🔌 접속</div>
+      <div><span class="t-prompt">$</span> ssh <span class="t-string">사용자</span>@<span class="t-arg">서버IP</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-comment"># 기본 접속</span></div>
+      <div><span class="t-prompt">$</span> ssh <span class="t-flag">-p 2222</span> <span class="t-string">사용자</span>@<span class="t-arg">서버IP</span> &nbsp;&nbsp;<span class="t-comment"># 포트 지정 접속</span></div>
+      <div>&nbsp;</div>
+      <div class="t-label">🔑 키 인증</div>
+      <div><span class="t-prompt">$</span> ssh-keygen <span class="t-flag">-t</span> <span class="t-arg">ed25519</span> <span class="t-flag">-C</span> <span class="t-string">"my-key"</span> &nbsp;<span class="t-comment"># 키 생성</span></div>
+      <div><span class="t-prompt">$</span> ssh-copy-id <span class="t-string">사용자</span>@<span class="t-arg">서버IP</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-comment"># 공개키 서버 등록</span></div>
+      <div>&nbsp;</div>
+      <div class="t-label">📁 파일 전송 (SCP)</div>
+      <div><span class="t-prompt">$</span> scp <span class="t-arg">파일.txt</span> <span class="t-string">사용자</span>@<span class="t-arg">서버IP</span>:~/ &nbsp;&nbsp;<span class="t-comment"># 파일 전송</span></div>
+      <div><span class="t-prompt">$</span> scp <span class="t-flag">-r</span> <span class="t-arg">폴더/</span> <span class="t-string">사용자</span>@<span class="t-arg">서버IP</span>:~/ &nbsp;<span class="t-comment"># 폴더 전송</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 푸터 -->
+<footer style="background:#0C1628; color:#475569; text-align:center; padding:1.75rem 1rem; font-size:0.83rem;">
+  <p>SSH 완전 가이드 — Ubuntu 24.04 &nbsp;·&nbsp; Secure Shell (SSH) Installation Guide</p>
+  <p style="margin-top:0.3rem; font-family:'JetBrains Mono'; font-size:0.78rem; color:#334155;">
+    ssh-keygen | ssh-copy-id | sshd_config | ufw | systemctl
+  </p>
+</footer>
+
+</body>
+</html>

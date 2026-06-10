@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>라즈베리파이 환경 설정 가이드 - Conda 비활성화 & ROS2 자동 로드</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    /* === Reset & Base === */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --color-primary: #0891B2;
+      --color-primary-light: #E0F7FA;
+      --color-primary-dark: #164E63;
+      --color-secondary: #7C3AED;
+      --color-secondary-light: #EDE9FE;
+      --color-success: #059669;
+      --color-success-light: #D1FAE5;
+      --color-warning: #D97706;
+      --color-warning-light: #FEF3C7;
+      --color-danger: #DC2626;
+      --color-danger-light: #FEE2E2;
+      --color-surface: #F8FAFC;
+      --color-card: #FFFFFF;
+      --color-text: #1E293B;
+      --color-muted: #64748B;
+      --color-border: #E2E8F0;
+    }
+
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      color: var(--color-text);
+      background: var(--color-surface);
+      line-height: 1.75;
+    }
+
+    code, pre { font-family: 'JetBrains Mono', monospace; }
+
+    .container { max-width: 900px; margin: 0 auto; padding: 0 1.5rem; }
+    section { padding: 3rem 0; }
+
+    /* === 히어로 === */
+    .hero {
+      background: linear-gradient(135deg, #164E63, #22D3EE);
+      color: white;
+      padding: 4rem 0 3.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -20%;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: -30%;
+      left: -10%;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+    .hero .container { position: relative; z-index: 1; }
+    .hero-tags { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.25rem; }
+    .hero-tag {
+      background: rgba(255,255,255,0.2);
+      backdrop-filter: blur(4px);
+      padding: 0.3rem 0.85rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+    }
+    .hero h1 {
+      font-size: 2.5rem;
+      font-weight: 900;
+      line-height: 1.2;
+      margin-bottom: 1rem;
+    }
+    .hero-subtitle {
+      font-size: 1.15rem;
+      opacity: 0.9;
+      line-height: 1.6;
+      max-width: 650px;
+    }
+
+    /* === 섹션 타이틀 === */
+    .section-title {
+      font-size: 1.75rem;
+      font-weight: 700;
+      line-height: 1.3;
+      margin-bottom: 1.5rem;
+      color: var(--color-text);
+    }
+    .section-title .emoji { margin-right: 0.5rem; }
+
+    /* === 플로우 다이어그램 === */
+    .flow-diagram {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 2rem;
+      background: var(--color-surface);
+      border-radius: 16px;
+      overflow-x: auto;
+      border: 1px solid var(--color-border);
+    }
+    .flow-node {
+      background: var(--color-card);
+      border: 2px solid var(--node-color, var(--color-primary));
+      border-radius: 12px;
+      padding: 1.25rem;
+      text-align: center;
+      min-width: 140px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .flow-node:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+    }
+    .flow-node-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+    .flow-node-title { font-weight: 700; font-size: 0.95rem; color: var(--color-text); }
+    .flow-node-desc { font-size: 0.8rem; color: var(--color-muted); margin-top: 0.25rem; }
+    .flow-arrow { flex-shrink: 0; }
+
+    /* === 비유 박스 === */
+    .analogy-box {
+      display: flex;
+      gap: 1.25rem;
+      padding: 1.5rem;
+      border-radius: 12px;
+      border-left: 4px solid var(--color-primary);
+      margin: 1.5rem 0;
+    }
+    .analogy-box.blue { background: var(--color-primary-light); border-left-color: var(--color-primary); }
+    .analogy-box.purple { background: var(--color-secondary-light); border-left-color: var(--color-secondary); }
+    .analogy-box.green { background: var(--color-success-light); border-left-color: var(--color-success); }
+    .analogy-icon { font-size: 2.5rem; flex-shrink: 0; }
+    .analogy-title {
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: var(--color-primary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+    }
+    .analogy-box.purple .analogy-title { color: var(--color-secondary); }
+    .analogy-box.green .analogy-title { color: var(--color-success); }
+    .analogy-text { line-height: 1.7; color: var(--color-text); }
+    .analogy-real {
+      margin-top: 0.75rem;
+      padding-top: 0.75rem;
+      border-top: 1px dashed var(--color-primary);
+      font-size: 0.9rem;
+      color: var(--color-muted);
+    }
+    .analogy-box.purple .analogy-real { border-top-color: var(--color-secondary); }
+    .analogy-box.green .analogy-real { border-top-color: var(--color-success); }
+
+    /* === 코드 블록 === */
+    .code-block {
+      background: #1E293B;
+      border-radius: 12px;
+      overflow: hidden;
+      margin: 1.5rem 0;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.15);
+    }
+    .code-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1.25rem;
+      background: #0F172A;
+      border-bottom: 1px solid #334155;
+    }
+    .code-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .code-dot.red { background: #EF4444; }
+    .code-dot.yellow { background: #EAB308; }
+    .code-dot.green { background: #22C55E; }
+    .code-title {
+      color: #94A3B8;
+      font-size: 0.8rem;
+      font-family: 'JetBrains Mono', monospace;
+      margin-left: 0.5rem;
+    }
+    .code-body {
+      padding: 1.25rem;
+      overflow-x: auto;
+    }
+    .code-body pre {
+      color: #E2E8F0;
+      font-size: 0.9rem;
+      line-height: 1.7;
+      white-space: pre;
+    }
+    .code-comment { color: #64748B; }
+    .code-command { color: #22D3EE; }
+    .code-string { color: #A5F3FC; }
+    .code-prompt { color: #F59E0B; }
+    .code-output { color: #86EFAC; }
+    .code-warning { color: #FBBF24; }
+
+    /* === 비교 카드 === */
+    .compare-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+      margin: 1.5rem 0;
+    }
+    .compare-card {
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+      background: var(--color-card);
+    }
+    .compare-header {
+      padding: 1.25rem;
+      color: white;
+      text-align: center;
+    }
+    .compare-header h4 { margin: 0.5rem 0 0; font-size: 1.1rem; }
+    .compare-icon { font-size: 2rem; }
+    .compare-body { padding: 1rem; }
+    .compare-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .compare-item:last-child { border-bottom: none; }
+    .compare-label { color: var(--color-muted); font-size: 0.9rem; }
+    .compare-value { font-weight: 700; color: var(--color-text); font-size: 0.9rem; }
+
+    /* === 핵심 포인트 카드 === */
+    .point-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.25rem;
+      margin: 1.5rem 0;
+    }
+    .point-card {
+      background: var(--color-card);
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      border: 1px solid var(--color-border);
+      border-top: 4px solid var(--color-primary);
+      transition: transform 0.2s;
+    }
+    .point-card:hover { transform: translateY(-3px); }
+    .point-card.purple { border-top-color: var(--color-secondary); }
+    .point-card.green { border-top-color: var(--color-success); }
+    .point-card.orange { border-top-color: var(--color-warning); }
+    .point-card-icon { font-size: 1.75rem; margin-bottom: 0.75rem; }
+    .point-card-title { font-weight: 700; font-size: 1rem; margin-bottom: 0.5rem; }
+    .point-card-desc { font-size: 0.9rem; color: var(--color-muted); line-height: 1.6; }
+
+    /* === 팁/주의 박스 === */
+    .callout {
+      display: flex;
+      gap: 0.75rem;
+      padding: 1rem 1.25rem;
+      border-radius: 10px;
+      align-items: flex-start;
+      margin: 1.5rem 0;
+    }
+    .callout-icon { font-size: 1.25rem; flex-shrink: 0; padding-top: 0.1rem; }
+    .callout-content { font-size: 0.95rem; line-height: 1.6; }
+    .callout-tip { background: var(--color-success-light); border-left: 3px solid var(--color-success); }
+    .callout-warning { background: var(--color-warning-light); border-left: 3px solid var(--color-warning); }
+    .callout-danger { background: var(--color-danger-light); border-left: 3px solid var(--color-danger); }
+
+    /* === 스텝 타임라인 === */
+    .step-timeline {
+      position: relative;
+      padding-left: 3rem;
+      margin: 2rem 0;
+    }
+    .step-timeline::before {
+      content: '';
+      position: absolute;
+      left: 1.1rem;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: linear-gradient(to bottom, var(--color-primary), var(--color-success));
+      border-radius: 2px;
+    }
+    .step-item {
+      position: relative;
+      margin-bottom: 2.5rem;
+    }
+    .step-item:last-child { margin-bottom: 0; }
+    .step-number {
+      position: absolute;
+      left: -3rem;
+      top: 0;
+      width: 2.2rem;
+      height: 2.2rem;
+      border-radius: 50%;
+      background: var(--color-primary);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.9rem;
+      box-shadow: 0 2px 8px rgba(8,145,178,0.3);
+      z-index: 1;
+    }
+    .step-item.done .step-number { background: var(--color-success); }
+    .step-title {
+      font-weight: 700;
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+      padding-top: 0.15rem;
+    }
+    .step-desc {
+      font-size: 0.95rem;
+      color: var(--color-muted);
+      line-height: 1.6;
+      margin-bottom: 0.75rem;
+    }
+
+    /* === 계층 구조도 === */
+    .arch-diagram {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+      padding: 2rem;
+      background: var(--color-surface);
+      border-radius: 16px;
+      border: 1px solid var(--color-border);
+      margin: 1.5rem 0;
+    }
+    .arch-layer {
+      width: 100%;
+      max-width: 600px;
+      background: color-mix(in srgb, var(--layer-color) 8%, white);
+      border: 2px solid var(--layer-color);
+      border-radius: 12px;
+      padding: 1.25rem;
+    }
+    .arch-layer-label {
+      font-weight: 700;
+      color: var(--layer-color);
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.75rem;
+    }
+    .arch-boxes { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+    .arch-box {
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      padding: 0.5rem 1rem;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+    .arch-box.highlight {
+      border-color: var(--layer-color);
+      font-weight: 700;
+    }
+    .arch-connector {
+      color: var(--color-muted);
+      font-size: 1.25rem;
+      padding: 0.25rem 0;
+    }
+
+    /* === 결과 비교 Before/After === */
+    .before-after {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin: 1.5rem 0;
+    }
+    .ba-card {
+      border-radius: 12px;
+      overflow: hidden;
+      border: 2px solid var(--color-border);
+    }
+    .ba-card.before { border-color: var(--color-danger); }
+    .ba-card.after { border-color: var(--color-success); }
+    .ba-header {
+      padding: 0.75rem 1.25rem;
+      font-weight: 700;
+      font-size: 0.9rem;
+      text-align: center;
+    }
+    .ba-card.before .ba-header { background: var(--color-danger-light); color: var(--color-danger); }
+    .ba-card.after .ba-header { background: var(--color-success-light); color: var(--color-success); }
+    .ba-body {
+      padding: 1rem 1.25rem;
+      background: var(--color-card);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      line-height: 1.8;
+    }
+
+    /* === Accordion === */
+    .accordion {
+      border: 1px solid var(--color-border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 1.5rem 0;
+    }
+    .accordion-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.25rem;
+      cursor: pointer;
+      font-weight: 600;
+      background: var(--color-surface);
+      user-select: none;
+      transition: background 0.2s;
+    }
+    .accordion-header:hover { background: #EFF6FF; }
+    .accordion-body {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease, padding 0.3s ease;
+      padding: 0 1.25rem;
+    }
+    .accordion-toggle:checked ~ .accordion-body {
+      max-height: 2000px;
+      padding: 1rem 1.25rem;
+    }
+    .accordion-toggle:checked ~ .accordion-header .accordion-chevron {
+      transform: rotate(90deg);
+    }
+    .accordion-chevron { transition: transform 0.2s; }
+
+    /* === 요약 카드 === */
+    .summary-card {
+      background: linear-gradient(135deg, #164E63, #0891B2);
+      color: white;
+      border-radius: 16px;
+      padding: 2rem;
+      margin: 2rem 0;
+    }
+    .summary-card h3 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      margin-bottom: 1.25rem;
+    }
+    .summary-list { list-style: none; }
+    .summary-list li {
+      padding: 0.5rem 0;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      line-height: 1.6;
+    }
+    .summary-list li::before {
+      content: '✅';
+      flex-shrink: 0;
+    }
+
+    /* === 반응형 === */
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 1.75rem; }
+      .hero { padding: 3rem 0 2.5rem; }
+      .flow-diagram { flex-direction: column; }
+      .flow-arrow svg { transform: rotate(90deg); }
+      .before-after { grid-template-columns: 1fr; }
+      .compare-grid { grid-template-columns: 1fr; }
+      .step-timeline { padding-left: 2.5rem; }
+      .step-number { left: -2.5rem; width: 2rem; height: 2rem; font-size: 0.8rem; }
+    }
+
+    /* === 인쇄 === */
+    @media print {
+      .hero { background: #164E63 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .flow-node:hover { transform: none; }
+      .point-card:hover { transform: none; }
+      .accordion-body { max-height: none !important; padding: 1rem 1.25rem !important; }
+      .code-block { break-inside: avoid; }
+    }
+
+    /* === 본문 텍스트 === */
+    .prose p {
+      margin-bottom: 1rem;
+      line-height: 1.75;
+    }
+    .prose strong { color: var(--color-text); }
+    .inline-code {
+      background: #EFF6FF;
+      color: var(--color-primary-dark);
+      padding: 0.15rem 0.5rem;
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.88rem;
+      font-weight: 500;
+    }
+
+    /* === 푸터 === */
+    footer {
+      text-align: center;
+      padding: 2rem 0;
+      color: var(--color-muted);
+      font-size: 0.85rem;
+      border-top: 1px solid var(--color-border);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===================== 1. 히어로 ===================== -->
+  <header class="hero">
+    <div class="container">
+      <div class="hero-tags">
+        <span class="hero-tag">🐧 라즈베리파이</span>
+        <span class="hero-tag">🐍 Conda/Miniforge</span>
+        <span class="hero-tag">🤖 ROS2 Jazzy</span>
+        <span class="hero-tag">⚙️ 환경 설정</span>
+      </div>
+      <h1>라즈베리파이 환경 설정 가이드</h1>
+      <p class="hero-subtitle">
+        Conda (base) 환경 자동 활성화 끄기부터 ROS2 Jazzy 자동 로드까지,
+        터미널을 열 때마다 깔끔한 개발 환경을 만드는 핵심 설정법
+      </p>
+    </div>
+  </header>
+
+  <!-- ===================== 2. 개념 Overview ===================== -->
+  <section class="overview">
+    <div class="container">
+      <h2 class="section-title"><span class="emoji">🗺️</span> 전체 흐름 한눈에 보기</h2>
+
+      <div class="flow-diagram">
+        <div class="flow-node" style="--node-color: var(--color-danger)">
+          <div class="flow-node-icon">😤</div>
+          <div class="flow-node-title">문제 인식</div>
+          <div class="flow-node-desc">(base) 자동 활성화</div>
+        </div>
+        <div class="flow-arrow">
+          <svg width="40" height="24" viewBox="0 0 40 24">
+            <path d="M0 12h30M24 4l8 8-8 8" stroke="var(--color-primary)" stroke-width="2" fill="none" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="flow-node" style="--node-color: var(--color-primary)">
+          <div class="flow-node-icon">🔍</div>
+          <div class="flow-node-title">원인 파악</div>
+          <div class="flow-node-desc">Conda vs venv 구분</div>
+        </div>
+        <div class="flow-arrow">
+          <svg width="40" height="24" viewBox="0 0 40 24">
+            <path d="M0 12h30M24 4l8 8-8 8" stroke="var(--color-secondary)" stroke-width="2" fill="none" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="flow-node" style="--node-color: var(--color-secondary)">
+          <div class="flow-node-icon">🔧</div>
+          <div class="flow-node-title">해결</div>
+          <div class="flow-node-desc">conda config 설정</div>
+        </div>
+        <div class="flow-arrow">
+          <svg width="40" height="24" viewBox="0 0 40 24">
+            <path d="M0 12h30M24 4l8 8-8 8" stroke="var(--color-success)" stroke-width="2" fill="none" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="flow-node" style="--node-color: var(--color-success)">
+          <div class="flow-node-icon">🚀</div>
+          <div class="flow-node-title">추가 설정</div>
+          <div class="flow-node-desc">ROS2 자동 로드</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 3-1. (base) 문제 이해하기 ===================== -->
+  <section class="deep-dive">
+    <div class="container prose">
+      <h2 class="section-title"><span class="emoji">🤔</span> (base)가 뭔가요?</h2>
+
+      <div class="analogy-box blue">
+        <div class="analogy-icon">🏠</div>
+        <div>
+          <div class="analogy-title">이해하기 쉽게!</div>
+          <p class="analogy-text">
+            <strong>Conda</strong>는 <strong>"여러 개의 방이 있는 집"</strong>과 같아요.
+            각 방(환경)에는 서로 다른 도구(라이브러리)가 설치되어 있고,
+            <strong>(base)</strong>는 현관문을 열자마자 들어서는 <strong>"거실"</strong>입니다.
+          </p>
+          <p class="analogy-real">
+            💡 <strong>실제로는</strong> — Miniforge/Mambaforge가 설치되면
+            기본 Python 환경인 <span class="inline-code">base</span>가 자동으로 활성화되어
+            터미널 프롬프트에 <span class="inline-code">(base)</span>가 표시됩니다.
+          </p>
+        </div>
+      </div>
+
+      <p>
+        라즈베리파이에 Miniforge나 Mambaforge를 설치하면, 터미널(SSH 포함)을 열 때마다
+        프롬프트 앞에 <span class="inline-code">(base)</span>가 자동으로 붙습니다.
+        이것은 Python 가상환경(venv)이 아니라 <strong>Conda의 base 환경</strong>이 자동 활성화된 것입니다.
+      </p>
+
+      <!-- Before/After 비교 -->
+      <div class="before-after">
+        <div class="ba-card before">
+          <div class="ba-header">❌ 설정 전 (매번 이렇게 보임)</div>
+          <div class="ba-body">
+            <span class="code-prompt">(base)</span> zeta@lekiwi:~$<br>
+            <span class="code-prompt">(base)</span> zeta@lekiwi:~$ python --version<br>
+            Python 3.11.x (conda)
+          </div>
+        </div>
+        <div class="ba-card after">
+          <div class="ba-header">✅ 설정 후 (깔끔한 프롬프트)</div>
+          <div class="ba-body">
+            zeta@lekiwi:~$<br>
+            zeta@lekiwi:~$ python --version<br>
+            Python 3.11.x (system)
+          </div>
+        </div>
+      </div>
+
+      <!-- 비교 카드: venv vs conda -->
+      <h3 style="font-size: 1.25rem; font-weight: 700; margin: 2rem 0 1rem;">venv vs Conda — 핵심 차이</h3>
+
+      <div class="compare-grid">
+        <div class="compare-card">
+          <div class="compare-header" style="background: var(--color-secondary)">
+            <span class="compare-icon">🐍</span>
+            <h4>Python venv</h4>
+          </div>
+          <div class="compare-body">
+            <div class="compare-item">
+              <span class="compare-label">활성화 방법</span>
+              <span class="compare-value">source .../activate</span>
+            </div>
+            <div class="compare-item">
+              <span class="compare-label">비활성화</span>
+              <span class="compare-value">deactivate</span>
+            </div>
+            <div class="compare-item">
+              <span class="compare-label">설정 위치</span>
+              <span class="compare-value">~/.bashrc 등</span>
+            </div>
+            <div class="compare-item">
+              <span class="compare-label">프롬프트</span>
+              <span class="compare-value">(venv)</span>
+            </div>
+          </div>
+        </div>
+        <div class="compare-card">
+          <div class="compare-header" style="background: var(--color-primary)">
+            <span class="compare-icon">🐻</span>
+            <h4>Conda / Miniforge</h4>
+          </div>
+          <div class="compare-body">
+            <div class="compare-item">
+              <span class="compare-label">활성화 방법</span>
+              <span class="compare-value">conda activate</span>
+            </div>
+            <div class="compare-item">
+              <span class="compare-label">비활성화</span>
+              <span class="compare-value">conda deactivate</span>
+            </div>
+            <div class="compare-item">
+              <span class="compare-label">설정 위치</span>
+              <span class="compare-value">~/.condarc</span>
+            </div>
+            <div class="compare-item">
+              <span class="compare-label">프롬프트</span>
+              <span class="compare-value">(base)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout callout-warning">
+        <div class="callout-icon">⚠️</div>
+        <div class="callout-content">
+          <strong>핵심 포인트:</strong> <span class="inline-code">(base)</span>가 표시될 때
+          <span class="inline-code">deactivate</span> 명령은 효과가 없습니다.
+          이것은 venv가 아니라 Conda 환경이기 때문입니다.
+          <span class="inline-code">conda deactivate</span> 또는 설정 변경이 필요합니다.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 3-2. 진단 방법 ===================== -->
+  <section style="background: white; padding: 3rem 0;">
+    <div class="container prose">
+      <h2 class="section-title"><span class="emoji">🔍</span> 진단: 어떤 환경인지 확인하는 방법</h2>
+
+      <div class="analogy-box purple">
+        <div class="analogy-icon">🩺</div>
+        <div>
+          <div class="analogy-title">왜 진단이 중요할까?</div>
+          <p class="analogy-text">
+            병원에서 감기인지 독감인지 먼저 <strong>진단</strong>해야 맞는 약을 쓰듯,
+            터미널의 문제도 <strong>venv인지 Conda인지</strong> 먼저 확인해야 올바른 해결책을 쓸 수 있습니다.
+          </p>
+        </div>
+      </div>
+
+      <div class="step-timeline">
+        <div class="step-item">
+          <div class="step-number">1</div>
+          <div class="step-title">프롬프트 확인하기</div>
+          <div class="step-desc">터미널 프롬프트 앞에 무엇이 표시되는지 확인</div>
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-dot red"></div>
+              <div class="code-dot yellow"></div>
+              <div class="code-dot green"></div>
+              <span class="code-title">터미널</span>
+            </div>
+            <div class="code-body">
+<pre><span class="code-comment"># (base) → Conda 환경</span>
+<span class="code-prompt">(base)</span> zeta@lekiwi:~$
+
+<span class="code-comment"># (venv) 또는 (myenv) → Python venv</span>
+<span class="code-prompt">(myenv)</span> zeta@lekiwi:~$
+
+<span class="code-comment"># 아무것도 없음 → 가상환경 비활성 상태</span>
+zeta@lekiwi:~$</pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-number">2</div>
+          <div class="step-title">환경 변수로 확인하기</div>
+          <div class="step-desc">환경 변수를 직접 조회하여 정확한 환경 확인</div>
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-dot red"></div>
+              <div class="code-dot yellow"></div>
+              <div class="code-dot green"></div>
+              <span class="code-title">진단 명령어</span>
+            </div>
+            <div class="code-body">
+<pre><span class="code-comment"># Conda 환경인 경우</span>
+<span class="code-command">echo $CONDA_DEFAULT_ENV</span>
+<span class="code-output">base</span>
+
+<span class="code-comment"># Python venv인 경우</span>
+<span class="code-command">echo $VIRTUAL_ENV</span>
+<span class="code-output">/home/zeta/myenv</span>
+
+<span class="code-comment"># Conda 정보 전체 확인</span>
+<span class="code-command">conda info</span></pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-number">3</div>
+          <div class="step-title">설정 파일에서 검색하기</div>
+          <div class="step-desc">자동 활성화 설정이 어디에 있는지 전체 검색</div>
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-dot red"></div>
+              <div class="code-dot yellow"></div>
+              <div class="code-dot green"></div>
+              <span class="code-title">전체 검색</span>
+            </div>
+            <div class="code-body">
+<pre><span class="code-command">grep -rn "activate\|VIRTUAL_ENV\|venv\|conda" \
+  ~/.bashrc ~/.profile ~/.bash_profile \
+  /etc/profile /etc/profile.d/ 2>/dev/null</span></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 3-3. 해결: Conda base 비활성화 ===================== -->
+  <section>
+    <div class="container prose">
+      <h2 class="section-title"><span class="emoji">🔧</span> 해결 1: Conda (base) 자동 활성화 끄기</h2>
+
+      <div class="analogy-box green">
+        <div class="analogy-icon">🚪</div>
+        <div>
+          <div class="analogy-title">이해하기 쉽게!</div>
+          <p class="analogy-text">
+            집에 들어올 때 <strong>자동으로 거실 불이 켜지는 설정</strong>을 끄는 것과 같아요.
+            거실(base)을 쓰고 싶을 때만 직접 불을 켜면 됩니다.
+          </p>
+        </div>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dot red"></div>
+          <div class="code-dot yellow"></div>
+          <div class="code-dot green"></div>
+          <span class="code-title">해결 명령어 (한 줄이면 끝!)</span>
+        </div>
+        <div class="code-body">
+<pre><span class="code-comment"># Conda base 환경 자동 활성화 끄기</span>
+<span class="code-command">conda config --set auto_activate_base false</span></pre>
+        </div>
+      </div>
+
+      <div class="callout callout-tip">
+        <div class="callout-icon">💡</div>
+        <div class="callout-content">
+          <strong>경고 메시지가 나와도 괜찮습니다!</strong><br>
+          <span class="inline-code">WARNING: Key auto_activate_base is an alias of auto_activate</span><br>
+          이 메시지는 내부적으로 키 이름이 다르게 저장된다는 알림일 뿐, 설정은 정상 적용됩니다.
+        </div>
+      </div>
+
+      <!-- 동작 원리 아키텍처 -->
+      <h3 style="font-size: 1.25rem; font-weight: 700; margin: 2rem 0 1rem;">이 명령이 실제로 하는 일</h3>
+
+      <div class="arch-diagram">
+        <div class="arch-layer" style="--layer-color: var(--color-secondary)">
+          <div class="arch-layer-label">설정 파일 (~/.condarc)</div>
+          <div class="arch-boxes">
+            <div class="arch-box highlight">auto_activate_base: false</div>
+          </div>
+        </div>
+        <div class="arch-connector">⬇️ 터미널 시작 시 참조</div>
+        <div class="arch-layer" style="--layer-color: var(--color-primary)">
+          <div class="arch-layer-label">~/.bashrc 속 Conda 초기화 코드</div>
+          <div class="arch-boxes">
+            <div class="arch-box">conda init 블록</div>
+            <div class="arch-box">PATH 설정</div>
+            <div class="arch-box highlight">base 활성화 건너뜀!</div>
+          </div>
+        </div>
+        <div class="arch-connector">⬇️ 결과</div>
+        <div class="arch-layer" style="--layer-color: var(--color-success)">
+          <div class="arch-layer-label">터미널 프롬프트</div>
+          <div class="arch-boxes">
+            <div class="arch-box highlight">zeta@lekiwi:~$ (깔끔!)</div>
+          </div>
+        </div>
+      </div>
+
+      <p style="margin-top: 1.5rem;">
+        설정 후 <strong>SSH 재접속</strong> 또는 <strong>새 터미널</strong>을 열면 <span class="inline-code">(base)</span>가 사라져 있습니다.
+        Conda 환경이 필요할 때는 수동으로 활성화하면 됩니다:
+      </p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dot red"></div>
+          <div class="code-dot yellow"></div>
+          <div class="code-dot green"></div>
+          <span class="code-title">필요할 때만 수동 활성화</span>
+        </div>
+        <div class="code-body">
+<pre><span class="code-comment"># 필요할 때만 Conda 환경 활성화</span>
+<span class="code-command">conda activate base</span>
+<span class="code-prompt">(base)</span> zeta@lekiwi:~$
+
+<span class="code-comment"># 또는 특정 환경으로</span>
+<span class="code-command">conda activate myproject</span>
+<span class="code-prompt">(myproject)</span> zeta@lekiwi:~$
+
+<span class="code-comment"># 비활성화</span>
+<span class="code-command">conda deactivate</span>
+zeta@lekiwi:~$</pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 3-4. 해결: ROS2 자동 로드 ===================== -->
+  <section style="background: white; padding: 3rem 0;">
+    <div class="container prose">
+      <h2 class="section-title"><span class="emoji">🚀</span> 해결 2: ROS2 Jazzy 자동 로드 설정</h2>
+
+      <div class="analogy-box blue">
+        <div class="analogy-icon">🔌</div>
+        <div>
+          <div class="analogy-title">이해하기 쉽게!</div>
+          <p class="analogy-text">
+            매일 출근하면 <strong>컴퓨터 전원 → 모니터 전원 → 프로그램 실행</strong>을 하듯,
+            <span class="inline-code">.bashrc</span>에 명령을 넣으면
+            터미널이 열릴 때마다 <strong>자동으로 실행</strong>됩니다.
+          </p>
+          <p class="analogy-real">
+            💡 <strong>실제로는</strong> — <span class="inline-code">~/.bashrc</span>는
+            Bash 셸이 시작될 때마다 읽히는 설정 파일입니다.
+            여기에 <span class="inline-code">source</span> 명령을 추가하면
+            ROS2 환경 변수가 자동으로 설정됩니다.
+          </p>
+        </div>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dot red"></div>
+          <div class="code-dot yellow"></div>
+          <div class="code-dot green"></div>
+          <span class="code-title">ROS2 Jazzy 자동 로드 설정 (한 줄이면 끝!)</span>
+        </div>
+        <div class="code-body">
+<pre><span class="code-comment"># .bashrc 맨 끝에 ROS2 환경 로드 명령 추가</span>
+<span class="code-command">echo 'source /opt/ros/jazzy/setup.bash' >> ~/.bashrc</span>
+
+<span class="code-comment"># 현재 터미널에 바로 적용</span>
+<span class="code-command">source ~/.bashrc</span></pre>
+        </div>
+      </div>
+
+      <!-- .bashrc의 역할 다이어그램 -->
+      <h3 style="font-size: 1.25rem; font-weight: 700; margin: 2rem 0 1rem;">~/.bashrc가 하는 일</h3>
+
+      <div class="arch-diagram">
+        <div class="arch-layer" style="--layer-color: var(--color-warning)">
+          <div class="arch-layer-label">터미널 시작 / SSH 접속</div>
+          <div class="arch-boxes">
+            <div class="arch-box">Bash 셸 실행</div>
+          </div>
+        </div>
+        <div class="arch-connector">⬇️ 자동으로 읽음</div>
+        <div class="arch-layer" style="--layer-color: var(--color-primary)">
+          <div class="arch-layer-label">~/.bashrc 파일 순서대로 실행</div>
+          <div class="arch-boxes">
+            <div class="arch-box">기본 설정</div>
+            <div class="arch-box">alias 정의</div>
+            <div class="arch-box">conda init 블록</div>
+            <div class="arch-box highlight">source /opt/ros/jazzy/setup.bash</div>
+          </div>
+        </div>
+        <div class="arch-connector">⬇️ 결과</div>
+        <div class="arch-layer" style="--layer-color: var(--color-success)">
+          <div class="arch-layer-label">사용 가능한 환경</div>
+          <div class="arch-boxes">
+            <div class="arch-box">ROS2 명령어 사용 가능</div>
+            <div class="arch-box">ros2 topic, ros2 node 등</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout callout-warning">
+        <div class="callout-icon">⚠️</div>
+        <div class="callout-content">
+          <strong><span class="inline-code">>></span>와 <span class="inline-code">></span>의 차이를 꼭 기억하세요!</strong><br>
+          <span class="inline-code">>></span>는 파일 끝에 <strong>추가</strong> (append)하고,<br>
+          <span class="inline-code">></span>는 파일을 <strong>덮어쓰기</strong> (overwrite)합니다.<br>
+          <strong><span class="inline-code">>></span>를 사용해야 기존 설정이 유지됩니다!</strong>
+        </div>
+      </div>
+
+      <!-- 심화: 셸 설정 파일 종류 -->
+      <div class="accordion">
+        <input type="checkbox" id="acc-shell" class="accordion-toggle" hidden>
+        <label for="acc-shell" class="accordion-header">
+          <span>📚 심화: 리눅스 셸 설정 파일 종류와 로드 순서</span>
+          <span class="accordion-chevron">▸</span>
+        </label>
+        <div class="accordion-body">
+          <p style="margin-bottom: 1rem;">리눅스에서 터미널을 열 때 읽히는 설정 파일은 여러 개가 있으며, 상황에 따라 다릅니다:</p>
+          <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+            <thead>
+              <tr style="background: var(--color-surface);">
+                <th style="padding: 0.75rem; text-align: left; border-bottom: 2px solid var(--color-border);">파일</th>
+                <th style="padding: 0.75rem; text-align: left; border-bottom: 2px solid var(--color-border);">언제 읽히나?</th>
+                <th style="padding: 0.75rem; text-align: left; border-bottom: 2px solid var(--color-border);">용도</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="padding: 0.75rem; border-bottom: 1px solid var(--color-border);"><span class="inline-code">~/.bashrc</span></td>
+                <td style="padding: 0.75rem; border-bottom: 1px solid var(--color-border);">터미널 열 때마다</td>
+                <td style="padding: 0.75rem; border-bottom: 1px solid var(--color-border);">alias, 환경 변수 (터미널용)</td>
+              </tr>
+              <tr>
+                <td style="padding: 0.75rem; border-bottom: 1px solid var(--color-border);"><span class="inline-code">~/.profile</span></td>
+                <td style="padding: 0.75rem; border-bottom: 1px solid var(--color-border);">로그인 시 1회</td>
+                <td style="padding: 0.75rem; border-bottom: 1px solid var(--color-border);">PATH 설정 등 기본 환경</td>
+              </tr>
+              <tr>
+                <td style="padding: 0.75rem; border-bottom: 1px solid var(--color-border);"><span class="inline-code">~/.xsessionrc</span></td>
+                <td style="padding: 0.75rem; border-bottom: 1px solid var(--color-border);">GUI 로그인 시</td>
+                <td style="padding: 0.75rem; border-bottom: 1px solid var(--color-border);">GUI 앱용 환경 변수 (한글 입력 등)</td>
+              </tr>
+              <tr>
+                <td style="padding: 0.75rem; border-bottom: 1px solid var(--color-border);"><span class="inline-code">~/.condarc</span></td>
+                <td style="padding: 0.75rem; border-bottom: 1px solid var(--color-border);">conda 실행 시</td>
+                <td style="padding: 0.75rem; border-bottom: 1px solid var(--color-border);">Conda 전용 설정 (채널, 자동 활성화 등)</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="callout callout-tip" style="margin-top: 1rem;">
+            <div class="callout-icon">💡</div>
+            <div class="callout-content">
+              <strong>핵심:</strong> <span class="inline-code">~/.bashrc</span>는 터미널 세션에만 영향을 줍니다.
+              브라우저 같은 GUI 앱의 환경 변수는 <span class="inline-code">~/.xsessionrc</span>에 설정해야 합니다.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 3-5. 최종 설정 확인 ===================== -->
+  <section>
+    <div class="container prose">
+      <h2 class="section-title"><span class="emoji">✅</span> 최종 확인: 설정이 잘 되었는지 검증</h2>
+
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dot red"></div>
+          <div class="code-dot yellow"></div>
+          <div class="code-dot green"></div>
+          <span class="code-title">SSH 재접속 후 확인</span>
+        </div>
+        <div class="code-body">
+<pre><span class="code-comment"># 1. (base) 없이 깔끔한 프롬프트 확인</span>
+zeta@lekiwi:~$
+
+<span class="code-comment"># 2. ROS2 명령어가 동작하는지 확인</span>
+<span class="code-command">ros2 --help</span>
+<span class="code-output">usage: ros2 [-h] Call `ros2 <command> -h` ...</span>
+
+<span class="code-comment"># 3. ROS2 환경 변수 확인</span>
+<span class="code-command">echo $ROS_DISTRO</span>
+<span class="code-output">jazzy</span>
+
+<span class="code-comment"># 4. 필요할 때 Conda 환경 활성화 확인</span>
+<span class="code-command">conda activate base</span>
+<span class="code-prompt">(base)</span> zeta@lekiwi:~$
+<span class="code-command">conda deactivate</span>
+zeta@lekiwi:~$</pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 요약 카드 ===================== -->
+  <section>
+    <div class="container">
+      <div class="summary-card">
+        <h3>📋 이 가이드에서 배운 것</h3>
+        <ul class="summary-list">
+          <li><span class="inline-code" style="background: rgba(255,255,255,0.15); color: white;">(base)</span>는 Python venv가 아니라 <strong>Conda의 base 환경</strong>이다</li>
+          <li><span class="inline-code" style="background: rgba(255,255,255,0.15); color: white;">deactivate</span>는 venv 전용 명령이라 Conda에는 효과가 없다</li>
+          <li><span class="inline-code" style="background: rgba(255,255,255,0.15); color: white;">conda config --set auto_activate_base false</span>로 자동 활성화를 끈다</li>
+          <li><span class="inline-code" style="background: rgba(255,255,255,0.15); color: white;">echo 'source ...' >> ~/.bashrc</span>로 ROS2를 자동 로드한다</li>
+          <li><strong>진단이 먼저!</strong> — 프롬프트와 환경 변수로 어떤 환경인지 확인한 뒤 해결한다</li>
+        </ul>
+      </div>
+
+      <!-- 핵심 포인트 카드 -->
+      <div class="point-cards">
+        <div class="point-card">
+          <div class="point-card-icon">🔑</div>
+          <div class="point-card-title">핵심 명령어</div>
+          <div class="point-card-desc">
+            <span class="inline-code">conda config --set auto_activate_base false</span>
+          </div>
+        </div>
+        <div class="point-card purple">
+          <div class="point-card-icon">📁</div>
+          <div class="point-card-title">핵심 설정 파일</div>
+          <div class="point-card-desc">
+            <span class="inline-code">~/.condarc</span> (Conda 설정)<br>
+            <span class="inline-code">~/.bashrc</span> (터미널 설정)
+          </div>
+        </div>
+        <div class="point-card green">
+          <div class="point-card-icon">🧠</div>
+          <div class="point-card-title">핵심 교훈</div>
+          <div class="point-card-desc">
+            문제의 <strong>정확한 원인</strong>을 먼저 파악하면<br>
+            해결은 한 줄 명령이면 충분하다
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <p>라즈베리파이 환경 설정 가이드 — Conda 비활성화 & ROS2 자동 로드</p>
+      <p style="margin-top: 0.25rem;">Physical AI Education Series</p>
+    </div>
+  </footer>
+
+</body>
+</html>
