@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CUDA 런타임 라이브러리 (libcudart.so.12) - Physical AI Education</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --color-primary: #7C3AED;
+  --color-primary-light: #EDE9FE;
+  --color-secondary: #2563EB;
+  --color-secondary-light: #DBEAFE;
+  --color-success: #059669;
+  --color-success-light: #D1FAE5;
+  --color-warning: #D97706;
+  --color-warning-light: #FEF3C7;
+  --color-danger: #DC2626;
+  --color-danger-light: #FEE2E2;
+  --color-surface: #F8FAFC;
+  --color-card: #FFFFFF;
+  --color-text: #1E293B;
+  --color-muted: #64748B;
+  --color-border: #E2E8F0;
+}
+
+body {
+  font-family: 'Noto Sans KR', sans-serif;
+  color: var(--color-text);
+  background: var(--color-surface);
+  line-height: 1.75;
+}
+
+.container { max-width: 900px; margin: 0 auto; padding: 0 1.5rem; }
+section { padding: 3rem 0; }
+
+code, .mono { font-family: 'JetBrains Mono', monospace; }
+.inline-code {
+  font-family: 'JetBrains Mono', monospace;
+  background: #1E293B;
+  color: #A5B4FC;
+  padding: 0.15em 0.45em;
+  border-radius: 6px;
+  font-size: 0.88em;
+}
+
+/* === 히어로 === */
+.hero {
+  background: linear-gradient(135deg, #4C1D95, #8B5CF6);
+  color: white;
+  padding: 4rem 0 3.5rem;
+  position: relative;
+  overflow: hidden;
+}
+.hero::after {
+  content: "";
+  position: absolute; inset: 0;
+  background-image: radial-gradient(circle at 20% 30%, rgba(255,255,255,0.12) 0 2px, transparent 2px),
+                    radial-gradient(circle at 70% 60%, rgba(255,255,255,0.08) 0 3px, transparent 3px);
+  background-size: 60px 60px, 90px 90px;
+  pointer-events: none;
+}
+.hero .container { position: relative; z-index: 1; }
+.hero-tags { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.25rem; }
+.hero-tag {
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 999px;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+.hero h1 { font-size: 2.7rem; font-weight: 900; line-height: 1.2; margin-bottom: 1rem; }
+.hero h1 .mono { font-size: 0.7em; color: #C4B5FD; }
+.hero-subtitle { font-size: 1.1rem; font-weight: 400; opacity: 0.92; max-width: 640px; }
+
+/* 섹션 제목 */
+.section-title {
+  font-size: 1.9rem;
+  font-weight: 900;
+  margin-bottom: 0.5rem;
+  display: flex; align-items: center; gap: 0.6rem;
+}
+.section-num {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 2.2rem; height: 2.2rem;
+  background: var(--color-primary);
+  color: white; border-radius: 10px;
+  font-size: 1.1rem; font-weight: 900; flex-shrink: 0;
+}
+.section-lead { color: var(--color-muted); font-size: 1.02rem; margin-bottom: 1.75rem; max-width: 680px; }
+
+.sub-title { font-size: 1.25rem; font-weight: 700; margin: 2rem 0 1rem; }
+p.body { margin-bottom: 1rem; }
+
+/* === 코드 블록 === */
+.code-block {
+  background: #0F172A;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  overflow-x: auto;
+  margin: 1.25rem 0;
+  border: 1px solid #1E293B;
+}
+.code-block pre { color: #E2E8F0; font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; line-height: 1.7; }
+.code-block .cmt { color: #64748B; }
+.code-block .key { color: #C4B5FD; }
+.code-block .str { color: #6EE7B7; }
+.code-block .err { color: #FCA5A5; }
+
+/* === Overview 스택 다이어그램 === */
+.stack-diagram {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 0; padding: 2rem 1rem; background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+}
+.stack-layer {
+  width: 100%; max-width: 520px;
+  border-radius: 12px; padding: 1.1rem 1.4rem;
+  border: 2px solid var(--layer-color);
+  background: color-mix(in srgb, var(--layer-color) 8%, white);
+  display: flex; align-items: center; gap: 1rem;
+  position: relative;
+}
+.stack-icon { font-size: 1.8rem; flex-shrink: 0; }
+.stack-text { flex: 1; }
+.stack-name { font-weight: 800; color: var(--layer-color); font-size: 1.05rem; }
+.stack-role { font-size: 0.85rem; color: var(--color-muted); }
+.stack-arrow { color: var(--color-muted); font-size: 1.3rem; padding: 0.3rem 0; }
+
+/* === 비유 박스 === */
+.analogy-box {
+  display: flex; gap: 1.25rem; padding: 1.5rem;
+  background: var(--color-primary-light);
+  border-radius: 12px; border-left: 4px solid var(--color-primary);
+  margin: 1.5rem 0;
+}
+.analogy-icon { font-size: 2.5rem; flex-shrink: 0; }
+.analogy-title {
+  font-weight: 700; font-size: 0.82rem; color: var(--color-primary);
+  text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;
+}
+.analogy-text { line-height: 1.7; color: var(--color-text); }
+.analogy-real {
+  margin-top: 0.75rem; padding-top: 0.75rem;
+  border-top: 1px dashed var(--color-primary);
+  font-size: 0.92rem; color: var(--color-muted);
+}
+
+/* === 비유 매핑 테이블 === */
+.map-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+  border: 1px solid var(--color-border); border-radius: 12px; overflow: hidden;
+  margin: 1.5rem 0;
+}
+.map-grid .map-head {
+  background: var(--color-primary); color: white;
+  padding: 0.8rem 1.2rem; font-weight: 700; font-size: 0.9rem;
+}
+.map-grid .map-cell {
+  padding: 0.85rem 1.2rem; border-top: 1px solid var(--color-border);
+  font-size: 0.95rem; display: flex; align-items: center; gap: 0.5rem;
+}
+.map-grid .map-cell.real { background: var(--color-surface); font-weight: 600; }
+.map-grid .map-cell.metaphor { color: var(--color-muted); }
+
+/* === 파일명 분해 === */
+.filename-break {
+  display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center;
+  margin: 1.5rem 0; padding: 1.5rem; background: var(--color-surface);
+  border: 1px solid var(--color-border); border-radius: 16px;
+}
+.fn-part {
+  text-align: center; min-width: 90px;
+  border: 2px solid var(--fn-color); border-radius: 10px;
+  overflow: hidden; background: var(--color-card);
+}
+.fn-token {
+  font-family: 'JetBrains Mono', monospace; font-weight: 700;
+  font-size: 1.1rem; padding: 0.6rem 0.8rem;
+  background: color-mix(in srgb, var(--fn-color) 12%, white);
+  color: var(--fn-color);
+}
+.fn-mean { font-size: 0.78rem; color: var(--color-muted); padding: 0.5rem 0.6rem; }
+
+/* === 비교 카드 === */
+.compare-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;
+  margin: 1.5rem 0;
+}
+.compare-card { border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); background: var(--color-card); }
+.compare-header { padding: 1.1rem; color: white; text-align: center; }
+.compare-header h4 { margin: 0.4rem 0 0; font-size: 1.05rem; }
+.compare-icon { font-size: 1.9rem; }
+.compare-body { padding: 1rem 1.2rem; }
+.compare-li { display: flex; gap: 0.5rem; padding: 0.5rem 0; font-size: 0.9rem; align-items: flex-start; }
+.compare-li .mk { flex-shrink: 0; }
+
+/* === 핵심 수치/이유 카드 === */
+.point-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem;
+  margin: 1.25rem 0;
+}
+.point-card {
+  background: var(--color-card); border-radius: 12px; padding: 1.3rem;
+  text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  border: 1px solid var(--color-border);
+}
+.point-emoji { font-size: 1.8rem; }
+.point-label { font-weight: 700; font-size: 0.95rem; margin-top: 0.5rem; color: var(--color-text); }
+.point-desc { font-size: 0.8rem; color: var(--color-muted); margin-top: 0.3rem; }
+
+/* === 콜아웃 === */
+.callout { display: flex; gap: 0.75rem; padding: 1rem 1.25rem; border-radius: 10px; align-items: flex-start; margin: 1.25rem 0; }
+.callout-icon { font-size: 1.25rem; flex-shrink: 0; padding-top: 0.1rem; }
+.callout-content { font-size: 0.95rem; line-height: 1.6; }
+.callout-tip { background: var(--color-success-light); border-left: 3px solid var(--color-success); }
+.callout-warning { background: var(--color-warning-light); border-left: 3px solid var(--color-warning); }
+.callout-danger { background: var(--color-danger-light); border-left: 3px solid var(--color-danger); }
+
+/* === 에러 진단 흐름 === */
+.diag-list { display: flex; flex-direction: column; gap: 0.9rem; margin: 1.5rem 0; }
+.diag-item {
+  display: flex; gap: 1rem; align-items: flex-start;
+  background: var(--color-card); border: 1px solid var(--color-border);
+  border-radius: 12px; padding: 1.1rem 1.3rem;
+}
+.diag-num {
+  flex-shrink: 0; width: 2rem; height: 2rem; border-radius: 50%;
+  background: var(--color-danger-light); color: var(--color-danger);
+  font-weight: 900; display: flex; align-items: center; justify-content: center;
+}
+.diag-body h4 { font-size: 1rem; margin-bottom: 0.2rem; }
+.diag-body p { font-size: 0.88rem; color: var(--color-muted); }
+
+/* === before/after 진화 === */
+.evo-grid { display: grid; grid-template-columns: 1fr auto 1fr; gap: 1rem; align-items: stretch; margin: 1.5rem 0; }
+.evo-col { border-radius: 12px; padding: 1.3rem; }
+.evo-old { background: var(--color-danger-light); border: 1px solid #FCA5A5; }
+.evo-new { background: var(--color-success-light); border: 1px solid #6EE7B7; }
+.evo-col h4 { font-size: 0.95rem; margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.4rem; }
+.evo-col ul { list-style: none; }
+.evo-col li { font-size: 0.85rem; padding: 0.3rem 0; padding-left: 1.2rem; position: relative; }
+.evo-old li::before { content: "✗"; position: absolute; left: 0; color: var(--color-danger); font-weight: 700; }
+.evo-new li::before { content: "✓"; position: absolute; left: 0; color: var(--color-success); font-weight: 700; }
+.evo-arrow { display: flex; align-items: center; font-size: 1.6rem; color: var(--color-muted); }
+
+/* === accordion === */
+.accordion { border: 1px solid var(--color-border); border-radius: 10px; overflow: hidden; margin: 1.25rem 0; }
+.accordion-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 1rem 1.25rem; cursor: pointer; font-weight: 600;
+  background: var(--color-surface); user-select: none;
+}
+.accordion-body { max-height: 0; overflow: hidden; transition: max-height 0.3s ease, padding 0.3s ease; padding: 0 1.25rem; }
+.accordion-toggle:checked ~ .accordion-body { max-height: 1500px; padding: 1rem 1.25rem; }
+.accordion-toggle:checked ~ .accordion-header .accordion-chevron { transform: rotate(90deg); }
+.accordion-chevron { transition: transform 0.2s; }
+
+/* === 한 줄 요약 박스 === */
+.summary-box {
+  background: linear-gradient(135deg, #4C1D95, #7C3AED); color: white;
+  border-radius: 16px; padding: 2rem; margin: 2rem 0;
+}
+.summary-box .sb-label { font-size: 0.8rem; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.8; margin-bottom: 0.6rem; }
+.summary-box p { font-size: 1.15rem; line-height: 1.7; font-weight: 500; }
+.summary-box .sb-hi { color: #C4B5FD; font-weight: 700; }
+
+.divider { height: 1px; background: var(--color-border); margin: 0; }
+
+footer { text-align: center; padding: 2.5rem 1rem; color: var(--color-muted); font-size: 0.85rem; }
+
+@media (max-width: 768px) {
+  .hero h1 { font-size: 2rem; }
+  .map-grid { grid-template-columns: 1fr; }
+  .map-grid .map-head:nth-child(2) { display: none; }
+  .evo-grid { grid-template-columns: 1fr; }
+  .evo-arrow { transform: rotate(90deg); justify-content: center; }
+}
+
+@media print {
+  .hero { background: white !important; color: black !important; }
+  .hero h1, .hero-subtitle { color: black !important; }
+  .summary-box { background: white !important; color: black !important; border: 2px solid var(--color-primary); }
+  .summary-box p, .summary-box .sb-hi { color: black !important; }
+  .accordion-body { max-height: none !important; padding: 1rem 1.25rem !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- 1. 히어로 -->
+<header class="hero">
+  <div class="container">
+    <div class="hero-tags">
+      <span class="hero-tag">AI 기술 스택</span>
+      <span class="hero-tag">PyTorch</span>
+      <span class="hero-tag">CUDA</span>
+      <span class="hero-tag">GPU 드라이버</span>
+      <span class="hero-tag">환경 설정</span>
+    </div>
+    <h1>CUDA 런타임 라이브러리<br><span class="mono">libcudart.so.12</span> 완전 정복</h1>
+    <p class="hero-subtitle">PyTorch 한 줄 <code class="mono">.cuda()</code> 뒤에서 GPU와 실제로 대화하는 "통역사"의 정체. 왜 이 파일이 필요하고, 왜 오류가 나며, 최근엔 왜 설치가 쉬워졌는지 끝까지 풀어봅니다.</p>
+  </div>
+</header>
+
+<!-- 2. Overview -->
+<section class="overview">
+  <div class="container">
+    <h2 class="section-title"><span class="section-num">★</span>한눈에 보는 전체 구조</h2>
+    <p class="section-lead">파이썬 코드 한 줄이 GPU에 도달하기까지, 명령은 아래 계층을 차례로 거칩니다. 각 계층이 "누구에게 무엇을 시키는지"만 기억하면 됩니다.</p>
+
+    <div class="code-block">
+<pre><span class="cmt"># 사람 눈엔 한 줄이지만…</span>
+image = torch.randn(<span class="key">1</span>, <span class="key">3</span>, <span class="key">224</span>, <span class="key">224</span>).<span class="key">cuda</span>()</pre>
+    </div>
+
+    <div class="stack-diagram">
+      <div class="stack-layer" style="--layer-color:#7C3AED">
+        <span class="stack-icon">🐍</span>
+        <div class="stack-text">
+          <div class="stack-name">PyTorch</div>
+          <div class="stack-role">"이 데이터를 GPU에 올려줘" — 요청을 보냄</div>
+        </div>
+      </div>
+      <div class="stack-arrow">▼</div>
+      <div class="stack-layer" style="--layer-color:#2563EB">
+        <span class="stack-icon">📚</span>
+        <div class="stack-text">
+          <div class="stack-name mono">libcudart.so.12</div>
+          <div class="stack-role">CUDA Runtime Library — GPU 사용 절차를 실제 실행하는 통역사</div>
+        </div>
+      </div>
+      <div class="stack-arrow">▼</div>
+      <div class="stack-layer" style="--layer-color:#059669">
+        <span class="stack-icon">🔌</span>
+        <div class="stack-text">
+          <div class="stack-name">NVIDIA Driver</div>
+          <div class="stack-role">OS 커널과 GPU 하드웨어를 직접 제어하는 진짜 제어자</div>
+        </div>
+      </div>
+      <div class="stack-arrow">▼</div>
+      <div class="stack-layer" style="--layer-color:#D97706">
+        <span class="stack-icon">🎮</span>
+        <div class="stack-text">
+          <div class="stack-name">GPU</div>
+          <div class="stack-role">실제 연산을 수행하는 하드웨어</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-tip">
+      <span class="callout-icon">💡</span>
+      <div class="callout-content"><strong>한 문장 핵심:</strong> <span class="inline-code">libcudart.so.12</span>는 PyTorch가 <strong>실행되는 순간(run-time)</strong> GPU를 쓰기 위해 불러오는 통역사 라이브러리입니다.</div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- 3-1. 왜 필요한가 / 비유 -->
+<section>
+  <div class="container">
+    <h2 class="section-title"><span class="section-num">1</span>왜 "런타임 라이브러리"가 필요할까?</h2>
+    <p class="section-lead">요리사가 직접 전기 배선과 가스 압력까지 알 필요는 없습니다. 중간에서 정리해주는 사람이 있기 때문이죠. PyTorch와 GPU 사이에도 그런 "주방 매니저"가 있습니다.</p>
+
+    <div class="analogy-box">
+      <span class="analogy-icon">👨‍🍳</span>
+      <div class="analogy-content">
+        <div class="analogy-title">이해하기 쉽게 — 주방 비유</div>
+        <p class="analogy-text">요리사(PyTorch)는 <strong>"재료를 냉장고에 넣어줘", "불 켜줘", "오븐 돌려줘"</strong>라고 요청만 합니다. 전기 배선이나 가스 압력은 몰라도 됩니다. 그 요청을 받아 실제 주방 절차로 옮겨주는 사람이 바로 <strong>주방 매니저 = CUDA Runtime Library</strong>입니다.</p>
+        <p class="analogy-real">💡 <strong>실제로는</strong> — PyTorch는 "GPU에 올려줘"라고만 요청하고, <span class="inline-code">libcudart.so</span>가 디바이스 관리·스트림 관리·에러 처리·실행 제어 같은 실제 절차를 수행합니다.</p>
+      </div>
+    </div>
+
+    <div class="map-grid">
+      <div class="map-head">실제 구성요소</div>
+      <div class="map-head">주방 비유</div>
+      <div class="map-cell real">🐍 PyTorch</div>
+      <div class="map-cell metaphor">👨‍🍳 요리사</div>
+      <div class="map-cell real">📚 CUDA Runtime Library</div>
+      <div class="map-cell metaphor">📋 주방 매니저</div>
+      <div class="map-cell real">🔌 NVIDIA Driver</div>
+      <div class="map-cell metaphor">⚡ 건물 전기·가스 설비 담당자</div>
+      <div class="map-cell real">🎮 GPU</div>
+      <div class="map-cell metaphor">🍳 실제 주방</div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- 3-2. 파일명 분해 -->
+<section>
+  <div class="container">
+    <h2 class="section-title"><span class="section-num">2</span><span class="mono" style="font-size:0.85em">libcudart.so.12</span>는 무엇인가?</h2>
+    <p class="section-lead">암호처럼 보이는 파일 이름도, 토막을 내면 뜻이 또렷하게 보입니다.</p>
+
+    <div class="filename-break">
+      <div class="fn-part" style="--fn-color:#7C3AED">
+        <div class="fn-token">lib</div>
+        <div class="fn-mean">library<br>라이브러리</div>
+      </div>
+      <div class="fn-part" style="--fn-color:#2563EB">
+        <div class="fn-token">cuda</div>
+        <div class="fn-mean">CUDA</div>
+      </div>
+      <div class="fn-part" style="--fn-color:#059669">
+        <div class="fn-token">rt</div>
+        <div class="fn-mean">runtime<br>실행 중</div>
+      </div>
+      <div class="fn-part" style="--fn-color:#D97706">
+        <div class="fn-token">.so</div>
+        <div class="fn-mean">Linux<br>공유 라이브러리</div>
+      </div>
+      <div class="fn-part" style="--fn-color:#DC2626">
+        <div class="fn-token">.12</div>
+        <div class="fn-mean">CUDA 12 계열</div>
+      </div>
+    </div>
+
+    <p class="body" style="text-align:center; font-weight:600;">⬇️ 합치면 ⬇️</p>
+    <div class="callout callout-tip" style="justify-content:center;">
+      <span class="callout-icon">📦</span>
+      <div class="callout-content"><span class="inline-code">libcudart.so.12</span> = <strong>CUDA 12용 Runtime Library 파일</strong></div>
+    </div>
+
+    <div class="compare-grid">
+      <div class="compare-card">
+        <div class="compare-header" style="background:#059669"><span class="compare-icon">🐧</span><h4>Linux</h4></div>
+        <div class="compare-body">
+          <div class="compare-li"><span class="mk">📄</span><span class="mono">libcudart.so.12</span></div>
+          <div class="compare-li"><span class="mk">🔗</span>공유 라이브러리(<code>.so</code>) 방식</div>
+        </div>
+      </div>
+      <div class="compare-card">
+        <div class="compare-header" style="background:#2563EB"><span class="compare-icon">🪟</span><h4>Windows (대략 대응)</h4></div>
+        <div class="compare-body">
+          <div class="compare-li"><span class="mk">📄</span><span class="mono">cudart64_12.dll</span></div>
+          <div class="compare-li"><span class="mk">🔗</span>동적 링크 라이브러리(<code>.dll</code>) 방식</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- 3-3. 왜 오류가 나는가 -->
+<section>
+  <div class="container">
+    <h2 class="section-title"><span class="section-num">3</span>왜 오류가 날까?</h2>
+    <p class="section-lead">아래 오류는 입문자가 가장 자주 만나는 메시지입니다. 뜻은 의외로 단순합니다.</p>
+
+    <div class="code-block">
+<pre><span class="err">ImportError: libcudart.so.12: cannot open shared object file</span></pre>
+    </div>
+
+    <div class="analogy-box" style="background:var(--color-danger-light); border-left-color:var(--color-danger);">
+      <span class="analogy-icon">🔍</span>
+      <div class="analogy-content">
+        <div class="analogy-title" style="color:var(--color-danger)">오류의 뜻</div>
+        <p class="analogy-text">PyTorch가 <strong>CUDA 12 런타임 라이브러리를 찾고 있는데, 리눅스가 그 파일을 못 찾았다</strong>는 뜻입니다.</p>
+      </div>
+    </div>
+
+    <h3 class="sub-title">원인은 보통 셋 중 하나</h3>
+    <div class="diag-list">
+      <div class="diag-item">
+        <div class="diag-num">1</div>
+        <div class="diag-body"><h4>파일이 아예 없음</h4><p>CUDA 런타임이 설치되지 않은 상태.</p></div>
+      </div>
+      <div class="diag-item">
+        <div class="diag-num">2</div>
+        <div class="diag-body"><h4>파일은 있는데 경로를 모름</h4><p><span class="inline-code">LD_LIBRARY_PATH</span> 등 검색 경로에 등록되어 있지 않음.</p></div>
+      </div>
+      <div class="diag-item">
+        <div class="diag-num">3</div>
+        <div class="diag-body"><h4>버전 불일치</h4><p>PyTorch는 CUDA 12용인데 시스템엔 CUDA 11용만 있는 경우 — 서로 안 맞음.</p></div>
+      </div>
+    </div>
+
+    <div class="callout callout-warning">
+      <span class="callout-icon">⚠️</span>
+      <div class="callout-content"><strong>흔한 증상 3종 세트:</strong> <span class="mono">libcudart.so not found</span> · <span class="mono">CUDA version mismatch</span> · <span class="mono">torch.cuda.is_available() == False</span></div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- 3-4. 왜 실행파일에 다 안넣나 -->
+<section>
+  <div class="container">
+    <h2 class="section-title"><span class="section-num">4</span>왜 실행파일 안에 전부 넣지 않을까?</h2>
+    <p class="section-lead">물론 다 넣을 수도 있습니다. 하지만 그러면 모든 프로그램이 같은 CUDA 라이브러리를 각자 짊어지게 됩니다. 그래서 "따로 분리해서 공유"하는 구조를 택합니다.</p>
+
+    <div class="evo-grid">
+      <div class="evo-col evo-old">
+        <h4>📦 전부 포함하면</h4>
+        <ul>
+          <li>프로그램마다 CUDA 라이브러리 중복 보유</li>
+          <li>용량이 커짐</li>
+          <li>업데이트가 어려움</li>
+          <li>보안 패치가 어려움</li>
+          <li>GPU 드라이버와 충돌 가능</li>
+        </ul>
+      </div>
+      <div class="evo-arrow">➡️</div>
+      <div class="evo-col evo-new">
+        <h4>🔗 런타임으로 분리하면</h4>
+        <ul>
+          <li>여러 프로그램이 공통 라이브러리 공유</li>
+          <li>용량 절약</li>
+          <li>업데이트 쉬움</li>
+          <li>보안 패치 쉬움</li>
+          <li>GPU 상황에 맞게 실행 중 처리</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout callout-tip">
+      <span class="callout-icon">🧩</span>
+      <div class="callout-content">GPU처럼 <strong>하드웨어와 직접 연결되는 기능</strong>은 미리 통째로 박아넣기보다 <strong>실행 중에 불러오는 구조</strong>가 자연스럽습니다. 그래서 "런타임" 라이브러리입니다.</div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- 3-5. PyTorch 2.0 이후 변화 -->
+<section>
+  <div class="container">
+    <h2 class="section-title"><span class="section-num">5</span>PyTorch는 어떻게 "쉬워졌나"?</h2>
+    <p class="section-lead">예전엔 사용자가 모든 버전을 손으로 맞춰야 했습니다. 최근엔 PyTorch가 CUDA 런타임을 패키지 안에 함께 담아 배포하는 흐름으로 바뀌었습니다.</p>
+
+    <div class="evo-grid">
+      <div class="evo-col evo-old">
+        <h4>🕰️ 과거 방식</h4>
+        <ul>
+          <li>NVIDIA Driver 설치</li>
+          <li>CUDA Toolkit 설치</li>
+          <li>cuDNN 설치</li>
+          <li>PyTorch CUDA 버전 맞추기</li>
+          <li>환경변수 / LD_LIBRARY_PATH 설정</li>
+        </ul>
+      </div>
+      <div class="evo-arrow">➡️</div>
+      <div class="evo-col evo-new">
+        <h4>🚀 최근 방식</h4>
+        <ul>
+          <li>PyTorch wheel이 CUDA 런타임 포함</li>
+          <li><span class="mono">pip install torch</span> 후 바로 사용</li>
+          <li>설치 실패 감소</li>
+          <li>Docker/클라우드 재현성 향상</li>
+          <li>초보자 진입장벽 감소</li>
+        </ul>
+      </div>
+    </div>
+
+    <p class="body">PyTorch 공식 설치 페이지는 CUDA 버전별 설치 명령을 따로 제공합니다. 예를 들어 CUDA 12.1용 wheel은 <span class="inline-code">cu121</span> 인덱스를 사용합니다.</p>
+
+    <div class="code-block">
+<pre><span class="cmt"># CUDA 12.1용 PyTorch 설치 예시</span>
+pip install torch --index-url <span class="str">https://download.pytorch.org/whl/cu121</span></pre>
+    </div>
+
+    <div class="callout callout-tip">
+      <span class="callout-icon">📈</span>
+      <div class="callout-content"><strong>최신 흐름:</strong> 2026년 PyTorch 릴리스에서는 PyPI wheel이 <strong>CUDA 13.0을 기본 포함</strong>하는 방향까지 진행되고 있습니다.</div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- 3-6. CUDA Toolkit 필요한가 -->
+<section>
+  <div class="container">
+    <h2 class="section-title"><span class="section-num">6</span>이제 CUDA Toolkit 설치가 필요 없을까?</h2>
+    <p class="section-lead">일반적인 PyTorch 사용자라면, 아래 세 줄 정리로 충분합니다.</p>
+
+    <div class="point-grid">
+      <div class="point-card" style="border-color:#059669">
+        <div class="point-emoji">✅</div>
+        <div class="point-label">NVIDIA Driver</div>
+        <div class="point-desc">반드시 필요</div>
+      </div>
+      <div class="point-card" style="border-color:#D97706">
+        <div class="point-emoji">🤔</div>
+        <div class="point-label">CUDA Toolkit</div>
+        <div class="point-desc">보통 필요 없음</div>
+      </div>
+      <div class="point-card" style="border-color:#7C3AED">
+        <div class="point-emoji">📦</div>
+        <div class="point-label">PyTorch CUDA wheel</div>
+        <div class="point-desc">CUDA Runtime 포함</div>
+      </div>
+    </div>
+
+    <p class="body">즉 <span class="inline-code">pip install torch</span> (또는 공식 명령)으로 설치하면, 필요한 CUDA 런타임 라이브러리가 PyTorch 안에 함께 들어옵니다.</p>
+
+    <div class="accordion">
+      <input type="checkbox" id="acc-toolkit" class="accordion-toggle" hidden>
+      <label for="acc-toolkit" class="accordion-header">
+        <span>🔧 그래도 CUDA Toolkit이 필요한 경우 (펼치기)</span>
+        <span class="accordion-chevron">▸</span>
+      </label>
+      <div class="accordion-body">
+        <div class="compare-body" style="padding:0">
+          <div class="compare-li"><span class="mk">⚙️</span>CUDA C++를 직접 컴파일할 때</div>
+          <div class="compare-li"><span class="mk">⚙️</span>커스텀 CUDA extension을 빌드할 때</div>
+          <div class="compare-li"><span class="mk">⚙️</span><span class="mono">nvcc</span> 컴파일러를 사용할 때</div>
+          <div class="compare-li"><span class="mk">⚙️</span>특정 연구 코드를 소스에서 빌드할 때</div>
+          <div class="compare-li"><span class="mk">⚙️</span>Jetson 등 특수 임베디드 환경</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- 3-7. 드라이버는 왜 따로 -->
+<section>
+  <div class="container">
+    <h2 class="section-title"><span class="section-num">7</span>그런데 드라이버는 왜 끝까지 따로일까?</h2>
+    <p class="section-lead">PyTorch가 CUDA 런타임을 챙겨와도, NVIDIA Driver만큼은 절대 패키지 안에 못 넣습니다. 운영체제 커널과 GPU 하드웨어에 직접 붙어야 하기 때문입니다.</p>
+
+    <div class="compare-grid">
+      <div class="compare-card">
+        <div class="compare-header" style="background:#059669"><span class="compare-icon">📦</span><h4>PyTorch에 포함 가능</h4></div>
+        <div class="compare-body">
+          <div class="compare-li"><span class="mk">✅</span>CUDA Runtime</div>
+          <div class="compare-li"><span class="mk">✅</span>cuBLAS</div>
+          <div class="compare-li"><span class="mk">✅</span>cuDNN 일부</div>
+          <div class="compare-li"><span class="mk">✅</span>NCCL 등</div>
+        </div>
+      </div>
+      <div class="compare-card">
+        <div class="compare-header" style="background:#DC2626"><span class="compare-icon">🚫</span><h4>포함 불가</h4></div>
+        <div class="compare-body">
+          <div class="compare-li"><span class="mk">❌</span>NVIDIA GPU Driver</div>
+          <div class="compare-li"><span class="mk">🔌</span>OS 커널 + GPU 하드웨어에 직접 결합</div>
+          <div class="compare-li"><span class="mk">📥</span>그래서 pip가 아닌 별도 설치 필요</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-danger">
+      <span class="callout-icon">🧱</span>
+      <div class="callout-content"><strong>기억할 것:</strong> 드라이버는 OS와 GPU 사이의 "진짜 하드웨어 제어자"입니다. PyTorch가 아무리 똑똑해도 이 계층은 직접 대체할 수 없습니다.</div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- 최종 정리 -->
+<section>
+  <div class="container">
+    <h2 class="section-title"><span class="section-num">✓</span>최종 구조 한 장 정리</h2>
+
+    <div class="stack-diagram">
+      <div class="stack-layer" style="--layer-color:#7C3AED">
+        <span class="stack-icon">🐍</span>
+        <div class="stack-text"><div class="stack-name">Python 코드</div><div class="stack-role mono">torch.randn(...).cuda()</div></div>
+      </div>
+      <div class="stack-arrow">▼</div>
+      <div class="stack-layer" style="--layer-color:#7C3AED">
+        <span class="stack-icon">⚙️</span>
+        <div class="stack-text"><div class="stack-name">PyTorch</div><div class="stack-role">GPU 사용 요청 발생</div></div>
+      </div>
+      <div class="stack-arrow">▼</div>
+      <div class="stack-layer" style="--layer-color:#2563EB">
+        <span class="stack-icon">📚</span>
+        <div class="stack-text"><div class="stack-name mono">libcudart.so.12</div><div class="stack-role">CUDA Runtime Library — 실행 중 호출되는 통역사</div></div>
+      </div>
+      <div class="stack-arrow">▼</div>
+      <div class="stack-layer" style="--layer-color:#059669">
+        <span class="stack-icon">🔌</span>
+        <div class="stack-text"><div class="stack-name">NVIDIA Driver</div><div class="stack-role">하드웨어 제어자 (별도 설치)</div></div>
+      </div>
+      <div class="stack-arrow">▼</div>
+      <div class="stack-layer" style="--layer-color:#D97706">
+        <span class="stack-icon">🎮</span>
+        <div class="stack-text"><div class="stack-name">GPU</div><div class="stack-role">실제 연산 수행</div></div>
+      </div>
+    </div>
+
+    <div class="summary-box">
+      <div class="sb-label">⭐ 한 문장 핵심</div>
+      <p><span class="sb-hi">libcudart.so.12</span>는 PyTorch가 <span class="sb-hi">CUDA 12 기반 GPU를 쓰기 위해 실행 중에 부르는 CUDA Runtime Library</span>이고, 최근 PyTorch는 이 파일들을 <span class="sb-hi">패키지 안에 포함</span>해 설치 문제를 줄이는 방향으로 발전하고 있습니다.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  ZETA Satellite Robotics · Physical AI 교육자료 — AI 기술 스택: PyTorch / CUDA / Driver
+</footer>
+
+</body>
+</html>

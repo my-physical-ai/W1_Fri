@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Python · PyTorch · GIL · LSE 심화 교육 가이드</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --blue: #2563EB; --blue-light: #DBEAFE;
+      --purple: #7C3AED; --purple-light: #EDE9FE;
+      --green: #059669; --green-light: #D1FAE5;
+      --orange: #D97706; --orange-light: #FEF3C7;
+      --red: #DC2626; --red-light: #FEE2E2;
+      --teal: #0891B2; --teal-light: #CFFAFE;
+      --surface: #F8FAFC; --card: #FFFFFF;
+      --text: #1E293B; --muted: #64748B; --border: #E2E8F0;
+    }
+    body { font-family: 'Noto Sans KR', sans-serif; color: var(--text); background: var(--surface); line-height: 1.75; }
+    code, pre, .mono { font-family: 'JetBrains Mono', monospace; }
+    .container { max-width: 920px; margin: 0 auto; padding: 0 1.5rem; }
+    section { padding: 3rem 0; border-top: 1px solid var(--border); }
+    h2 { font-size: 1.8rem; font-weight: 700; margin-bottom: 0.5rem; }
+    h3 { font-size: 1.2rem; font-weight: 700; margin: 2rem 0 0.75rem; color: var(--blue); }
+    p { margin-bottom: 1rem; line-height: 1.8; }
+
+    /* 히어로 */
+    .hero { background: linear-gradient(135deg, #4C1D95, #7C3AED, #2563EB); color: white; padding: 4rem 0 3rem; }
+    .hero-tags { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.25rem; }
+    .hero-tag { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.35); border-radius: 999px; padding: 0.3rem 0.9rem; font-size: 0.8rem; font-weight: 500; }
+    .hero h1 { font-size: 2.4rem; font-weight: 900; line-height: 1.2; margin-bottom: 1rem; }
+    .hero-sub { font-size: 1.05rem; opacity: 0.85; max-width: 620px; margin-bottom: 1.5rem; }
+    .hero-meta { display: flex; gap: 1.5rem; flex-wrap: wrap; font-size: 0.85rem; opacity: 0.7; }
+
+    /* TOC */
+    .toc { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin: 2rem 0; }
+    .toc h4 { font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 0.75rem; }
+    .toc ol { padding-left: 1.25rem; }
+    .toc li { padding: 0.25rem 0; }
+    .toc a { color: var(--blue); text-decoration: none; font-size: 0.93rem; }
+    .toc a:hover { text-decoration: underline; }
+
+    /* 섹션 헤더 */
+    .sec-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; }
+    .sec-num { width: 2.6rem; height: 2.6rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1.1rem; color: white; flex-shrink: 0; }
+    .sec-tag { display: inline-block; border-radius: 6px; padding: 0.2rem 0.6rem; font-size: 0.78rem; font-weight: 700; margin-bottom: 0.4rem; }
+
+    /* 색상 유틸 */
+    .bg-blue { background: var(--blue); } .bg-purple { background: var(--purple); }
+    .bg-green { background: var(--green); } .bg-orange { background: var(--orange); }
+    .bg-red { background: var(--red); } .bg-teal { background: var(--teal); }
+    .tag-blue { background: var(--blue-light); color: var(--blue); }
+    .tag-purple { background: var(--purple-light); color: var(--purple); }
+    .tag-green { background: var(--green-light); color: var(--green); }
+    .tag-orange { background: var(--orange-light); color: var(--orange); }
+    .tag-red { background: var(--red-light); color: var(--red); }
+    .tag-teal { background: var(--teal-light); color: var(--teal); }
+
+    /* 비유 박스 */
+    .analogy { display: flex; gap: 1.25rem; padding: 1.5rem; border-radius: 12px; border-left: 4px solid var(--blue); background: var(--blue-light); margin: 1.5rem 0; }
+    .analogy.purple { background: var(--purple-light); border-left-color: var(--purple); }
+    .analogy.green { background: var(--green-light); border-left-color: var(--green); }
+    .analogy.orange { background: var(--orange-light); border-left-color: var(--orange); }
+    .analogy.red { background: var(--red-light); border-left-color: var(--red); }
+    .analogy.teal { background: var(--teal-light); border-left-color: var(--teal); }
+    .analogy-icon { font-size: 2.4rem; flex-shrink: 0; }
+    .analogy-title { font-weight: 700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; color: var(--blue); }
+    .analogy.purple .analogy-title { color: var(--purple); }
+    .analogy.green .analogy-title { color: var(--green); }
+    .analogy.orange .analogy-title { color: var(--orange); }
+    .analogy.red .analogy-title { color: var(--red); }
+    .analogy.teal .analogy-title { color: var(--teal); }
+    .analogy-text { font-size: 0.95rem; line-height: 1.75; }
+    .analogy-real { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px dashed var(--border); font-size: 0.88rem; color: var(--muted); }
+
+    /* 콜아웃 */
+    .callout { display: flex; gap: 0.75rem; padding: 1rem 1.25rem; border-radius: 10px; margin: 1rem 0; align-items: flex-start; font-size: 0.93rem; line-height: 1.65; }
+    .callout-icon { font-size: 1.2rem; flex-shrink: 0; }
+    .tip { background: var(--green-light); border-left: 3px solid var(--green); }
+    .warn { background: var(--orange-light); border-left: 3px solid var(--orange); }
+    .danger { background: var(--red-light); border-left: 3px solid var(--red); }
+    .info { background: var(--blue-light); border-left: 3px solid var(--blue); }
+
+    /* 코드 블록 */
+    .code { background: #0F172A; color: #E2E8F0; border-radius: 10px; padding: 1.25rem 1.5rem; margin: 1rem 0; font-size: 0.85rem; line-height: 1.8; overflow-x: auto; white-space: pre; }
+    .c { color: #475569; } /* comment */
+    .k { color: #7DD3FC; } /* keyword */
+    .s { color: #86EFAC; } /* string */
+    .n { color: #FCA5A5; } /* number/error */
+    .fn { color: #C4B5FD; } /* function */
+    .ok { color: #4ADE80; } /* ok */
+    .bad { color: #F87171; } /* bad */
+
+    /* 비교 카드 그리드 */
+    .compare-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; margin: 1.5rem 0; }
+    .compare-card { border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.08); background: var(--card); }
+    .compare-head { padding: 1.25rem; color: white; text-align: center; }
+    .compare-head h4 { margin: 0.5rem 0 0; font-size: 1rem; }
+    .compare-head-icon { font-size: 2rem; }
+    .compare-body { padding: 1rem; }
+    .ci { display: flex; justify-content: space-between; padding: 0.6rem 0; border-bottom: 1px solid var(--border); font-size: 0.88rem; }
+    .ci:last-child { border-bottom: none; }
+    .ci-label { color: var(--muted); }
+    .ci-value { font-weight: 700; }
+    .ok-v { color: var(--green); } .ng-v { color: var(--red); } .warn-v { color: var(--orange); }
+
+    /* 통계 카드 */
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin: 1.5rem 0; }
+    .stat-card { background: var(--card); border-radius: 12px; padding: 1.25rem; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid var(--border); }
+    .stat-num { font-size: 2rem; font-weight: 900; line-height: 1; }
+    .stat-label { font-weight: 700; font-size: 0.85rem; margin-top: 0.5rem; }
+    .stat-desc { font-size: 0.78rem; color: var(--muted); margin-top: 0.25rem; }
+
+    /* 테이블 */
+    .tbl { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin: 1.5rem 0; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .tbl th { padding: 0.85rem 1rem; font-weight: 700; text-align: left; }
+    .tbl td { padding: 0.72rem 1rem; border-top: 1px solid var(--border); vertical-align: middle; }
+    .tbl tr:nth-child(even) td { background: #F8FAFC; }
+    .th-dark { background: #1E293B; color: white; }
+    .badge { display: inline-block; padding: 0.18rem 0.55rem; border-radius: 6px; font-size: 0.78rem; font-weight: 700; }
+    .b-ok { background: var(--green-light); color: var(--green); }
+    .b-ng { background: var(--red-light); color: var(--red); }
+    .b-warn { background: var(--orange-light); color: var(--orange); }
+    .b-blue { background: var(--blue-light); color: var(--blue); }
+
+    /* 플로우 다이어그램 */
+    .flow { display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 1.75rem; background: var(--surface); border-radius: 16px; flex-wrap: wrap; margin: 1.5rem 0; }
+    .fnode { background: var(--card); border: 2px solid var(--node-c, var(--blue)); border-radius: 12px; padding: 1.1rem 1.2rem; text-align: center; min-width: 120px; }
+    .fnode-icon { font-size: 1.8rem; margin-bottom: 0.4rem; }
+    .fnode-title { font-weight: 700; font-size: 0.88rem; }
+    .fnode-desc { font-size: 0.76rem; color: var(--muted); margin-top: 0.2rem; }
+    .farrow { font-size: 1.4rem; color: var(--muted); flex-shrink: 0; }
+
+    /* 타임라인 */
+    .timeline { position: relative; padding: 0.5rem 0; margin: 1.5rem 0; }
+    .timeline::before { content:''; position: absolute; left: 1.2rem; top: 0; bottom: 0; width: 2px; background: var(--border); }
+    .tl-item { display: flex; gap: 1.25rem; margin-bottom: 1.5rem; }
+    .tl-dot { width: 2.4rem; height: 2.4rem; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 0.78rem; font-weight: 700; color: white; position: relative; z-index: 1; }
+    .tl-body { flex: 1; padding-top: 0.25rem; }
+    .tl-title { font-weight: 700; margin-bottom: 0.2rem; }
+    .tl-desc { font-size: 0.87rem; color: var(--muted); line-height: 1.6; }
+
+    /* 아코디언 */
+    .acc { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin: 0.75rem 0; }
+    .acc-toggle { display: none; }
+    .acc-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.25rem; cursor: pointer; font-weight: 600; font-size: 0.93rem; background: var(--surface); user-select: none; }
+    .acc-body { max-height: 0; overflow: hidden; transition: max-height 0.35s ease, padding 0.3s ease; padding: 0 1.25rem; background: var(--card); }
+    .acc-toggle:checked ~ .acc-body { max-height: 3000px; padding: 1.25rem; }
+    .acc-toggle:checked ~ .acc-header .acc-chev { transform: rotate(90deg); }
+    .acc-chev { transition: transform 0.2s; display: inline-block; }
+
+    /* 아키텍처 레이어 */
+    .arch { display: flex; flex-direction: column; align-items: center; padding: 2rem; background: var(--surface); border-radius: 16px; margin: 1.5rem 0; }
+    .arch-layer { width: 100%; max-width: 640px; border: 2px solid var(--lc, var(--blue)); border-radius: 12px; padding: 1.1rem 1.25rem; background: var(--card); }
+    .arch-label { font-weight: 700; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--lc, var(--blue)); margin-bottom: 0.6rem; }
+    .arch-boxes { display: flex; gap: 0.65rem; flex-wrap: wrap; }
+    .arch-box { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 0.35rem 0.85rem; font-size: 0.85rem; font-weight: 500; }
+    .arch-conn { color: var(--muted); font-size: 1.2rem; padding: 0.2rem 0; }
+
+    /* 결론 배너 */
+    .finale { background: linear-gradient(135deg, #4C1D95, #2563EB); color: white; border-radius: 16px; padding: 2rem; margin: 2rem 0; }
+    .finale h3 { color: white; font-size: 1.35rem; margin: 0 0 1rem; }
+    .finale-items { display: flex; flex-direction: column; gap: 0.6rem; }
+    .finale-item { background: rgba(255,255,255,0.12); border-radius: 8px; padding: 0.75rem 1rem; font-size: 0.93rem; }
+    .finale-item strong { color: #C4B5FD; }
+
+    /* 핵심 개념 박스 */
+    .concept-box { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin: 1.5rem 0; position: relative; }
+    .concept-badge { position: absolute; top: -0.7rem; left: 1rem; background: var(--purple); color: white; border-radius: 6px; padding: 0.2rem 0.7rem; font-size: 0.78rem; font-weight: 700; }
+
+    /* 반응형 */
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 1.75rem; }
+      .flow { flex-direction: column; }
+      .farrow { transform: rotate(90deg); }
+      .compare-grid { grid-template-columns: 1fr; }
+      .stat-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media print {
+      .hero { background: white !important; color: black !important; }
+      .acc-body { max-height: none !important; padding: 1rem !important; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- 히어로 -->
+<header class="hero">
+  <div class="container">
+    <div class="hero-tags">
+      <span class="hero-tag">GIL</span>
+      <span class="hero-tag">LSE</span>
+      <span class="hero-tag">PyTorch</span>
+      <span class="hero-tag">Python 버전</span>
+      <span class="hero-tag">시스템 Python</span>
+      <span class="hero-tag">CUDA</span>
+      <span class="hero-tag">병렬 처리</span>
+    </div>
+    <h1>Python · PyTorch · GIL · LSE<br>심화 원리 교육 가이드</h1>
+    <p class="hero-sub">GIL은 왜 생겼고 왜 제거하기 어려웠나? LSE와 어떻게 연결되나? PyTorch는 왜 독립적인가? 뿌리부터 이해하는 심화 가이드.</p>
+    <div class="hero-meta">
+      <span>📅 2026년 3월 기준</span>
+      <span>🎯 AI 로봇 교육 심화편</span>
+      <span>📄 1편(환경 구축)의 심화 보완 자료</span>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- TOC -->
+  <div class="toc">
+    <h4>목차</h4>
+    <ol>
+      <li><a href="#s1">PyTorch 내부 3대 핵심 기능 — LSE가 관여하는 곳</a></li>
+      <li><a href="#s2">PyTorch 탄생 이유와 독립적인 이유</a></li>
+      <li><a href="#s3">PyTorch 2.10 — 2026년 3월 현재 버전</a></li>
+      <li><a href="#s4">Python 3.10 vs 3.12 주요 차이</a></li>
+      <li><a href="#s5">시스템 Python이란 무엇인가</a></li>
+      <li><a href="#s6">Python은 왜 계속 버전 업데이트 되는가</a></li>
+      <li><a href="#s7">GIL — 탄생, 한계, 제거까지 30년</a></li>
+      <li><a href="#s8">GIL vs CUDA — 같은 듯 다른 두 기술</a></li>
+      <li><a href="#s9">GIL과 LSE의 연결 — 같은 문제의 두 해결책</a></li>
+    </ol>
+  </div>
+
+  <!-- ===== S1: PyTorch 3대 기능 ===== -->
+  <section id="s1">
+    <div class="sec-header">
+      <div class="sec-num bg-blue">1</div>
+      <div>
+        <div class="sec-tag tag-blue">PyTorch 내부 구조</div>
+        <h2>PyTorch 내부 3대 핵심 기능 — LSE가 관여하는 곳</h2>
+      </div>
+    </div>
+
+    <p>PyTorch가 import 단계에서 Pi 4에서 충돌하는 이유는 내부 3곳에서 LSE 명령어를 사용하기 때문입니다. 각각을 쉽게 설명합니다.</p>
+
+    <!-- 기능 1 -->
+    <h3>① 텐서 참조 카운팅 (Reference Counting)</h3>
+
+    <div class="analogy">
+      <div class="analogy-icon">📚</div>
+      <div>
+        <div class="analogy-title">도서관 대여 카운터 비유</div>
+        <p class="analogy-text">도서관에 책이 1권 있고 여러 학생이 같은 책을 공유합니다. 카운터에 "지금 몇 명이 이 책을 보고 있나?"를 기록하죠.<br>
+        철수가 책을 펼침 → 카운터: 1 / 영희도 봄 → 카운터: 2 / 민수도 봄 → 카운터: 3<br>
+        셋 다 다 보면 → 카운터: 0 → <strong>"이제 책 반납 (메모리 해제)"</strong></p>
+        <p class="analogy-real">💡 실제로는 — Python의 모든 객체(텐서, 리스트 등)는 "몇 개의 변수가 나를 가리키고 있나?"를 카운터로 관리합니다. 카운터가 0이 되면 메모리를 자동 해제합니다.</p>
+      </div>
+    </div>
+
+    <div class="code"><span class="c"># 참조 카운팅 실제 동작</span>
+a = torch.tensor([1.0, 2.0])  <span class="c"># 메모리 생성, 카운터: 1</span>
+b = a                          <span class="c"># 같은 메모리 공유, 카운터: 2</span>
+c = a[:1]                      <span class="c"># 일부 공유, 카운터: 3</span>
+
+del b   <span class="c"># 카운터: 2</span>
+del c   <span class="c"># 카운터: 1</span>
+del a   <span class="c"># 카운터: 0 → 메모리 자동 해제!</span></div>
+
+    <div class="concept-box">
+      <div class="concept-badge">LSE 연결 포인트</div>
+      <p style="margin-top:0.5rem;font-size:0.93rem;">카운터를 <strong>여러 CPU 코어가 동시에 수정</strong>하면 값이 틀려집니다. 코어A와 코어B가 동시에 카운터를 읽으면 둘 다 "2"를 읽고, 각자 "3"으로 쓰면 실제값은 4가 되어야 하는데 3이 됩니다. LSE의 <code>ldaddal</code> 명령어가 읽기+더하기+저장을 한 번에 처리해서 이를 방지합니다.</p>
+    </div>
+
+    <!-- 기능 2 -->
+    <h3>② 스레드 풀 작업 큐 (Thread Pool)</h3>
+
+    <div class="analogy green">
+      <div class="analogy-icon">🏭</div>
+      <div>
+        <div class="analogy-title">공장 작업 배분 비유</div>
+        <p class="analogy-text">공장장(PyTorch)이 칠판에 할 일 목록을 씁니다. 일꾼 4명(CPU 코어)이 동시에 달려와 "나 이 일 할게!"라고 가져갑니다.<br>
+        문제: 4명이 동시에 "1번 작업!"을 외치면? → 중복! 같은 작업을 두 코어가 함<br>
+        해결: LSE로 "가져가기"를 원자적으로 처리 → 한 코어만 성공, 나머지는 다음 작업</p>
+        <p class="analogy-real">💡 실제로는 — CPU 여러 코어에 행렬 연산을 나눠줄 때 작업 큐를 사용합니다. <code>torch.mm(A, B)</code> 하나가 내부적으로 코어 수만큼 작업을 분할합니다.</p>
+      </div>
+    </div>
+
+    <div class="code"><span class="c"># 이 코드 한 줄이 내부에서는:</span>
+C = torch.mm(A, B)  <span class="c"># A×B 행렬 곱셈</span>
+
+<span class="c"># PyTorch 스레드 풀이 처리하는 과정:</span>
+<span class="c"># 작업 큐: [행0~249] [행250~499] [행500~749] [행750~999]</span>
+<span class="c">#</span>
+<span class="c"># 코어1 ─── ldaddal로 [행0~249] 꺼냄 (잠금) ───→ 계산</span>
+<span class="c"># 코어2 ─── ldaddal로 [행250~499] 꺼냄 (잠금) ──→ 계산  (동시!)</span>
+<span class="c"># 코어3 ─── ldaddal로 [행500~749] 꺼냄 (잠금) ──→ 계산  (동시!)</span>
+<span class="c"># 코어4 ─── ldaddal로 [행750~999] 꺼냄 (잠금) ──→ 계산  (동시!)</span>
+<span class="c">#</span>
+<span class="c"># Pi 4 → ldaddal 없음 → 충돌 → Illegal instruction!</span>
+<span class="c"># Pi 5 → ldaddal 있음 → 안전한 분배 → 정상 계산!</span></div>
+
+    <!-- 기능 3 -->
+    <h3>③ ARM Compute Library — 행렬 계산의 핵심 엔진</h3>
+
+    <div class="analogy purple">
+      <div class="analogy-icon">📐</div>
+      <div>
+        <div class="analogy-title">구구단 비유</div>
+        <p class="analogy-text">3×4를 계산할 때 3+3+3+3=12로 하면 느립니다. 구구단을 외우면 바로 "12"가 나오죠. ARM Compute Library는 행렬 곱셈의 "구구단책"입니다. 수백만 번의 연산을 최적화된 방법으로 처리하며, <strong>내부 최적화 코드에 LSE 명령어가 직접 컴파일</strong>되어 있습니다.</p>
+        <p class="analogy-real">💡 실제로는 — <code>libarm_compute-84b761c0.so</code> 파일 안에 <code>ldaddal</code> 명령어가 직접 포함됩니다. import 시 이 파일을 로드하는 순간 Pi 4에서 "Illegal instruction" 신호가 발생합니다.</p>
+      </div>
+    </div>
+
+    <p>AI가 로봇 팔을 제어할 때 1초에 수천만 번의 행렬 계산이 필요합니다. ARM Compute Library 없이는 실시간 제어가 불가능합니다.</p>
+
+    <div class="flow">
+      <div class="fnode" style="--node-c:#2563EB">
+        <div class="fnode-icon">👁️</div>
+        <div class="fnode-title">카메라 영상</div>
+        <div class="fnode-desc">픽셀 행렬</div>
+      </div>
+      <div class="farrow">→</div>
+      <div class="fnode" style="--node-c:#7C3AED">
+        <div class="fnode-icon">✖️</div>
+        <div class="fnode-title">행렬 곱셈 × 수천만번</div>
+        <div class="fnode-desc">ARM Compute Library</div>
+      </div>
+      <div class="farrow">→</div>
+      <div class="fnode" style="--node-c:#059669">
+        <div class="fnode-icon">🦾</div>
+        <div class="fnode-title">로봇 팔 명령</div>
+        <div class="fnode-desc">관절 각도</div>
+      </div>
+    </div>
+
+    <div class="callout warn">
+      <div class="callout-icon">⚠️</div>
+      <div><strong>import 충돌의 정확한 원인:</strong> <code>import torch</code> 실행 시 Python이 <code>libarm_compute.so</code>를 메모리에 로드합니다. 이 순간 라이브러리 초기화 코드가 실행되면서 <code>ldaddal</code> 명령어를 실행하려 하고, Pi 4 CPU가 "이 명령어 모름" → SIGILL 신호 → 프로세스 강제 종료가 발생합니다.</div>
+    </div>
+  </section>
+
+  <!-- ===== S2: PyTorch 탄생과 독립 ===== -->
+  <section id="s2">
+    <div class="sec-header">
+      <div class="sec-num bg-purple">2</div>
+      <div>
+        <div class="sec-tag tag-purple">역사/생태계</div>
+        <h2>PyTorch 탄생 이유와 독립적인 이유</h2>
+      </div>
+    </div>
+
+    <h3>탄생 배경: 연구자들의 불만에서 시작</h3>
+
+    <div class="analogy orange">
+      <div class="analogy-icon">😤</div>
+      <div>
+        <div class="analogy-title">2016년의 불만</div>
+        <p class="analogy-text"><strong>당시 지배자 TensorFlow(Google)의 문제:</strong><br>
+        "정적 그래프"를 먼저 설계한 후 실행 → 실험하기가 너무 불편<br>
+        "AI 논문 새 아이디어 → 코드 구현 → 실행 → 오류 → 어디가 틀렸지?" 추적이 너무 어려움<br><br>
+        <strong>연구자들의 요구:</strong> "그냥 Python처럼 줄 단위로 실행하면서 바로 확인하고 싶어!"</p>
+        <p class="analogy-real">💡 비유 — TensorFlow는 "공장 전체 설계도를 다 그린 후 공장 가동". PyTorch는 "부품 하나씩 만들어가면서 바로 테스트". 연구자에게는 후자가 훨씬 편합니다.</p>
+      </div>
+    </div>
+
+    <div class="timeline">
+      <div class="tl-item">
+        <div class="tl-dot bg-blue">02</div>
+        <div class="tl-body">
+          <div class="tl-title">Torch 탄생 (2002년) — Lua 언어</div>
+          <div class="tl-desc">프랑스 연구자들이 학술용 텐서 연산 라이브러리 개발. 단, Lua 언어라 일반 프로그래머가 쓰기 불편.</div>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot bg-purple">16</div>
+        <div class="tl-body">
+          <div class="tl-title">PyTorch 탄생 (2016년) — Facebook AI Research</div>
+          <div class="tl-desc">Soumith Chintala 등이 Torch를 Python으로 재개발. "동적 계산 그래프"(Define-by-Run) 도입 — 연구자 중심 설계.</div>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot bg-green">18</div>
+        <div class="tl-body">
+          <div class="tl-title">PyTorch 1.0 출시 (2018년) — 급격한 성장</div>
+          <div class="tl-desc">AI 논문의 50%+가 PyTorch 사용. TensorFlow와 양대산맥. Google이 TensorFlow 2.0에 PyTorch 방식 도입할 정도로 영향력.</div>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot bg-orange">22</div>
+        <div class="tl-body">
+          <div class="tl-title">Linux Foundation 기증 (2022년)</div>
+          <div class="tl-desc">Meta(구 Facebook)가 PyTorch를 Linux Foundation 산하 독립 재단에 기증. "PyTorch Foundation" 설립.</div>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot bg-teal">현재</div>
+        <div class="tl-body">
+          <div class="tl-title">2026년 현재 — 독립 비영리 재단</div>
+          <div class="tl-desc">AI 논문 60%+ 사용. NVIDIA, Google, Microsoft, AMD, Intel, Meta, Hugging Face 등 60개 이상 기업이 회원사.</div>
+        </div>
+      </div>
+    </div>
+
+    <h3>왜 NVIDIA나 Google에 흡수되지 않았나?</h3>
+
+    <div class="analogy teal">
+      <div class="analogy-icon">⚖️</div>
+      <div>
+        <div class="analogy-title">FIFA 비유</div>
+        <p class="analogy-text">축구 규칙(FIFA)을 나이키가 만들면? → 나이키 공, 나이키 신발에 유리한 규칙 → 아디다스, 푸마는 탈퇴.<br>
+        PyTorch를 NVIDIA가 소유하면? → NVIDIA GPU에만 최적화 → AMD, Intel, Apple이 기피 → 생태계 붕괴.<br>
+        <strong>해결: 중립적인 Linux Foundation 산하 독립 재단 → 어떤 기업도 지배권 없음 → 경쟁사들도 동등하게 기여</strong></p>
+        <p class="analogy-real">💡 NVIDIA는 PyTorch 재단의 "Premier Member"이지만 지배권은 없습니다. CUDA 지원을 잘 해서 생태계 내 영향력을 유지하는 방식입니다.</p>
+      </div>
+    </div>
+
+    <div class="compare-grid">
+      <div class="compare-card">
+        <div class="compare-head" style="background:linear-gradient(135deg,#1565C0,#2196F3)">
+          <div class="compare-head-icon">🤗</div>
+          <h4>PyTorch<br><small style="font-weight:400;font-size:0.82rem;">(독립 재단)</small></h4>
+        </div>
+        <div class="compare-body">
+          <div class="ci"><span class="ci-label">소유권</span><span class="ci-value ok-v">중립 재단</span></div>
+          <div class="ci"><span class="ci-label">NVIDIA GPU</span><span class="ci-value ok-v">최고 지원</span></div>
+          <div class="ci"><span class="ci-label">AMD GPU</span><span class="ci-value ok-v">ROCm 지원</span></div>
+          <div class="ci"><span class="ci-label">Apple GPU</span><span class="ci-value ok-v">MPS 지원</span></div>
+          <div class="ci"><span class="ci-label">Intel GPU</span><span class="ci-value ok-v">XPU 지원</span></div>
+          <div class="ci"><span class="ci-label">논문 사용률</span><span class="ci-value ok-v">60%+ (1위)</span></div>
+        </div>
+      </div>
+      <div class="compare-card">
+        <div class="compare-head" style="background:linear-gradient(135deg,#B71C1C,#F44336)">
+          <div class="compare-head-icon">🔴</div>
+          <h4>TensorFlow<br><small style="font-weight:400;font-size:0.82rem;">(Google 소유)</small></h4>
+        </div>
+        <div class="compare-body">
+          <div class="ci"><span class="ci-label">소유권</span><span class="ci-value warn-v">Google</span></div>
+          <div class="ci"><span class="ci-label">NVIDIA GPU</span><span class="ci-value ok-v">지원</span></div>
+          <div class="ci"><span class="ci-label">AMD GPU</span><span class="ci-value warn-v">제한적</span></div>
+          <div class="ci"><span class="ci-label">Google TPU</span><span class="ci-value ok-v">최고 지원</span></div>
+          <div class="ci"><span class="ci-label">Apple GPU</span><span class="ci-value warn-v">제한적</span></div>
+          <div class="ci"><span class="ci-label">논문 사용률</span><span class="ci-value warn-v">15% (감소 중)</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== S3: PyTorch 2.10 ===== -->
+  <section id="s3">
+    <div class="sec-header">
+      <div class="sec-num bg-teal">3</div>
+      <div>
+        <div class="sec-tag tag-teal">현재 버전</div>
+        <h2>PyTorch 2.10 — 2026년 3월 현재 버전</h2>
+      </div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-num" style="color:var(--teal)">2.10</div>
+        <div class="stat-label">현재 안정 버전</div>
+        <div class="stat-desc">2026년 1월 21일 출시</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" style="color:var(--purple)">3.14</div>
+        <div class="stat-label">지원 Python 최신</div>
+        <div class="stat-desc">GIL 없는 3.14t 포함</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" style="color:var(--green)">60%</div>
+        <div class="stat-label">AI 논문 점유율</div>
+        <div class="stat-desc">Papers With Code 2024</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" style="color:var(--orange)">60+</div>
+        <div class="stat-label">재단 멤버 기업</div>
+        <div class="stat-desc">NVIDIA, Google, AMD 등</div>
+      </div>
+    </div>
+
+    <h3>버전별 역사와 핵심 변화</h3>
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th class="th-dark">버전</th>
+          <th class="th-dark">출시</th>
+          <th class="th-dark">핵심 변화</th>
+          <th class="th-dark">Pi 4 관계</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>2.3.x</strong></td>
+          <td>2024.05</td>
+          <td>마지막 Pi 4 호환 버전</td>
+          <td><span class="badge b-warn">마지막 지원</span></td>
+        </tr>
+        <tr>
+          <td><strong>2.4.0</strong></td>
+          <td>2024.07</td>
+          <td>ARM Compute Library → LSE 전제 컴파일</td>
+          <td><span class="badge b-ng">❌ Pi 4 충돌 시작</span></td>
+        </tr>
+        <tr>
+          <td><strong>2.6.0</strong></td>
+          <td>2025.01</td>
+          <td>torch.compile 안정화, 성능 최적화</td>
+          <td><span class="badge b-ng">불가</span></td>
+        </tr>
+        <tr>
+          <td><strong>2.9.0</strong></td>
+          <td>2025.10</td>
+          <td>Python 3.14 미리보기 지원</td>
+          <td><span class="badge b-ng">불가</span></td>
+        </tr>
+        <tr>
+          <td><strong>2.10.0 ★</strong></td>
+          <td>2026.01</td>
+          <td>Python 3.14t(GIL 없는 빌드) 공식 지원, 수치 디버깅</td>
+          <td><span class="badge b-ng">불가</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>PyTorch 2.10 주요 기능</h3>
+    <div class="acc">
+      <input type="checkbox" id="acc-torch1" class="acc-toggle">
+      <label for="acc-torch1" class="acc-header">① torch.compile() + Python 3.14 지원 <span class="acc-chev">▸</span></label>
+      <div class="acc-body">
+        <p>Python 코드를 자동으로 최적화된 기계어로 변환합니다. Python 3.14의 GIL 없는 빌드(3.14t)와 결합하면 CPU 코어 전체를 진정으로 활용할 수 있습니다.</p>
+        <div class="code"><span class="c"># 기존: Python 코드 그대로 실행 (느림)</span>
+<span class="fn">def</span> my_model(x):
+    <span class="k">return</span> x * 2 + 1
+
+<span class="c"># torch.compile 적용: 자동 최적화 (빠름)</span>
+optimized = torch.compile(my_model)
+result = optimized(tensor)  <span class="c"># 내부적으로 최적화된 코드 실행</span></div>
+      </div>
+    </div>
+
+    <div class="acc">
+      <input type="checkbox" id="acc-torch2" class="acc-toggle">
+      <label for="acc-torch2" class="acc-header">② DebugMode — 수치 발산 추적 도구 <span class="acc-chev">▸</span></label>
+      <div class="acc-body">
+        <p>분산 강화학습(RL) 등 복잡한 AI 훈련에서 "왜 갑자기 결과가 이상해졌지?"를 추적하는 도구입니다. LeRobot의 ACT 정책 학습 디버깅에도 유용합니다.</p>
+      </div>
+    </div>
+
+    <div class="acc">
+      <input type="checkbox" id="acc-torch3" class="acc-toggle">
+      <label for="acc-torch3" class="acc-header">③ varlen_attn() — LLM 학습 최적화 <span class="acc-chev">▸</span></label>
+      <div class="acc-body">
+        <p>길이가 다른 여러 문장을 동시에 처리하는 새 연산자입니다. 로봇이 자연어 명령("빨간 컵을 왼쪽으로 옮겨")을 처리하는 VLA 모델 학습 효율을 높입니다.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== S4: Python 3.10 vs 3.12 ===== -->
+  <section id="s4">
+    <div class="sec-header">
+      <div class="sec-num bg-green">4</div>
+      <div>
+        <div class="sec-tag tag-green">Python 버전</div>
+        <h2>Python 3.10 vs 3.12 주요 차이</h2>
+      </div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-num" style="color:var(--blue)">+50%</div>
+        <div class="stat-label">3.12 속도 향상</div>
+        <div class="stat-desc">3.10 대비 최대</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" style="color:var(--purple)">3.10</div>
+        <div class="stat-label">Ubuntu 22.04 기본</div>
+        <div class="stat-desc">Pi 4에서만 가능</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" style="color:var(--green)">3.12</div>
+        <div class="stat-label">Ubuntu 24.04 기본</div>
+        <div class="stat-desc">Pi 5 권장 환경</div>
+      </div>
+    </div>
+
+    <h3>차이 1: 오류 메시지 — 교육에서 가장 중요!</h3>
+    <div class="code"><span class="c"># 이 코드를 실행하면:</span>
+my_dict = {"name": "철수"}
+<span class="fn">print</span>(my_dict["age"])  <span class="c"># 없는 키 접근</span>
+
+<span class="bad">### Python 3.10 오류 메시지:</span>
+<span class="n">KeyError: 'age'</span>
+<span class="c"># → "age가 없대" 뿐... 어디가 문제인지 모름</span>
+
+<span class="ok">### Python 3.12 오류 메시지:</span>
+<span class="n">KeyError: 'age'</span>
+  File "robot.py", line 2, in &lt;module&gt;
+    <span class="fn">print</span>(my_dict["age"])
+          ^^^^^^^^^^^^^^^
+  딕셔너리에 'age' 키가 없습니다.
+  현재 있는 키: 'name'
+<span class="c"># → 무엇이, 어디서, 왜 틀렸는지 화살표로 정확히 알려줌!</span></div>
+
+    <h3>차이 2: 패턴 매칭 (로봇 명령 처리에 유용)</h3>
+    <div class="code"><span class="c"># Python 3.10 이전: if/elif 지옥</span>
+<span class="fn">def</span> 로봇명령(cmd):
+    <span class="k">if</span> cmd == "앞으로":   move_forward()
+    <span class="k">elif</span> cmd == "뒤로": move_backward()
+    <span class="k">elif</span> cmd == "왼쪽": turn_left()
+    <span class="k">else</span>:              stop()
+
+<span class="c"># Python 3.10+: match/case (훨씬 깔끔!)</span>
+<span class="fn">def</span> 로봇명령(cmd):
+    <span class="k">match</span> cmd:
+        <span class="k">case</span> "앞으로": move_forward()
+        <span class="k">case</span> "뒤로":   move_backward()
+        <span class="k">case</span> "왼쪽":   turn_left()
+        <span class="k">case</span> _:        stop()  <span class="c"># 나머지 모두</span></div>
+
+    <h3>차이 3: 타입 힌트 (AI 코드 가독성)</h3>
+    <div class="code"><span class="c"># Python 3.10 이전: 복잡한 타입 표현</span>
+<span class="k">from</span> typing <span class="k">import</span> Union, Optional
+<span class="fn">def</span> get_camera(index: Union[int, str]) -> Optional[float]:
+    <span class="k">pass</span>
+
+<span class="c"># Python 3.10+: 훨씬 간단!</span>
+<span class="fn">def</span> get_camera(index: int | str) -> float | None:
+    <span class="k">pass</span>
+
+<span class="c"># f-string 디버깅 (3.12 강화)</span>
+speed = 1.23
+<span class="fn">print</span>(f"{speed = }")  <span class="c"># → "speed = 1.23" 자동 출력!</span></div>
+
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th class="th-dark">항목</th>
+          <th style="background:#1D4ED8;color:white;">Python 3.10</th>
+          <th style="background:#059669;color:white;">Python 3.12 ★</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>출시</td><td>2021년 10월</td><td>2023년 10월</td></tr>
+        <tr><td>속도</td><td>기준 (100%)</td><td>130~150% (30~50% 빠름)</td></tr>
+        <tr><td>오류 메시지</td><td>간략함</td><td><span class="badge b-ok">매우 상세 + 화살표 표시</span></td></tr>
+        <tr><td>match/case</td><td>도입됨</td><td>완성됨</td></tr>
+        <tr><td>타입 힌트</td><td>Union[X, Y] 복잡</td><td>X | Y 간결</td></tr>
+        <tr><td>메모리 효율</td><td>보통</td><td>개선됨</td></tr>
+        <tr><td>Ubuntu 버전</td><td>22.04 기본</td><td>24.04 기본</td></tr>
+        <tr><td>최신 AI 라이브러리</td><td>일부 제한</td><td><span class="badge b-ok">최적 호환</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ===== S5: 시스템 Python ===== -->
+  <section id="s5">
+    <div class="sec-header">
+      <div class="sec-num bg-orange">5</div>
+      <div>
+        <div class="sec-tag tag-orange">환경 이해</div>
+        <h2>시스템 Python이란 무엇인가</h2>
+      </div>
+    </div>
+
+    <div class="analogy orange">
+      <div class="analogy-icon">🏢</div>
+      <div>
+        <div class="analogy-title">아파트 관리실 vs 개인 방 비유</div>
+        <p class="analogy-text"><strong>시스템 Python = 아파트 관리실</strong><br>
+        아파트 전체 엘리베이터, 전기 시스템, 보안 시스템을 운영하는 핵심 도구. 입주자 전원이 공유. 함부로 바꾸면 아파트 전체 문제!<br><br>
+        <strong>Conda 환경 = 개인 방</strong><br>
+        내 방은 내 마음대로. 다른 입주자에게 영향 없음. 자유롭게 설치/삭제 가능.</p>
+      </div>
+    </div>
+
+    <h3>Ubuntu가 Python을 OS 부품으로 사용하는 곳</h3>
+    <div class="arch">
+      <div class="arch-layer" style="--lc:#DC2626">
+        <div class="arch-label">절대 건드리면 안 되는 영역 (시스템 Python 의존)</div>
+        <div class="arch-boxes">
+          <div class="arch-box">apt (패키지 설치)</div>
+          <div class="arch-box">NetworkManager (WiFi)</div>
+          <div class="arch-box">시스템 업데이트 도구</div>
+          <div class="arch-box">ROS2 Jazzy</div>
+          <div class="arch-box">각종 서비스 스크립트</div>
+        </div>
+      </div>
+      <div class="arch-conn">▼ (시스템 Python: /usr/bin/python3)</div>
+      <div class="arch-layer" style="--lc:#059669">
+        <div class="arch-label">자유롭게 사용 가능한 영역 (Conda 환경)</div>
+        <div class="arch-boxes">
+          <div class="arch-box">LeRobot</div>
+          <div class="arch-box">PyTorch 2.10</div>
+          <div class="arch-box">각종 AI 라이브러리</div>
+          <div class="arch-box">실험용 패키지</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="code"><span class="c"># 시스템 Python 위치 확인</span>
+$ which python3
+/usr/bin/python3           <span class="c"># ← 시스템 것 (건드리면 안 됨)</span>
+
+<span class="c"># ROS2가 시스템 Python을 쓰는 것 확인</span>
+$ head -1 /opt/ros/jazzy/bin/ros2
+#!/usr/bin/python3         <span class="c"># ← 시스템 Python 사용!</span>
+
+<span class="c"># Ubuntu 24.04에서 pip으로 시스템에 설치하면:</span>
+$ pip install something
+<span class="n">error: externally-managed-environment</span>
+<span class="c"># → Ubuntu가 막아줌! (OS 보호 기능)</span>
+
+<span class="c"># 올바른 방법: Conda 환경에서 설치</span>
+$ conda activate lerobot
+$ pip install something    <span class="c"># ← Conda 환경에만 설치됨</span></div>
+
+    <div class="callout danger">
+      <div class="callout-icon">🚨</div>
+      <div><strong>실수 사례:</strong> 시스템 Python에 pip으로 패키지를 강제 설치하면 apt 도구의 Python 의존성이 충돌하고, 최악의 경우 apt 자체가 실행 불가 → OS 재설치 필요. Ubuntu 24.04가 <code>externally-managed-environment</code> 오류를 내는 이유가 이를 막기 위해서입니다.</div>
+    </div>
+  </section>
+
+  <!-- ===== S6: Python 업데이트 이유 ===== -->
+  <section id="s6">
+    <div class="sec-header">
+      <div class="sec-num bg-green">6</div>
+      <div>
+        <div class="sec-tag tag-green">언어 발전</div>
+        <h2>Python은 왜 계속 버전 업데이트 되는가</h2>
+      </div>
+    </div>
+
+    <div class="analogy green">
+      <div class="analogy-icon">🗣️</div>
+      <div>
+        <div class="analogy-title">한국어도 계속 변한다</div>
+        <p class="analogy-text">1950년대에는 "컴퓨터"라는 단어가 없었습니다. 1990년대에 "인터넷", 2010년대에 "셀카", 2020년대에 "챗GPT"가 추가되었습니다. 세상이 변하면 언어도 변합니다. Python도 마찬가지입니다.</p>
+      </div>
+    </div>
+
+    <h3>업데이트의 3가지 이유</h3>
+
+    <div class="compare-grid">
+      <div class="compare-card">
+        <div class="compare-head" style="background:linear-gradient(135deg,#1565C0,#42A5F5)">
+          <div class="compare-head-icon">🖥️</div>
+          <h4>이유 1<br>하드웨어가 변한다</h4>
+        </div>
+        <div class="compare-body">
+          <div class="ci"><span class="ci-label">1991년 CPU</span><span class="ci-value">코어 1개</span></div>
+          <div class="ci"><span class="ci-label">2026년 CPU</span><span class="ci-value ok-v">8~256코어</span></div>
+          <div class="ci"><span class="ci-label">1991년 RAM</span><span class="ci-value">수 MB</span></div>
+          <div class="ci"><span class="ci-label">2026년 RAM</span><span class="ci-value ok-v">수백 GB</span></div>
+          <div class="ci"><span class="ci-label">1991년 GPU</span><span class="ci-value">없음</span></div>
+          <div class="ci"><span class="ci-label">2026년 GPU</span><span class="ci-value ok-v">수천 코어</span></div>
+        </div>
+      </div>
+      <div class="compare-card">
+        <div class="compare-head" style="background:linear-gradient(135deg,#6A1B9A,#AB47BC)">
+          <div class="compare-head-icon">🐛</div>
+          <h4>이유 2<br>초기 설계 실수 수정</h4>
+        </div>
+        <div class="compare-body">
+          <div class="ci"><span class="ci-label">Python 2</span><span class="ci-value ng-v">print "안녕"</span></div>
+          <div class="ci"><span class="ci-label">Python 3</span><span class="ci-value ok-v">print("안녕")</span></div>
+          <div class="ci"><span class="ci-label">옛날 range()</span><span class="ci-value ng-v">리스트 → 메모리 낭비</span></div>
+          <div class="ci"><span class="ci-label">지금 range()</span><span class="ci-value ok-v">이터레이터 → 효율적</span></div>
+          <div class="ci"><span class="ci-label">옛날 오류 메시지</span><span class="ci-value ng-v">불친절</span></div>
+          <div class="ci"><span class="ci-label">3.12+ 오류</span><span class="ci-value ok-v">매우 상세</span></div>
+        </div>
+      </div>
+      <div class="compare-card">
+        <div class="compare-head" style="background:linear-gradient(135deg,#1B5E20,#43A047)">
+          <div class="compare-head-icon">🤖</div>
+          <h4>이유 3<br>AI 시대의 새 필요</h4>
+        </div>
+        <div class="compare-body">
+          <div class="ci"><span class="ci-label">타입 힌트 (3.5)</span><span class="ci-value ok-v">AI 코드 가독성</span></div>
+          <div class="ci"><span class="ci-label">async/await (3.5)</span><span class="ci-value ok-v">실시간 로봇 제어</span></div>
+          <div class="ci"><span class="ci-label">match/case (3.10)</span><span class="ci-value ok-v">AI 상태 머신</span></div>
+          <div class="ci"><span class="ci-label">f-string 강화 (3.12)</span><span class="ci-value ok-v">디버깅 편의</span></div>
+          <div class="ci"><span class="ci-label">GIL 실험 (3.13)</span><span class="ci-value ok-v">진짜 병렬 처리</span></div>
+          <div class="ci"><span class="ci-label">GIL 없는 빌드 (3.14)</span><span class="ci-value ok-v">AI 전처리 병렬화</span></div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Python 출시 주기 (매년 10월)</h3>
+    <div class="flow">
+      <div class="fnode" style="--node-c:#475569">
+        <div class="fnode-icon">🐍</div>
+        <div class="fnode-title">3.10 (2021.10)</div>
+        <div class="fnode-desc">match/case 도입</div>
+      </div>
+      <div class="farrow">→</div>
+      <div class="fnode" style="--node-c:#059669">
+        <div class="fnode-icon">⚡</div>
+        <div class="fnode-title">3.12 (2023.10)</div>
+        <div class="fnode-desc">속도+오류 혁신</div>
+      </div>
+      <div class="farrow">→</div>
+      <div class="fnode" style="--node-c:#D97706">
+        <div class="fnode-icon">🔓</div>
+        <div class="fnode-title">3.13 (2024.10)</div>
+        <div class="fnode-desc">GIL 제거 실험</div>
+      </div>
+      <div class="farrow">→</div>
+      <div class="fnode" style="--node-c:#7C3AED">
+        <div class="fnode-icon">🚀</div>
+        <div class="fnode-title">3.14 (2025.10)</div>
+        <div class="fnode-desc">GIL 없는 공식 빌드</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== S7: GIL ===== -->
+  <section id="s7">
+    <div class="sec-header">
+      <div class="sec-num bg-red">7</div>
+      <div>
+        <div class="sec-tag tag-red">핵심 개념</div>
+        <h2>GIL — 탄생, 한계, 제거까지 30년</h2>
+      </div>
+    </div>
+
+    <div class="analogy red">
+      <div class="analogy-icon">🎤</div>
+      <div>
+        <div class="analogy-title">발언권 막대기 비유</div>
+        <p class="analogy-text">도서관 토론 규칙: 말하려면 반드시 "막대기"를 들어야 함. 막대기는 단 1개.<br>
+        학생 8명이 있어도 막대기 든 학생만 말할 수 있고 나머지 7명은 기다려야 함.<br>
+        → <strong>GIL = Python의 단 1개짜리 발언권 막대기</strong></p>
+        <p class="analogy-real">💡 기술적으로는 — 모든 Python 코드를 실행하기 전 반드시 획득해야 하는 전역 잠금장치. 한 번에 1개 스레드만 Python 코드를 실행할 수 있습니다.</p>
+      </div>
+    </div>
+
+    <h3>GIL이 왜 만들어졌나? (1991년)</h3>
+    <div class="code"><span class="c"># GIL이 없다면 이런 일이 생김:</span>
+<span class="c"># 카운터 현재값: 5</span>
+<span class="c">#</span>
+<span class="c"># 스레드A (코어1): 읽기 → 5</span>
+<span class="c"># 스레드B (코어2): 읽기 → 5  ← 동시에!</span>
+<span class="c">#</span>
+<span class="c"># 스레드A: 5 + 1 = 6 저장</span>
+<span class="c"># 스레드B: 5 + 1 = 6 저장  ← 덮어씀!</span>
+<span class="c">#</span>
+<span class="c"># 결과: 6  (실제로는 7이 되어야 함!)</span>
+<span class="c"># → 메모리 오염 → 프로그램 오동작 또는 충돌</span>
+
+<span class="c"># GIL의 해결책: "동시 실행 자체를 금지"</span>
+<span class="c"># 스레드A 완전히 끝날 때까지 스레드B는 대기</span>
+<span class="c"># → 충돌 원천 차단 (단, 코어 8개여도 1개처럼 동작)</span></div>
+
+    <h3>GIL 제거가 왜 30년이나 걸렸나?</h3>
+    <div class="analogy purple">
+      <div class="analogy-icon">🏗️</div>
+      <div>
+        <div class="analogy-title">30년된 건물의 내력벽 비유</div>
+        <p class="analogy-text">GIL은 30년된 건물의 <strong>내력벽</strong>(건물 전체 무게를 지탱하는 핵심 벽)과 같습니다. 그냥 허물면 건물 전체 붕괴!<br><br>
+        올바른 방법: ① 건물 전체 구조 파악 (수년 소요) → ② 내력벽 대신 다른 지지 구조 설계 → ③ 조금씩 교체하면서 테스트 → ④ 최종 검증 후 내력벽 제거</p>
+        <p class="analogy-real">💡 GIL에 의존하는 것들: 참조 카운팅, 가비지 컬렉터, C 확장 모듈 수천 개(NumPy, pandas, OpenCV 등), Python 표준 라이브러리 전체. 이 모두를 GIL 없이도 안전하게 작동하도록 재설계해야 했습니다.</p>
+      </div>
+    </div>
+
+    <h3>제거 과정 — 30년의 역사</h3>
+    <div class="timeline">
+      <div class="tl-item">
+        <div class="tl-dot bg-red">03</div>
+        <div class="tl-body">
+          <div class="tl-title">2003년 — 첫 GIL 제거 시도 → 실패</div>
+          <div class="tl-desc">제거하니 단일 스레드 속도가 오히려 30% 느려짐. GIL이 의도치 않게 최적화 역할도 했기 때문.</div>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot bg-orange">10</div>
+        <div class="tl-body">
+          <div class="tl-title">2010년 — Google의 "Unladen Swallow" 프로젝트 → 실패</div>
+          <div class="tl-desc">구글이 대규모 인력을 투입했으나 성능 목표 달성 실패. 프로젝트 중단.</div>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot bg-blue">21</div>
+        <div class="tl-body">
+          <div class="tl-title">2021년 — Sam Gross 혼자 3년간 연구</div>
+          <div class="tl-desc">"Biased Reference Counting" 기법 발견. LSE 같은 원자 명령어를 활용해 GIL 없이 참조 카운팅을 안전하게 처리하는 방법.</div>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot bg-purple">23</div>
+        <div class="tl-body">
+          <div class="tl-title">2023년 — PEP 703 공식 승인</div>
+          <div class="tl-desc">"GIL을 선택적으로 비활성화 가능하게" 결정. Python 핵심 개발팀 공식 채택.</div>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot bg-green">25</div>
+        <div class="tl-body">
+          <div class="tl-title">2025년 — Python 3.14t 공식 출시</div>
+          <div class="tl-desc">GIL 없는 빌드(t = free-threaded) 정식 지원. PyTorch 2.10이 3.14t 지원 → AI에서 진짜 병렬 Python 시대!</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== S8: GIL vs CUDA ===== -->
+  <section id="s8">
+    <div class="sec-header">
+      <div class="sec-num bg-teal">8</div>
+      <div>
+        <div class="sec-tag tag-teal">기술 비교</div>
+        <h2>GIL vs CUDA — 같은 듯 다른 두 기술</h2>
+      </div>
+    </div>
+
+    <div class="callout info">
+      <div class="callout-icon">💡</div>
+      <div><strong>핵심:</strong> GIL은 CPU에서 Python 코드의 문제, CUDA는 GPU에서 수학 연산을 빠르게 하는 것. <strong>완전히 다른 층위의 기술</strong>입니다.</div>
+    </div>
+
+    <div class="analogy teal">
+      <div class="analogy-icon">🏭</div>
+      <div>
+        <div class="analogy-title">AI 학습 공장 비유</div>
+        <p class="analogy-text"><strong>공장장(Python, CPU):</strong> "데이터 불러와! 전처리해! GPU에 보내! 결과 받아! 저장해!"<br>
+        → GIL 문제 영역: 공장장 보조원들(스레드)이 동시에 일을 못함<br><br>
+        <strong>공장 생산라인(GPU, CUDA):</strong> 1만 개 라인이 동시에 행렬 곱셈!<br>
+        → GIL과 완전히 무관. Python이 "시작!" 명령만 내리면 GPU가 알아서 처리</p>
+      </div>
+    </div>
+
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th class="th-dark">항목</th>
+          <th style="background:#DC2626;color:white;">GIL</th>
+          <th style="background:#1E3A8A;color:white;">CUDA</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>위치</td><td>CPU (Python 코드 실행)</td><td>GPU (수학 연산)</td></tr>
+        <tr><td>목적</td><td>Python 메모리 안전 관리</td><td>대규모 병렬 수학 계산</td></tr>
+        <tr><td>만든 곳</td><td>Python 언어 설계팀</td><td>NVIDIA</td></tr>
+        <tr><td>문제</td><td>CPU 코어 여러 개 못 씀</td><td>없음 (병렬 처리 그 자체)</td></tr>
+        <tr><td>AI에서 역할</td><td>데이터 준비, 제어 흐름</td><td>행렬 곱셈, 학습 연산</td></tr>
+        <tr><td>Pi 5 관련</td><td>GIL 제거 = LSE 덕분에 가능</td><td>GPU 없어서 CUDA 불가</td></tr>
+        <tr><td>Pi 5에서 사용 가능?</td><td><span class="badge b-ok">가능 (3.14t에서)</span></td><td><span class="badge b-ng">불가 (NVIDIA GPU 없음)</span></td></tr>
+      </tbody>
+    </table>
+
+    <div class="code"><span class="c"># AI 학습 코드에서 두 영역이 어떻게 나뉘나:</span>
+
+<span class="c"># ── Python(CPU) 영역 ── GIL 영향받음 ──</span>
+데이터 = 불러오기("dataset/")          <span class="c"># GIL 영향</span>
+전처리 = 이미지_변환(데이터)            <span class="c"># GIL 영향</span>
+배치 = 다음배치(전처리)                  <span class="c"># GIL 영향</span>
+
+<span class="c"># ── GPU 영역 ── CUDA ── GIL 무관 ──</span>
+배치_gpu = 배치.to(<span class="s">"cuda"</span>)            <span class="c"># GPU로 전송</span>
+출력 = 모델(배치_gpu)                   <span class="c"># CUDA 처리 (수천 코어!)</span>
+손실 = loss_fn(출력, 정답)              <span class="c"># CUDA 처리</span>
+손실.backward()                         <span class="c"># CUDA 처리 (역전파)</span>
+
+<span class="c"># ── 다시 Python(CPU) 영역 ──</span>
+<span class="fn">print</span>(f"손실: {손실.item()}")          <span class="c"># GIL 영향</span></div>
+
+    <h3>Pi 5에서 GIL 제거의 실질적 의미</h3>
+    <div class="code"><span class="c"># 현재 (GIL 있음, Pi 5):</span>
+① 카메라 프레임 읽기  ────────────────┐
+② 이미지 전처리 (CPU) ────────────────┤ 순서대로 처리
+③ AI 추론 (PyTorch)   ────────────────┤ (GIL 때문에)
+④ 모터 명령 전송      ────────────────┘
+<span class="c"># → 전체 약 100ms 지연</span>
+
+<span class="c"># Python 3.14t + GIL 제거 후 (Pi 5):</span>
+① 카메라 프레임 읽기  ── 코어1
+② 이미지 전처리       ── 코어2  <span class="ok">← 동시!</span>
+③ AI 추론             ── 코어3  <span class="ok">← 동시!</span>
+④ 모터 명령 전송      ── 코어4  <span class="ok">← 동시!</span>
+<span class="c"># → 전체 약 30~40ms → 로봇 반응 2~3배 향상!</span></div>
+  </section>
+
+  <!-- ===== S9: GIL과 LSE의 관계 ===== -->
+  <section id="s9">
+    <div class="sec-header">
+      <div class="sec-num bg-purple">9</div>
+      <div>
+        <div class="sec-tag tag-purple">핵심 연결고리</div>
+        <h2>GIL과 LSE의 연결 — 같은 문제의 두 해결책</h2>
+      </div>
+    </div>
+
+    <div class="callout info">
+      <div class="callout-icon">🔑</div>
+      <div><strong>핵심 한 줄:</strong> GIL = "LSE가 없던 시절의 소프트웨어 임시방편" / LSE = "GIL이 필요 없도록 하드웨어가 직접 해결한 것" → <strong>GIL과 LSE는 같은 문제(참조 카운팅 경쟁 조건)의 두 가지 해결책입니다.</strong></div>
+    </div>
+
+    <h3>공통 뿌리: 참조 카운팅 경쟁 조건(Race Condition)</h3>
+    <div class="code"><span class="c"># 두 기술이 해결하려는 같은 문제:</span>
+카운터 현재값: 5
+
+코어A: 카운터 읽음 → 5
+코어B: 카운터 읽음 → 5  <span class="c">← 동시에!</span>
+
+코어A: 5 + 1 = 6 저장
+코어B: 5 + 1 = 6 저장  <span class="bad">← 코어A 작업 덮어씀!</span>
+
+<span class="bad">결과: 6  (7이 되어야 함!) → 메모리 오염 위험</span>
+
+<span class="c"># 해결책 1: GIL (소프트웨어, 1991년)</span>
+"동시 실행 자체를 금지 → 코어A 끝날 때까지 코어B 대기"
+<span class="ok">결과: 정확  비용: 코어 8개여도 1개처럼 동작</span>
+
+<span class="c"># 해결책 2: LSE (하드웨어, 2016년)</span>
+"ldaddal: 읽기+더하기+저장을 1개 명령어로 원자적 처리"
+<span class="ok">결과: 정확  비용: 없음! 기다림 없이 동시 진행</span></div>
+
+    <h3>역사적 연결 흐름</h3>
+    <div class="timeline">
+      <div class="tl-item">
+        <div class="tl-dot bg-red">91</div>
+        <div class="tl-body">
+          <div class="tl-title">1991년 — Python 탄생, GIL 도입</div>
+          <div class="tl-desc">CPU 코어 1개, 원자 명령어 없음. GIL로 참조 카운팅 보호. 당시로선 최선의 선택.</div>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot bg-orange">03</div>
+        <div class="tl-body">
+          <div class="tl-title">2003년~ — 멀티코어 시대, GIL 제거 시도 반복 실패</div>
+          <div class="tl-desc">소프트웨어만으로 GIL 없이 참조 카운팅을 안전하게 하려 하니 항상 성능이 나빠졌음.</div>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot bg-blue">16</div>
+        <div class="tl-body">
+          <div class="tl-title">2016년 — ARMv8.1 LSE 등장 (ldaddal 등)</div>
+          <div class="tl-desc">하드웨어 수준에서 원자 연산이 가능해짐. 소프트웨어 루프 없이도 안전한 동시 카운터 수정 가능.</div>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot bg-purple">21</div>
+        <div class="tl-body">
+          <div class="tl-title">2021년 — Sam Gross: "LSE 같은 원자 명령어 쓰면 된다!"</div>
+          <div class="tl-desc">"Biased Reference Counting": 주인 스레드는 잠금 없이 빠르게, 다른 스레드는 원자 명령어 사용. LSE가 있는 ARM에서 최고 효율.</div>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot bg-green">25</div>
+        <div class="tl-body">
+          <div class="tl-title">2025년 — Python 3.14t: GIL 제거 공식화</div>
+          <div class="tl-desc">LSE가 있는 Pi 5에서 최고 성능. Pi 4는 LSE 없어서 GIL 제거 시 오히려 느려질 수 있음.</div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Pi 4 vs Pi 5: GIL 제거에서도 차이가 나는 이유</h3>
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th class="th-dark">상황</th>
+          <th style="background:#DC2626;color:white;">Pi 4 (LSE 없음)</th>
+          <th style="background:#059669;color:white;">Pi 5 (LSE 있음)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>참조 카운팅</td>
+          <td>ldxr + stxr 루프 반복 (실패 시 재시도)</td>
+          <td>ldaddal 단 1번으로 완결</td>
+        </tr>
+        <tr>
+          <td>GIL 제거 후</td>
+          <td><span class="badge b-ng">참조 카운팅 오버헤드 폭증 → 느려짐</span></td>
+          <td><span class="badge b-ok">오버헤드 없음 → 빨라짐</span></td>
+        </tr>
+        <tr>
+          <td>PyTorch import</td>
+          <td><span class="badge b-ng">Illegal instruction (LSE 명령어 없음)</span></td>
+          <td><span class="badge b-ok">정상 동작</span></td>
+        </tr>
+        <tr>
+          <td>Python 3.14t 사용</td>
+          <td><span class="badge b-ng">비효율 (LSE 없어서)</span></td>
+          <td><span class="badge b-ok">최고 효율 (LSE 완전 활용)</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- 최종 다이어그램 -->
+    <div style="background:var(--surface);border-radius:16px;padding:2rem;margin:1.5rem 0;text-align:center;">
+      <p style="font-weight:700;margin-bottom:1.5rem;font-size:1.05rem;">GIL과 LSE의 관계 다이어그램</p>
+      <div style="display:flex;justify-content:center;align-items:center;gap:2rem;flex-wrap:wrap;">
+        <div style="background:var(--red-light);border:2px solid var(--red);border-radius:12px;padding:1.25rem 1.5rem;text-align:center;min-width:160px;">
+          <div style="font-size:1.8rem;">🔒</div>
+          <div style="font-weight:700;color:var(--red);">GIL</div>
+          <div style="font-size:0.8rem;color:var(--muted);">소프트웨어 해결<br>동시 실행 금지<br>(1991년)</div>
+        </div>
+        <div style="font-size:2rem;color:var(--muted);">↔</div>
+        <div style="background:var(--blue-light);border:2px solid var(--blue);border-radius:12px;padding:1.25rem 1.5rem;text-align:center;min-width:160px;">
+          <div style="font-size:1.8rem;">⚡</div>
+          <div style="font-weight:700;color:var(--blue);">같은 문제</div>
+          <div style="font-size:0.8rem;color:var(--muted);">참조 카운팅<br>경쟁 조건<br>(Race Condition)</div>
+        </div>
+        <div style="font-size:2rem;color:var(--muted);">↔</div>
+        <div style="background:var(--green-light);border:2px solid var(--green);border-radius:12px;padding:1.25rem 1.5rem;text-align:center;min-width:160px;">
+          <div style="font-size:1.8rem;">🔧</div>
+          <div style="font-weight:700;color:var(--green);">LSE</div>
+          <div style="font-size:0.8rem;color:var(--muted);">하드웨어 해결<br>원자적 동시 실행<br>(2016년)</div>
+        </div>
+      </div>
+      <div style="margin-top:1.5rem;background:var(--purple-light);border-radius:10px;padding:1rem 1.5rem;display:inline-block;">
+        <p style="color:var(--purple);font-weight:700;margin:0;">LSE가 나오면서 GIL이 불필요해졌고,<br>LSE는 GIL을 역사 속으로 보내는 기술이 됩니다.</p>
+      </div>
+    </div>
+
+    <!-- 최종 요약 -->
+    <div class="finale">
+      <h3>🎯 전체 핵심 5줄 요약</h3>
+      <div class="finale-items">
+        <div class="finale-item"><strong>① LSE</strong>는 여러 CPU 코어가 메모리를 동시에 안전하게 수정하는 하드웨어 명령어 (ARMv8.1, 2016년)</div>
+        <div class="finale-item"><strong>② GIL</strong>은 LSE 없던 시절 "동시 실행 금지"로 같은 문제를 소프트웨어로 해결한 임시방편 (1991년)</div>
+        <div class="finale-item"><strong>③ PyTorch 2.4+</strong>는 LSE를 직접 사용하도록 설계되어 LSE 없는 Pi 4에서 import 단계부터 충돌</div>
+        <div class="finale-item"><strong>④ GIL 제거</strong>는 LSE 덕분에 가능해졌고, Pi 5에서 Python 3.14t + PyTorch 2.10 조합이 최고 효율</div>
+        <div class="finale-item"><strong>⑤ CUDA</strong>는 GIL/LSE와 전혀 다른 영역 — GPU 수천 코어로 행렬 계산을 병렬화하는 기술</div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<footer style="background:#1E293B;color:#94A3B8;padding:2rem 0;margin-top:4rem;text-align:center;font-size:0.85rem;">
+  <div class="container">
+    <p>Python · PyTorch · GIL · LSE 심화 원리 교육 가이드 | 2026년 3월 기준</p>
+    <p style="margin-top:0.5rem;opacity:0.6;">1편: 라즈베리파이 AI 로봇 환경 구축 완전 가이드 의 심화 보완 자료</p>
+  </div>
+</footer>
+
+</body>
+</html>

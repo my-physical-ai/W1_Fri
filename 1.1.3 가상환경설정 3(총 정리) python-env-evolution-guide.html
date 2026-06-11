@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Python 환경 관리 완전 정복 — base · venv · Conda · uv의 모든 것</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-primary: #2563EB;
+      --color-primary-light: #DBEAFE;
+      --color-primary-dark: #1E3A8A;
+      --color-secondary: #7C3AED;
+      --color-secondary-light: #EDE9FE;
+      --color-accent: #059669;
+      --color-accent-light: #D1FAE5;
+      --color-warning: #D97706;
+      --color-warning-light: #FEF3C7;
+      --color-danger: #DC2626;
+      --color-danger-light: #FEE2E2;
+      --color-teal: #0891B2;
+      --color-teal-light: #E0F7FA;
+      --color-orange: #EA580C;
+      --color-orange-light: #FFF7ED;
+      --color-surface: #F8FAFC;
+      --color-card: #FFFFFF;
+      --color-text: #1E293B;
+      --color-muted: #64748B;
+      --color-border: #E2E8F0;
+    }
+    body { font-family: 'Noto Sans KR', sans-serif; color: var(--color-text); background: var(--color-surface); line-height: 1.75; }
+    code, pre { font-family: 'JetBrains Mono', monospace; }
+    .container { max-width: 920px; margin: 0 auto; padding: 0 1.5rem; }
+    section { padding: 3rem 0; }
+    .prose p { margin-bottom: 1rem; line-height: 1.8; }
+
+    /* ===== 히어로 ===== */
+    .hero { background: linear-gradient(135deg, #1E3A8A, #3B82F6); color: white; padding: 4rem 0 3.5rem; position: relative; overflow: hidden; }
+    .hero::before { content:''; position:absolute; top:-50%; right:-15%; width:550px; height:550px; background:radial-gradient(circle,rgba(255,255,255,0.07) 0%,transparent 70%); border-radius:50%; }
+    .hero .container { position: relative; z-index: 1; }
+    .hero-tags { display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:1.25rem; }
+    .hero-tag { background:rgba(255,255,255,0.18); backdrop-filter:blur(4px); padding:0.3rem 0.85rem; border-radius:20px; font-size:0.8rem; font-weight:500; }
+    .hero h1 { font-size:2.5rem; font-weight:900; line-height:1.2; margin-bottom:1rem; }
+    .hero-subtitle { font-size:1.12rem; opacity:0.92; line-height:1.6; max-width:700px; }
+
+    /* ===== 섹션 타이틀 ===== */
+    .section-title { font-size:1.75rem; font-weight:700; line-height:1.3; margin-bottom:1.5rem; }
+    .section-title .num { display:inline-flex; align-items:center; justify-content:center; width:2.2rem; height:2.2rem; border-radius:50%; background:var(--color-primary); color:white; font-size:1rem; margin-right:0.6rem; vertical-align:middle; }
+    .section-title .num.purple { background:var(--color-secondary); }
+    .section-title .num.green { background:var(--color-accent); }
+    .section-title .num.teal { background:var(--color-teal); }
+    .section-title .num.orange { background:var(--color-orange); }
+    .section-title .num.warning { background:var(--color-warning); }
+    .inline-code { background:#EFF6FF; color:var(--color-primary-dark); padding:0.15rem 0.5rem; border-radius:6px; font-family:'JetBrains Mono',monospace; font-size:0.86rem; font-weight:500; }
+
+    /* ===== 비유 박스 ===== */
+    .analogy-box { display:flex; gap:1.25rem; padding:1.5rem; border-radius:12px; margin:1.5rem 0; }
+    .analogy-box.blue { background:var(--color-primary-light); border-left:4px solid var(--color-primary); }
+    .analogy-box.purple { background:var(--color-secondary-light); border-left:4px solid var(--color-secondary); }
+    .analogy-box.green { background:var(--color-accent-light); border-left:4px solid var(--color-accent); }
+    .analogy-box.teal { background:var(--color-teal-light); border-left:4px solid var(--color-teal); }
+    .analogy-box.orange { background:var(--color-orange-light); border-left:4px solid var(--color-orange); }
+    .analogy-box.warn { background:var(--color-warning-light); border-left:4px solid var(--color-warning); }
+    .analogy-icon { font-size:2.5rem; flex-shrink:0; }
+    .analogy-title { font-weight:700; font-size:0.85rem; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.5rem; }
+    .analogy-box.blue .analogy-title { color:var(--color-primary); }
+    .analogy-box.purple .analogy-title { color:var(--color-secondary); }
+    .analogy-box.green .analogy-title { color:var(--color-accent); }
+    .analogy-box.teal .analogy-title { color:var(--color-teal); }
+    .analogy-box.orange .analogy-title { color:var(--color-orange); }
+    .analogy-box.warn .analogy-title { color:var(--color-warning); }
+    .analogy-text { line-height:1.7; color:var(--color-text); }
+    .analogy-real { margin-top:0.75rem; padding-top:0.75rem; font-size:0.9rem; color:var(--color-muted); }
+    .analogy-box.blue .analogy-real { border-top:1px dashed var(--color-primary); }
+    .analogy-box.purple .analogy-real { border-top:1px dashed var(--color-secondary); }
+    .analogy-box.green .analogy-real { border-top:1px dashed var(--color-accent); }
+    .analogy-box.teal .analogy-real { border-top:1px dashed var(--color-teal); }
+    .analogy-box.orange .analogy-real { border-top:1px dashed var(--color-orange); }
+    .analogy-box.warn .analogy-real { border-top:1px dashed var(--color-warning); }
+
+    /* ===== 코드 블록 ===== */
+    .code-block { background:#1E293B; border-radius:12px; overflow:hidden; margin:1.5rem 0; box-shadow:0 4px 6px -1px rgba(0,0,0,0.15); }
+    .code-header { display:flex; align-items:center; gap:0.75rem; padding:0.75rem 1.25rem; background:#0F172A; border-bottom:1px solid #334155; }
+    .code-dot { width:10px; height:10px; border-radius:50%; }
+    .code-dot.red { background:#EF4444; } .code-dot.yellow { background:#EAB308; } .code-dot.green { background:#22C55E; }
+    .code-title { color:#94A3B8; font-size:0.8rem; font-family:'JetBrains Mono',monospace; margin-left:0.5rem; }
+    .code-body { padding:1.25rem; overflow-x:auto; }
+    .code-body pre { color:#E2E8F0; font-size:0.86rem; line-height:1.7; white-space:pre; }
+    .c-comment { color:#64748B; }
+    .c-cmd { color:#93C5FD; }
+    .c-str { color:#A5F3FC; }
+    .c-prompt { color:#F59E0B; }
+    .c-out { color:#86EFAC; }
+    .c-key { color:#F472B6; }
+    .c-file { color:#FCD34D; }
+
+    /* ===== 플로우 다이어그램 ===== */
+    .flow-diagram { display:flex; align-items:center; justify-content:center; gap:0.4rem; padding:2rem 1rem; background:var(--color-surface); border-radius:16px; overflow-x:auto; border:1px solid var(--color-border); margin:1.5rem 0; }
+    .flow-node { background:var(--color-card); border:2px solid var(--node-color,var(--color-primary)); border-radius:12px; padding:1rem; text-align:center; min-width:115px; transition:transform 0.2s,box-shadow 0.2s; }
+    .flow-node:hover { transform:translateY(-4px); box-shadow:0 8px 25px rgba(0,0,0,0.12); }
+    .flow-node-icon { font-size:1.75rem; margin-bottom:0.3rem; }
+    .flow-node-title { font-weight:700; font-size:0.85rem; }
+    .flow-node-desc { font-size:0.72rem; color:var(--color-muted); margin-top:0.15rem; }
+    .flow-arrow { flex-shrink:0; }
+    .flow-arrow svg { display:block; }
+
+    /* ===== 계층 구조도 ===== */
+    .arch-diagram { display:flex; flex-direction:column; align-items:center; gap:0; padding:2rem; background:var(--color-surface); border-radius:16px; border:1px solid var(--color-border); margin:1.5rem 0; }
+    .arch-layer { width:100%; max-width:650px; background:color-mix(in srgb,var(--layer-color) 8%,white); border:2px solid var(--layer-color); border-radius:12px; padding:1.25rem; }
+    .arch-layer-label { font-weight:700; color:var(--layer-color); font-size:0.85rem; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.75rem; }
+    .arch-boxes { display:flex; gap:0.75rem; flex-wrap:wrap; }
+    .arch-box { background:var(--color-card); border:1px solid var(--color-border); border-radius:8px; padding:0.5rem 1rem; font-size:0.86rem; font-weight:500; }
+    .arch-box.hl { border-color:var(--layer-color); font-weight:700; }
+    .arch-connector { color:var(--color-muted); font-size:1.2rem; padding:0.25rem 0; }
+
+    /* ===== 비교 타워 ===== */
+    .tower-compare { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:1.25rem; margin:2rem 0; }
+    .tower { border-radius:14px; overflow:hidden; border:2px solid var(--color-border); background:var(--color-card); }
+    .tower-head { padding:1.15rem; text-align:center; color:white; }
+    .tower-head h4 { margin:0.25rem 0 0; font-size:1.05rem; }
+    .tower-emoji { font-size:2rem; }
+    .tower-body { padding:0; }
+    .tower-row { display:flex; align-items:stretch; border-bottom:1px solid var(--color-border); }
+    .tower-row:last-child { border-bottom:none; }
+    .tower-label { width:42%; padding:0.65rem 0.85rem; font-size:0.8rem; color:var(--color-muted); background:var(--color-surface); display:flex; align-items:center; font-weight:500; }
+    .tower-value { width:58%; padding:0.65rem 0.85rem; font-size:0.82rem; font-weight:600; display:flex; align-items:center; }
+
+    /* ===== 핵심 카드 ===== */
+    .point-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:1.25rem; margin:1.5rem 0; }
+    .point-card { background:var(--color-card); border-radius:12px; padding:1.5rem; box-shadow:0 2px 8px rgba(0,0,0,0.06); border:1px solid var(--color-border); border-top:4px solid var(--color-primary); transition:transform 0.2s; }
+    .point-card:hover { transform:translateY(-3px); }
+    .point-card.purple { border-top-color:var(--color-secondary); }
+    .point-card.green { border-top-color:var(--color-accent); }
+    .point-card.teal { border-top-color:var(--color-teal); }
+    .point-card.orange { border-top-color:var(--color-orange); }
+    .point-card.warn { border-top-color:var(--color-warning); }
+    .point-card-icon { font-size:1.75rem; margin-bottom:0.75rem; }
+    .point-card-title { font-weight:700; font-size:1rem; margin-bottom:0.5rem; }
+    .point-card-desc { font-size:0.88rem; color:var(--color-muted); line-height:1.6; }
+
+    /* ===== 팁/주의 ===== */
+    .callout { display:flex; gap:0.75rem; padding:1rem 1.25rem; border-radius:10px; align-items:flex-start; margin:1.5rem 0; }
+    .callout-icon { font-size:1.25rem; flex-shrink:0; padding-top:0.1rem; }
+    .callout-content { font-size:0.93rem; line-height:1.6; }
+    .callout-tip { background:var(--color-accent-light); border-left:3px solid var(--color-accent); }
+    .callout-warning { background:var(--color-warning-light); border-left:3px solid var(--color-warning); }
+    .callout-danger { background:var(--color-danger-light); border-left:3px solid var(--color-danger); }
+
+    /* ===== 진화 타임라인 ===== */
+    .evo-timeline { position:relative; padding-left:3.5rem; margin:2rem 0; }
+    .evo-timeline::before { content:''; position:absolute; left:1.35rem; top:0; bottom:0; width:3px; background:linear-gradient(to bottom,var(--color-danger),var(--color-warning),var(--color-secondary),var(--color-accent)); border-radius:2px; }
+    .evo-item { position:relative; margin-bottom:2.5rem; }
+    .evo-item:last-child { margin-bottom:0; }
+    .evo-dot { position:absolute; left:-3.5rem; top:0.1rem; width:2.7rem; height:2.7rem; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.2rem; z-index:1; box-shadow:0 2px 10px rgba(0,0,0,0.15); color:white; font-weight:700; }
+    .evo-gen { font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.2rem; }
+    .evo-title { font-weight:700; font-size:1.1rem; margin-bottom:0.35rem; }
+    .evo-desc { font-size:0.92rem; color:var(--color-muted); line-height:1.65; }
+    .evo-code { margin-top:0.5rem; background:#1E293B; border-radius:8px; padding:0.6rem 1rem; color:#E2E8F0; font-family:'JetBrains Mono',monospace; font-size:0.82rem; line-height:1.6; overflow-x:auto; }
+
+    /* ===== 분야별 추천 테이블 ===== */
+    .rec-table { width:100%; border-collapse:collapse; margin:1.5rem 0; border-radius:12px; overflow:hidden; border:1px solid var(--color-border); }
+    .rec-table thead th { background:var(--color-primary-dark); color:white; padding:0.85rem 1rem; text-align:left; font-size:0.85rem; font-weight:600; }
+    .rec-table tbody td { padding:0.75rem 1rem; border-bottom:1px solid var(--color-border); font-size:0.88rem; }
+    .rec-table tbody tr:last-child td { border-bottom:none; }
+    .rec-table tbody tr:nth-child(even) { background:var(--color-surface); }
+    .rec-badge { display:inline-block; padding:0.2rem 0.6rem; border-radius:6px; font-size:0.75rem; font-weight:700; }
+    .rec-badge.conda { background:#DBEAFE; color:#1E40AF; }
+    .rec-badge.venv { background:#EDE9FE; color:#5B21B6; }
+    .rec-badge.uv { background:#D1FAE5; color:#065F46; }
+    .rec-badge.sys { background:#F1F5F9; color:#475569; }
+
+    /* ===== Accordion ===== */
+    .accordion { border:1px solid var(--color-border); border-radius:10px; overflow:hidden; margin:1.5rem 0; }
+    .accordion-header { display:flex; justify-content:space-between; align-items:center; padding:1rem 1.25rem; cursor:pointer; font-weight:600; background:var(--color-surface); user-select:none; transition:background 0.2s; }
+    .accordion-header:hover { background:var(--color-primary-light); }
+    .accordion-body { max-height:0; overflow:hidden; transition:max-height 0.3s ease,padding 0.3s ease; padding:0 1.25rem; }
+    .accordion-toggle:checked ~ .accordion-body { max-height:3000px; padding:1rem 1.25rem; }
+    .accordion-toggle:checked ~ .accordion-header .accordion-chevron { transform:rotate(90deg); }
+    .accordion-chevron { transition:transform 0.2s; }
+
+    /* ===== 요약 카드 ===== */
+    .summary-card { background:linear-gradient(135deg,#1E3A8A,#3B82F6); color:white; border-radius:16px; padding:2rem; margin:2rem 0; }
+    .summary-card h3 { font-size:1.35rem; font-weight:700; margin-bottom:1.25rem; }
+    .summary-list { list-style:none; }
+    .summary-list li { padding:0.5rem 0; font-size:0.93rem; display:flex; align-items:flex-start; gap:0.75rem; line-height:1.6; }
+    .summary-list li::before { content:'✅'; flex-shrink:0; }
+
+    /* ===== 푸터 ===== */
+    footer { text-align:center; padding:2rem 0; color:var(--color-muted); font-size:0.85rem; border-top:1px solid var(--color-border); }
+
+    /* ===== 반응형 ===== */
+    @media (max-width:768px) {
+      .hero h1 { font-size:1.75rem; }
+      .hero { padding:3rem 0 2.5rem; }
+      .flow-diagram { flex-direction:column; }
+      .flow-arrow svg { transform:rotate(90deg); }
+      .tower-compare { grid-template-columns:1fr; }
+      .evo-timeline { padding-left:3rem; }
+      .evo-dot { left:-3rem; width:2.2rem; height:2.2rem; font-size:1rem; }
+      .rec-table { font-size:0.82rem; }
+    }
+    @media print {
+      .hero { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+      .flow-node:hover,.point-card:hover { transform:none; }
+      .accordion-body { max-height:none !important; padding:1rem 1.25rem !important; }
+      .code-block { break-inside:avoid; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════ -->
+<!-- 히어로 -->
+<!-- ════════════════════════════════════════ -->
+<header class="hero">
+  <div class="container">
+    <div class="hero-tags">
+      <span class="hero-tag">🐍 Python</span>
+      <span class="hero-tag">🐻 Conda / base</span>
+      <span class="hero-tag">📦 venv</span>
+      <span class="hero-tag">⚡ uv</span>
+      <span class="hero-tag">🤖 AI vs 웹 개발</span>
+    </div>
+    <h1>Python 환경 관리 완전 정복</h1>
+    <p class="hero-subtitle">
+      "왜 base가 있어?" "venv는 왜 따로 있어?" "uv는 또 뭐야?" —
+      Conda base의 존재 이유부터 venv, uv까지, 4세대에 걸친 Python 환경의 진화 과정과
+      AI 개발 vs 웹 개발의 분야별 추천까지 완전 정복!
+    </p>
+  </div>
+</header>
+
+<!-- ════════════════════════════════════════ -->
+<!-- 개념 Overview -->
+<!-- ════════════════════════════════════════ -->
+<section class="overview">
+  <div class="container">
+    <h2 class="section-title">🗺️ 오늘 배울 것 한눈에 보기</h2>
+    <div class="flow-diagram">
+      <div class="flow-node" style="--node-color:var(--color-danger)">
+        <div class="flow-node-icon">😱</div>
+        <div class="flow-node-title">1세대</div>
+        <div class="flow-node-desc">시스템 Python 하나</div>
+      </div>
+      <div class="flow-arrow"><svg width="36" height="24" viewBox="0 0 40 24"><path d="M0 12h30M24 4l8 8-8 8" stroke="var(--color-warning)" stroke-width="2" fill="none" stroke-linecap="round"/></svg></div>
+      <div class="flow-node" style="--node-color:var(--color-secondary)">
+        <div class="flow-node-icon">📦</div>
+        <div class="flow-node-title">2세대 venv</div>
+        <div class="flow-node-desc">방 칸막이</div>
+      </div>
+      <div class="flow-arrow"><svg width="36" height="24" viewBox="0 0 40 24"><path d="M0 12h30M24 4l8 8-8 8" stroke="var(--color-primary)" stroke-width="2" fill="none" stroke-linecap="round"/></svg></div>
+      <div class="flow-node" style="--node-color:var(--color-primary)">
+        <div class="flow-node-icon">🐻</div>
+        <div class="flow-node-title">3세대 Conda</div>
+        <div class="flow-node-desc">새 집 건설</div>
+      </div>
+      <div class="flow-arrow"><svg width="36" height="24" viewBox="0 0 40 24"><path d="M0 12h30M24 4l8 8-8 8" stroke="var(--color-accent)" stroke-width="2" fill="none" stroke-linecap="round"/></svg></div>
+      <div class="flow-node" style="--node-color:var(--color-accent)">
+        <div class="flow-node-icon">⚡</div>
+        <div class="flow-node-title">4세대 uv</div>
+        <div class="flow-node-desc">전기 자전거</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════ -->
+<!-- 1. Conda base의 존재 이유 -->
+<!-- ════════════════════════════════════════ -->
+<section>
+  <div class="container prose">
+    <h2 class="section-title"><span class="num">1</span> 왜 Conda는 (base)를 만들었을까?</h2>
+
+    <div class="analogy-box blue">
+      <div class="analogy-icon">🏗️</div>
+      <div>
+        <div class="analogy-title">초등학생도 이해하기!</div>
+        <p class="analogy-text">
+          아파트를 짓는 <strong>건설 현장</strong>을 생각해보세요.
+          새 방을 만들려면 <strong>관리 사무소</strong>가 먼저 있어야 하죠?
+          자재도 관리하고, 설계도도 보관하고, 인부들한테 지시도 내리는 곳이요.
+        </p>
+        <p class="analogy-text" style="margin-top:0.5rem;">
+          Conda의 <span class="inline-code">(base)</span>가 바로 그 <strong>관리 사무소</strong>예요!
+          새 환경(방)을 만드는 <span class="inline-code">conda create</span> 명령 자체가 Python으로 동작하기 때문에,
+          <strong>최소한의 Python이 설치된 공간</strong>이 먼저 필요합니다.
+        </p>
+        <p class="analogy-real">
+          💡 <strong>실제로는</strong> — <span class="inline-code">base</span>는 Conda 본체(conda 명령어, 기본 Python, 패키지 관리 도구)가 설치된
+          <strong>최소한의 루트 환경</strong>입니다. 이 안에서 다른 환경을 생성·삭제·관리합니다.
+        </p>
+      </div>
+    </div>
+
+    <!-- base가 필요한 이유 플로우 -->
+    <h3 style="font-size:1.2rem; font-weight:700; margin:2rem 0 1rem;">base가 없으면 어떻게 될까?</h3>
+
+    <div class="arch-diagram">
+      <div class="arch-layer" style="--layer-color:var(--color-danger)">
+        <div class="arch-layer-label">❌ base 없이 Conda 설치한다면?</div>
+        <div class="arch-boxes">
+          <div class="arch-box hl">conda create -n lerobot python=3.10</div>
+        </div>
+      </div>
+      <div class="arch-connector">⬇️ 이 명령을 실행할 Python이 없다!</div>
+      <div class="arch-layer" style="--layer-color:var(--color-danger)">
+        <div class="arch-layer-label">💥 결과</div>
+        <div class="arch-boxes">
+          <div class="arch-box hl" style="border-color:var(--color-danger); color:var(--color-danger);">실행 불가! conda 자체가 Python이 필요!</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arch-diagram">
+      <div class="arch-layer" style="--layer-color:var(--color-primary)">
+        <div class="arch-layer-label">✅ 실제 Conda 설치 순서</div>
+        <div class="arch-boxes">
+          <div class="arch-box">① Conda 설치</div>
+          <div class="arch-box hl">② 최소 Python 설치</div>
+          <div class="arch-box hl">③ base 환경 생성</div>
+          <div class="arch-box">④ conda 명령 동작!</div>
+        </div>
+      </div>
+      <div class="arch-connector">⬇️ 이제 base 위에서</div>
+      <div class="arch-layer" style="--layer-color:var(--color-accent)">
+        <div class="arch-layer-label">🏠 새 환경 만들기 가능!</div>
+        <div class="arch-boxes">
+          <div class="arch-box">conda create -n lerobot</div>
+          <div class="arch-box">conda create -n rag</div>
+          <div class="arch-box">conda create -n ros</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-warning">
+      <div class="callout-icon">⚠️</div>
+      <div class="callout-content">
+        <strong>결론:</strong> <span class="inline-code">base</span> = <strong>Conda 본체가 사는 곳</strong>입니다.
+        작업 공간이 아니라 <strong>관리 사무소</strong>이기 때문에, 여기에 패키지를 직접 설치하는 것은 권장하지 않습니다!
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════ -->
+<!-- 2. 집 비유로 전체 구조 보기 -->
+<!-- ════════════════════════════════════════ -->
+<section style="background:white; padding:3rem 0;">
+  <div class="container prose">
+    <h2 class="section-title"><span class="num purple">2</span> 🏠 집으로 비유하면 — 전체 구조</h2>
+
+    <div class="analogy-box purple">
+      <div class="analogy-icon">🏘️</div>
+      <div>
+        <div class="analogy-title">한눈에 이해하기!</div>
+        <p class="analogy-text">
+          <strong>리눅스</strong> = 집 전체<br>
+          <strong>Conda 설치</strong> = 집 안에 거실(base) 생성<br>
+          <strong>conda create</strong> = 프로젝트별 작업실 추가<br><br>
+          거실(base)은 <strong>관리 사무소</strong>일 뿐, 실제 작업은 각 <strong>작업실</strong>에서!
+        </p>
+      </div>
+    </div>
+
+    <!-- 구조 진화 SVG -->
+    <div style="background:var(--color-card); border:1px solid var(--color-border); border-radius:16px; padding:2rem; margin:1.5rem 0; text-align:center;">
+      <svg viewBox="0 0 700 380" xmlns="http://www.w3.org/2000/svg" style="max-width:100%; font-family:'Noto Sans KR',sans-serif;">
+        <!-- Stage 1: 리눅스만 -->
+        <text x="120" y="28" text-anchor="middle" font-size="13" font-weight="700" fill="#64748B">리눅스만 설치</text>
+        <rect x="30" y="38" width="180" height="80" rx="12" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="2"/>
+        <text x="120" y="68" text-anchor="middle" font-size="20">🏠</text>
+        <text x="120" y="95" text-anchor="middle" font-size="12" font-weight="600" fill="#475569">집 (리눅스)</text>
+
+        <!-- Arrow -->
+        <path d="M220 78 L250 78" stroke="#94A3B8" stroke-width="2" fill="none" marker-end="url(#arrowGray)"/>
+
+        <!-- Stage 2: Conda 설치 -->
+        <text x="370" y="28" text-anchor="middle" font-size="13" font-weight="700" fill="#2563EB">+ Conda 설치</text>
+        <rect x="260" y="38" width="220" height="120" rx="12" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="2"/>
+        <text x="370" y="63" text-anchor="middle" font-size="12" font-weight="600" fill="#475569">🏠 집 (리눅스)</text>
+        <rect x="280" y="75" width="180" height="70" rx="8" fill="#DBEAFE" stroke="#2563EB" stroke-width="1.5"/>
+        <text x="370" y="100" text-anchor="middle" font-size="18">🛋️</text>
+        <text x="370" y="125" text-anchor="middle" font-size="11" font-weight="700" fill="#1E40AF">거실 (base)</text>
+        <text x="370" y="140" text-anchor="middle" font-size="9" fill="#64748B">= Conda 관리 사무소</text>
+
+        <!-- Arrow -->
+        <path d="M490 98 L520 98" stroke="#94A3B8" stroke-width="2" fill="none" marker-end="url(#arrowGray)"/>
+
+        <!-- Stage 3: 환경 추가 -->
+        <text x="610" y="28" text-anchor="middle" font-size="13" font-weight="700" fill="#059669">+ 환경 추가</text>
+        <rect x="530" y="38" width="160" height="330" rx="12" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="2"/>
+        <text x="610" y="63" text-anchor="middle" font-size="12" font-weight="600" fill="#475569">🏠 집</text>
+
+        <rect x="545" y="75" width="130" height="50" rx="8" fill="#DBEAFE" stroke="#2563EB" stroke-width="1.5"/>
+        <text x="610" y="97" text-anchor="middle" font-size="11" font-weight="700" fill="#1E40AF">🛋️ 거실 (base)</text>
+        <text x="610" y="113" text-anchor="middle" font-size="8" fill="#64748B">conda만 관리</text>
+
+        <rect x="545" y="135" width="130" height="50" rx="8" fill="#D1FAE5" stroke="#059669" stroke-width="1.5"/>
+        <text x="610" y="157" text-anchor="middle" font-size="11" font-weight="700" fill="#065F46">🤖 작업실 (lerobot)</text>
+        <text x="610" y="173" text-anchor="middle" font-size="8" fill="#64748B">PyTorch, LeRobot</text>
+
+        <rect x="545" y="195" width="130" height="50" rx="8" fill="#EDE9FE" stroke="#7C3AED" stroke-width="1.5"/>
+        <text x="610" y="217" text-anchor="middle" font-size="11" font-weight="700" fill="#5B21B6">🔍 작업실 (rag)</text>
+        <text x="610" y="233" text-anchor="middle" font-size="8" fill="#64748B">ChromaDB, Qwen</text>
+
+        <rect x="545" y="255" width="130" height="50" rx="8" fill="#FEF3C7" stroke="#D97706" stroke-width="1.5"/>
+        <text x="610" y="277" text-anchor="middle" font-size="11" font-weight="700" fill="#92400E">🧠 작업실 (vlm)</text>
+        <text x="610" y="293" text-anchor="middle" font-size="8" fill="#64748B">SmolVLA, CUDA</text>
+
+        <rect x="545" y="315" width="130" height="40" rx="8" fill="#E0F7FA" stroke="#0891B2" stroke-width="1.5"/>
+        <text x="610" y="340" text-anchor="middle" font-size="11" font-weight="700" fill="#164E63">🤖 작업실 (ros)</text>
+
+        <!-- Arrow marker -->
+        <defs>
+          <marker id="arrowGray" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#94A3B8"/>
+          </marker>
+        </defs>
+      </svg>
+      <p style="margin-top:1rem; font-size:0.88rem; color:var(--color-muted);">
+        <strong>고수의 원칙:</strong> base에는 아무것도 설치하지 않고, 오직 <span class="inline-code">conda create -n 이름</span>으로 프로젝트별 환경만 만들어 사용한다!
+      </p>
+    </div>
+
+    <div class="callout callout-tip">
+      <div class="callout-icon">💡</div>
+      <div class="callout-content">
+        <strong>고수들의 규칙:</strong> <span class="inline-code">(base)</span>에서 <span class="inline-code">pip install</span>이나 <span class="inline-code">conda install</span>을 하지 않습니다.
+        base는 관리 전용이고, 실제 작업은 항상 별도 환경에서!
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════ -->
+<!-- 3. venv는 왜 존재할까? -->
+<!-- ════════════════════════════════════════ -->
+<section>
+  <div class="container prose">
+    <h2 class="section-title"><span class="num green">3</span> venv는 왜 존재할까? — Conda보다 먼저 나왔다!</h2>
+
+    <div class="analogy-box green">
+      <div class="analogy-icon">🧱</div>
+      <div>
+        <div class="analogy-title">초등학생도 이해하기!</div>
+        <p class="analogy-text">
+          예전에 학교에서 미술 시간에 물감을 썼어요.
+          그런데 <strong>1반</strong>이 빨간 물감을 다 써버리면 <strong>2반</strong>은 못 쓰죠?
+          그래서 선생님이 <strong>"반별로 물감 세트를 따로 주자!"</strong>라고 했어요.
+        </p>
+        <p class="analogy-text" style="margin-top:0.5rem;">
+          이것이 바로 <strong>venv</strong>의 탄생 이유예요!
+          예전에는 모든 프로젝트가 <strong>하나의 Python</strong>을 공유했는데,
+          프로젝트마다 필요한 패키지 버전이 달라서 <strong>충돌</strong>이 났거든요.
+        </p>
+        <p class="analogy-real">
+          💡 <strong>실제로는</strong> — venv(PEP 405, Python 3.3)는 Conda보다 먼저 나온 Python 공식 가상환경 도구입니다.
+          <span class="inline-code">pip install torch</span>가 시스템 전체에 설치되어 다른 프로젝트와 충돌하는 문제를 해결하기 위해 만들어졌습니다.
+        </p>
+      </div>
+    </div>
+
+    <!-- 충돌 시나리오 -->
+    <div class="arch-diagram">
+      <div class="arch-layer" style="--layer-color:var(--color-danger)">
+        <div class="arch-layer-label">💥 venv가 없던 시절의 문제</div>
+        <div class="arch-boxes">
+          <div class="arch-box hl" style="border-color:var(--color-danger);">시스템 Python (하나뿐!)</div>
+        </div>
+      </div>
+      <div class="arch-connector">⬇️ 프로젝트 A: torch 1.0 필요 · 프로젝트 B: torch 2.0 필요</div>
+      <div class="arch-layer" style="--layer-color:var(--color-danger)">
+        <div class="arch-layer-label">💥 결과: 버전 충돌!</div>
+        <div class="arch-boxes">
+          <div class="arch-box" style="border-color:var(--color-danger); color:var(--color-danger);">pip install torch==2.0 하면 1.0이 삭제됨!</div>
+        </div>
+      </div>
+    </div>
+
+    <h3 style="font-size:1.2rem; font-weight:700; margin:2rem 0 1rem;">venv vs Conda — 구조가 완전히 다르다!</h3>
+
+    <div class="analogy-box warn">
+      <div class="analogy-icon">🏗️</div>
+      <div>
+        <div class="analogy-title">건축으로 비유!</div>
+        <p class="analogy-text">
+          <strong>Conda</strong> = <strong>새 집 건설</strong> — 새 방, 새 전기, 새 수도, 새 가구까지 전부 새로 지어요.<br>
+          <strong>venv</strong> = <strong>방 하나에 칸막이</strong> — 집은 그대로 공유하고, 책상만 따로 놓아요.
+        </p>
+      </div>
+    </div>
+
+    <div class="tower-compare">
+      <div class="tower">
+        <div class="tower-head" style="background:linear-gradient(135deg,#1E3A8A,#3B82F6);">
+          <div class="tower-emoji">🐻</div>
+          <h4>Conda</h4>
+        </div>
+        <div class="tower-body">
+          <div class="tower-row"><div class="tower-label">비유</div><div class="tower-value">🏠 새 집 건설</div></div>
+          <div class="tower-row"><div class="tower-label">Python</div><div class="tower-value">✅ 자체 Python 설치</div></div>
+          <div class="tower-row"><div class="tower-label">C/C++ 패키지</div><div class="tower-value">✅ CUDA, cuDNN 관리</div></div>
+          <div class="tower-row"><div class="tower-label">생성 속도</div><div class="tower-value">🐢 수십 초 (해석 필요)</div></div>
+          <div class="tower-row"><div class="tower-label">용량</div><div class="tower-value">📦 무거움 (수 GB)</div></div>
+          <div class="tower-row"><div class="tower-label">강점</div><div class="tower-value">AI, CUDA, 과학 컴퓨팅</div></div>
+        </div>
+      </div>
+      <div class="tower">
+        <div class="tower-head" style="background:linear-gradient(135deg,#5B21B6,#8B5CF6);">
+          <div class="tower-emoji">📦</div>
+          <h4>venv</h4>
+        </div>
+        <div class="tower-body">
+          <div class="tower-row"><div class="tower-label">비유</div><div class="tower-value">🧱 방 칸막이</div></div>
+          <div class="tower-row"><div class="tower-label">Python</div><div class="tower-value">📋 기존 Python 복사</div></div>
+          <div class="tower-row"><div class="tower-label">C/C++ 패키지</div><div class="tower-value">❌ pip만 가능</div></div>
+          <div class="tower-row"><div class="tower-label">생성 속도</div><div class="tower-value">⚡ 5초</div></div>
+          <div class="tower-row"><div class="tower-label">용량</div><div class="tower-value">🪶 가벼움 (수십 MB)</div></div>
+          <div class="tower-row"><div class="tower-label">강점</div><div class="tower-value">웹, API, 일반 개발</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════ -->
+<!-- 4. 진화 타임라인 -->
+<!-- ════════════════════════════════════════ -->
+<section style="background:white; padding:3rem 0;">
+  <div class="container prose">
+    <h2 class="section-title"><span class="num teal">4</span> Python 환경의 진화 — 4세대 역사</h2>
+
+    <div class="evo-timeline">
+      <!-- 1세대 -->
+      <div class="evo-item">
+        <div class="evo-dot" style="background:var(--color-danger);">1</div>
+        <div class="evo-gen" style="color:var(--color-danger);">1세대</div>
+        <div class="evo-title">시스템 Python — 전부 한 곳에!</div>
+        <div class="evo-desc">
+          모든 프로젝트가 <strong>하나의 Python</strong>을 사용했습니다.
+          <span class="inline-code">pip install</span>하면 시스템 전체에 설치되어,
+          프로젝트 A와 B의 패키지 버전이 충돌하면 해결 방법이 없었습니다.
+        </div>
+        <div class="evo-code">
+<span style="color:#64748B;"># 프로젝트 A: torch 1.0 필요</span>
+pip install torch==1.0
+
+<span style="color:#64748B;"># 프로젝트 B: torch 2.0 필요</span>
+pip install torch==2.0  <span style="color:#EF4444;"># → 1.0 삭제됨! A 고장!</span>
+        </div>
+      </div>
+
+      <!-- 2세대 -->
+      <div class="evo-item">
+        <div class="evo-dot" style="background:var(--color-secondary);">2</div>
+        <div class="evo-gen" style="color:var(--color-secondary);">2세대</div>
+        <div class="evo-title">venv — 프로젝트별 가상환경 (Python 공식)</div>
+        <div class="evo-desc">
+          Python 공식 기능으로 프로젝트마다 <strong>독립된 패키지 공간</strong>을 만들 수 있게 되었습니다.
+          가볍고 빠르지만, C++ 라이브러리(CUDA 등)는 관리할 수 없었습니다.
+        </div>
+        <div class="evo-code">
+python -m venv myenv
+source myenv/bin/activate
+pip install flask      <span style="color:#86EFAC;"># 이 환경에만 설치</span>
+deactivate
+        </div>
+      </div>
+
+      <!-- 3세대 -->
+      <div class="evo-item">
+        <div class="evo-dot" style="background:var(--color-primary);">3</div>
+        <div class="evo-gen" style="color:var(--color-primary);">3세대</div>
+        <div class="evo-title">Conda — Python + C++ + CUDA 전부 관리</div>
+        <div class="evo-desc">
+          Python뿐 아니라 <strong>CUDA, cuDNN, C++ 라이브러리, Fortran</strong>까지 한꺼번에 관리합니다.
+          AI/ML 개발자에게 필수 도구가 되었습니다. 대신 무겁고 느립니다.
+        </div>
+        <div class="evo-code">
+conda create -n lerobot python=3.10
+conda activate lerobot
+conda install pytorch cuda-toolkit  <span style="color:#86EFAC;"># CUDA까지 관리!</span>
+conda deactivate
+        </div>
+      </div>
+
+      <!-- 4세대 -->
+      <div class="evo-item">
+        <div class="evo-dot" style="background:var(--color-accent);">4</div>
+        <div class="evo-gen" style="color:var(--color-accent);">4세대 (2025~2026)</div>
+        <div class="evo-title">uv — 초고속 올인원 Python 관리자</div>
+        <div class="evo-desc">
+          Rust로 작성되어 <strong>pip보다 10~100배 빠른</strong> 차세대 도구입니다.
+          venv + pip + pip-tools + Poetry 일부 + pyenv 일부를 <strong>하나로 통합</strong>했습니다.
+          웹 개발과 일반 Python 개발에서 빠르게 확산 중입니다.
+        </div>
+        <div class="evo-code">
+curl -LsSf https://astral.sh/uv/install.sh | sh
+uv init myproject
+uv add fastapi uvicorn
+uv run python main.py   <span style="color:#86EFAC;"># 엄청 빠름!</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 자동차 비유 -->
+    <h3 style="font-size:1.2rem; font-weight:700; margin:2rem 0 1rem;">🚗 자동차로 비유하면</h3>
+
+    <div class="point-cards" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));">
+      <div class="point-card" style="border-top-color:var(--color-secondary);">
+        <div class="point-card-icon">🚲</div>
+        <div class="point-card-title">venv</div>
+        <div class="point-card-desc">수동 자전거<br>단순하고 가볍다</div>
+      </div>
+      <div class="point-card">
+        <div class="point-card-icon">🚙</div>
+        <div class="point-card-title">Conda</div>
+        <div class="point-card-desc">대형 SUV<br>무겁지만 강력하다<br>AI 작업 가능</div>
+      </div>
+      <div class="point-card green">
+        <div class="point-card-icon">🛴</div>
+        <div class="point-card-title">uv</div>
+        <div class="point-card-desc">전동 킥보드<br>가볍고 빠르다<br>자동화가 많다</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════ -->
+<!-- 5. uv 상세 설명 -->
+<!-- ════════════════════════════════════════ -->
+<section>
+  <div class="container prose">
+    <h2 class="section-title"><span class="num orange">5</span> uv — 도구가 너무 많았던 Python의 해결사</h2>
+
+    <div class="analogy-box orange">
+      <div class="analogy-icon">🧹</div>
+      <div>
+        <div class="analogy-title">왜 uv가 나왔을까?</div>
+        <p class="analogy-text">
+          기존 Python 환경은 <strong>도구가 너무 많았어요</strong>:<br>
+          가상환경 → venv/virtualenv<br>
+          패키지 설치 → pip<br>
+          의존성 고정 → pip-tools<br>
+          프로젝트 관리 → Poetry/PDM<br>
+          Python 버전 관리 → pyenv<br><br>
+          마치 <strong>못 하나 박는데 망치, 드릴, 스크류드라이버를 따로 들고 다니는</strong> 느낌!
+          uv는 이 모든 걸 <strong>하나의 도구</strong>로 합쳤습니다.
+        </p>
+        <p class="analogy-real">
+          💡 <strong>실제로는</strong> — uv는 Astral사가 Rust로 작성한 패키지·프로젝트 관리자로,
+          pip 대비 10~100배 빠른 속도를 자랑합니다. 2025~2026년 Python 생태계에서 가장 빠르게 성장하는 도구입니다.
+        </p>
+      </div>
+    </div>
+
+    <!-- uv가 통합한 것들 -->
+    <div class="arch-diagram">
+      <div class="arch-layer" style="--layer-color:var(--color-danger)">
+        <div class="arch-layer-label">❌ 기존: 도구가 5개나 필요</div>
+        <div class="arch-boxes">
+          <div class="arch-box">venv</div>
+          <div class="arch-box">pip</div>
+          <div class="arch-box">pip-tools</div>
+          <div class="arch-box">Poetry</div>
+          <div class="arch-box">pyenv</div>
+        </div>
+      </div>
+      <div class="arch-connector">⬇️ uv가 전부 합침!</div>
+      <div class="arch-layer" style="--layer-color:var(--color-accent)">
+        <div class="arch-layer-label">✅ 현재: uv 하나로 해결</div>
+        <div class="arch-boxes">
+          <div class="arch-box hl">uv venv (환경 생성)</div>
+          <div class="arch-box hl">uv pip (패키지 설치)</div>
+          <div class="arch-box hl">uv add (의존성 관리)</div>
+          <div class="arch-box hl">uv python (버전 관리)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- uv 기본 명령어 -->
+    <h3 style="font-size:1.2rem; font-weight:700; margin:2rem 0 1rem;">⚡ uv 기본 명령어</h3>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dot red"></div><div class="code-dot yellow"></div><div class="code-dot green"></div>
+        <span class="code-title">uv 설치 및 기본 사용법</span>
+      </div>
+      <div class="code-body">
+<pre><span class="c-comment"># ① 설치</span>
+<span class="c-cmd">curl -LsSf https://astral.sh/uv/install.sh | sh</span>
+
+<span class="c-comment"># ② 가상환경 만들기 (5초도 안 걸림!)</span>
+<span class="c-cmd">uv venv</span>
+<span class="c-out">.venv 폴더 생성됨</span>
+
+<span class="c-comment"># ③ 활성화</span>
+<span class="c-cmd">source .venv/bin/activate</span>
+<span class="c-prompt">(.venv)</span> zeta@ubuntu:~/project$
+
+<span class="c-comment"># ④ 패키지 설치 (pip보다 10~100배 빠름!)</span>
+<span class="c-cmd">uv pip install fastapi uvicorn</span>
+
+<span class="c-comment"># ─── 또는 프로젝트 방식 (더 현대적) ───</span>
+
+<span class="c-comment"># 프로젝트 시작</span>
+<span class="c-cmd">uv init myproject</span>
+<span class="c-cmd">cd myproject</span>
+
+<span class="c-comment"># 패키지 추가 (의존성 자동 관리)</span>
+<span class="c-cmd">uv add fastapi</span>
+
+<span class="c-comment"># 실행</span>
+<span class="c-cmd">uv run python main.py</span></pre>
+      </div>
+    </div>
+
+    <div class="callout callout-warning">
+      <div class="callout-icon">⚠️</div>
+      <div class="callout-content">
+        <strong>주의:</strong> uv는 Python 패키지 관리에 특화되어 있습니다.
+        <strong>CUDA, cuDNN, TensorRT</strong> 같은 C++/GPU 라이브러리 관리는
+        아직 Conda가 더 안정적입니다!
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════ -->
+<!-- 6. 분야별 추천 -->
+<!-- ════════════════════════════════════════ -->
+<section style="background:white; padding:3rem 0;">
+  <div class="container prose">
+    <h2 class="section-title"><span class="num warning">6</span> 분야별 추천 — AI는 Conda, 웹은 uv!</h2>
+
+    <div class="analogy-box teal">
+      <div class="analogy-icon">🗺️</div>
+      <div>
+        <div class="analogy-title">핵심 한 문장!</div>
+        <p class="analogy-text" style="font-size:1.05rem;">
+          <strong>AI / 로봇 / LLM / VLM → Conda</strong><br>
+          <strong>웹 / API / RAG 서버 → uv</strong>
+        </p>
+        <p class="analogy-real">
+          💡 2026년 기준, "Conda가 venv를 대체했다"가 아니라 <strong>"분야별로 나뉘었다"</strong>가 정확합니다.
+          그리고 venv 자리를 uv가 빠르게 대체하고 있습니다.
+        </p>
+      </div>
+    </div>
+
+    <!-- 분야별 추천 테이블 -->
+    <table class="rec-table">
+      <thead>
+        <tr>
+          <th>분야</th>
+          <th>주요 도구</th>
+          <th>추천</th>
+          <th>이유</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>AI / ML / VLM / LLM</strong></td>
+          <td>PyTorch, SmolVLA, Pi0-FAST</td>
+          <td><span class="rec-badge conda">Conda</span></td>
+          <td>CUDA + cuDNN + C++ 의존성</td>
+        </tr>
+        <tr>
+          <td><strong>LeRobot / HuggingFace</strong></td>
+          <td>LeRobot, Transformers</td>
+          <td><span class="rec-badge conda">Conda</span></td>
+          <td>복잡한 AI 의존성 체인</td>
+        </tr>
+        <tr>
+          <td><strong>Jetson / NVIDIA</strong></td>
+          <td>JetPack, TensorRT, CUDA</td>
+          <td><span class="rec-badge conda">Conda</span></td>
+          <td>NVIDIA 문서가 Conda 기반</td>
+        </tr>
+        <tr>
+          <td><strong>데이터 분석</strong></td>
+          <td>pandas, numpy, jupyter</td>
+          <td><span class="rec-badge conda">Conda</span></td>
+          <td>과학 컴퓨팅 라이브러리 최적화</td>
+        </tr>
+        <tr>
+          <td><strong>FastAPI / 웹 API</strong></td>
+          <td>FastAPI, Uvicorn</td>
+          <td><span class="rec-badge uv">uv</span></td>
+          <td>순수 Python, 빠른 설치</td>
+        </tr>
+        <tr>
+          <td><strong>RAG API 서버</strong></td>
+          <td>LangChain, ChromaDB API</td>
+          <td><span class="rec-badge uv">uv</span></td>
+          <td>웹 서버 특성</td>
+        </tr>
+        <tr>
+          <td><strong>Django / Flask</strong></td>
+          <td>Django, Flask</td>
+          <td><span class="rec-badge uv">uv</span></td>
+          <td>C++ 의존성 거의 없음</td>
+        </tr>
+        <tr>
+          <td><strong>일반 Python 개발</strong></td>
+          <td>스크립트, 자동화</td>
+          <td><span class="rec-badge uv">uv</span></td>
+          <td>가볍고 빠름</td>
+        </tr>
+        <tr>
+          <td><strong>Docker 내부</strong></td>
+          <td>컨테이너 배포</td>
+          <td><span class="rec-badge sys">시스템 Python</span></td>
+          <td>컨테이너 자체가 격리</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- 왜 AI는 Conda? -->
+    <h3 style="font-size:1.2rem; font-weight:700; margin:2rem 0 1rem;">🤖 왜 AI는 아직 Conda일까?</h3>
+
+    <div class="analogy-box purple">
+      <div class="analogy-icon">🧪</div>
+      <div>
+        <div class="analogy-title">핵심 이유!</div>
+        <p class="analogy-text">
+          LeRobot, SmolVLA, Pi0-FAST, PyTorch는 <strong>단순 Python 라이브러리가 아닙니다</strong>.<br><br>
+          실제로는 <strong>Python + C++ + CUDA + NVIDIA Driver + PyTorch</strong>가 섞인 <strong>AI 플랫폼</strong>이에요.
+          이런 복잡한 의존성은 <span class="inline-code">pip install</span> 한 줄로는 꼬이는 경우가 많고,
+          <span class="inline-code">conda install</span>이 훨씬 안정적입니다.
+        </p>
+      </div>
+    </div>
+
+    <div class="arch-diagram">
+      <div class="arch-layer" style="--layer-color:var(--color-secondary)">
+        <div class="arch-layer-label">🤖 AI 프로젝트 의존성 스택 (Conda가 강한 이유)</div>
+        <div class="arch-boxes">
+          <div class="arch-box hl">Python 3.10</div>
+          <div class="arch-box hl">C++ 라이브러리</div>
+          <div class="arch-box hl">CUDA 12.x</div>
+          <div class="arch-box hl">cuDNN</div>
+          <div class="arch-box">PyTorch</div>
+          <div class="arch-box">TensorRT</div>
+        </div>
+      </div>
+      <div class="arch-connector">⬆️ Conda는 이 전부를 관리! venv/uv는 Python만</div>
+    </div>
+
+    <!-- 왜 웹은 uv? -->
+    <h3 style="font-size:1.2rem; font-weight:700; margin:2rem 0 1rem;">🌐 왜 웹 개발은 uv일까?</h3>
+
+    <div class="analogy-box green">
+      <div class="analogy-icon">🪶</div>
+      <div>
+        <div class="analogy-title">핵심 이유!</div>
+        <p class="analogy-text">
+          FastAPI, Django, Flask는 대부분 <strong>순수 Python 패키지</strong>입니다.
+          CUDA 같은 복잡한 C++ 의존성이 거의 없어요.
+          그래서 <strong>가볍고 빠른 uv</strong>가 훨씬 효율적입니다!
+        </p>
+      </div>
+    </div>
+
+    <!-- 업계 흐름 -->
+    <h3 style="font-size:1.2rem; font-weight:700; margin:2rem 0 1rem;">📊 2026년 업계 흐름</h3>
+
+    <div class="point-cards" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));">
+      <div class="point-card">
+        <div class="point-card-icon">🌐</div>
+        <div class="point-card-title">웹 개발자</div>
+        <div class="point-card-desc"><strong>uv 급성장 📈</strong><br>venv → uv 전환 가속화</div>
+      </div>
+      <div class="point-card purple">
+        <div class="point-card-icon">🤖</div>
+        <div class="point-card-title">AI 연구자</div>
+        <div class="point-card-desc"><strong>Conda 여전히 강세 💪</strong><br>CUDA 의존성 때문</div>
+      </div>
+      <div class="point-card green">
+        <div class="point-card-icon">🤗</div>
+        <div class="point-card-title">HuggingFace</div>
+        <div class="point-card-desc"><strong>Conda + uv 혼용 🔄</strong><br>점진적 uv 채택 증가</div>
+      </div>
+      <div class="point-card teal">
+        <div class="point-card-icon">🟢</div>
+        <div class="point-card-title">NVIDIA / Jetson</div>
+        <div class="point-card-desc"><strong>Conda 기반 문서 📖</strong><br>공식 권장 유지</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════ -->
+<!-- 7. 제타 환경 추천 -->
+<!-- ════════════════════════════════════════ -->
+<section>
+  <div class="container prose">
+    <h2 class="section-title"><span class="num" style="background:var(--color-teal);">7</span> 우리 환경에서의 추천</h2>
+
+    <div class="tower-compare" style="grid-template-columns:1fr 1fr;">
+      <div class="tower">
+        <div class="tower-head" style="background:linear-gradient(135deg,#1E3A8A,#3B82F6);">
+          <div class="tower-emoji">🐻</div>
+          <h4>Conda 추천 영역</h4>
+        </div>
+        <div class="tower-body">
+          <div class="tower-row"><div class="tower-label">🤖</div><div class="tower-value">LeRobot / SO-ARM101</div></div>
+          <div class="tower-row"><div class="tower-label">🧠</div><div class="tower-value">SmolVLA / Pi0-FAST</div></div>
+          <div class="tower-row"><div class="tower-label">🎮</div><div class="tower-value">PyTorch + CUDA</div></div>
+          <div class="tower-row"><div class="tower-label">📷</div><div class="tower-value">ZED SDK / 카메라</div></div>
+          <div class="tower-row"><div class="tower-label">🖥️</div><div class="tower-value">Jetson AGX Orin</div></div>
+        </div>
+      </div>
+      <div class="tower">
+        <div class="tower-head" style="background:linear-gradient(135deg,#065F46,#10B981);">
+          <div class="tower-emoji">⚡</div>
+          <h4>uv 추천 영역</h4>
+        </div>
+        <div class="tower-body">
+          <div class="tower-row"><div class="tower-label">🔍</div><div class="tower-value">RAG API 서버</div></div>
+          <div class="tower-row"><div class="tower-label">🌐</div><div class="tower-value">FastAPI 교육 플랫폼</div></div>
+          <div class="tower-row"><div class="tower-label">📊</div><div class="tower-value">교육자료 변환 스크립트</div></div>
+          <div class="tower-row"><div class="tower-label">🛠️</div><div class="tower-value">자동화 도구</div></div>
+          <div class="tower-row"><div class="tower-label">🧪</div><div class="tower-value">간단한 Python 실험</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dot red"></div><div class="code-dot yellow"></div><div class="code-dot green"></div>
+        <span class="code-title">실제 환경 구성 예시</span>
+      </div>
+      <div class="code-body">
+<pre><span class="c-comment"># ═══════════════════════════════════════</span>
+<span class="c-comment"># 🐻 AI/로봇 작업 → Conda</span>
+<span class="c-comment"># ═══════════════════════════════════════</span>
+<span class="c-cmd">conda create -n lerobot python=3.10</span>    <span class="c-comment"># 로봇 AI</span>
+<span class="c-cmd">conda create -n vlm python=3.10</span>       <span class="c-comment"># VLM 모델</span>
+<span class="c-cmd">conda create -n rag-embed python=3.10</span> <span class="c-comment"># 임베딩 모델</span>
+
+<span class="c-comment"># ═══════════════════════════════════════</span>
+<span class="c-comment"># ⚡ 웹/API 작업 → uv</span>
+<span class="c-comment"># ═══════════════════════════════════════</span>
+<span class="c-cmd">uv init rag-server</span>       <span class="c-comment"># RAG API 서버</span>
+<span class="c-cmd">cd rag-server</span>
+<span class="c-cmd">uv add fastapi chromadb</span>  <span class="c-comment"># 초고속 설치!</span>
+<span class="c-cmd">uv run python main.py</span>    <span class="c-comment"># 바로 실행!</span></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════ -->
+<!-- 전체 3종 비교 (심화) -->
+<!-- ════════════════════════════════════════ -->
+<section style="background:white; padding:3rem 0;">
+  <div class="container">
+    <div class="accordion">
+      <input type="checkbox" id="acc-full" class="accordion-toggle" hidden>
+      <label for="acc-full" class="accordion-header">
+        <span>📚 심화: Conda vs venv vs uv — 전체 비교표</span>
+        <span class="accordion-chevron">▸</span>
+      </label>
+      <div class="accordion-body">
+        <table class="rec-table" style="margin:0;">
+          <thead>
+            <tr>
+              <th>구분</th>
+              <th>Conda</th>
+              <th>venv</th>
+              <th>uv</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>성격</strong></td><td>과학/AI용 환경 관리자</td><td>Python 기본 가상환경</td><td>빠른 Python 프로젝트 관리자</td></tr>
+            <tr><td><strong>속도</strong></td><td>🐢 보통</td><td>🏃 빠름</td><td>⚡ 매우 빠름 (10~100x)</td></tr>
+            <tr><td><strong>Python 설치 관리</strong></td><td>✅ 가능</td><td>❌ 불가</td><td>✅ 가능</td></tr>
+            <tr><td><strong>가상환경 생성</strong></td><td>✅ 가능</td><td>✅ 가능</td><td>✅ 가능</td></tr>
+            <tr><td><strong>패키지 설치</strong></td><td>conda / pip</td><td>pip</td><td>uv pip / uv add</td></tr>
+            <tr><td><strong>CUDA/PyTorch</strong></td><td>💪 강함</td><td>😥 약함</td><td>⚠️ 가능하지만 주의</td></tr>
+            <tr><td><strong>C++ 라이브러리</strong></td><td>✅ 관리 가능</td><td>❌ 불가</td><td>❌ 불가</td></tr>
+            <tr><td><strong>LeRobot/AI 실습</strong></td><td>⭐ 추천</td><td>❌ 비추천</td><td>보조적 가능</td></tr>
+            <tr><td><strong>FastAPI/RAG 서버</strong></td><td>가능</td><td>가능</td><td>⭐ 매우 좋음</td></tr>
+            <tr><td><strong>구현 언어</strong></td><td>Python</td><td>Python (내장)</td><td>Rust</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="accordion">
+      <input type="checkbox" id="acc-uv-detail" class="accordion-toggle" hidden>
+      <label for="acc-uv-detail" class="accordion-header">
+        <span>📚 심화: uv가 통합한 기존 도구 5가지</span>
+        <span class="accordion-chevron">▸</span>
+      </label>
+      <div class="accordion-body">
+        <table class="rec-table" style="margin:0;">
+          <thead>
+            <tr>
+              <th>역할</th>
+              <th>기존 도구</th>
+              <th>uv 대체 명령</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>가상환경 만들기</td><td>venv / virtualenv</td><td><span class="inline-code">uv venv</span></td></tr>
+            <tr><td>패키지 설치</td><td>pip</td><td><span class="inline-code">uv pip install</span></td></tr>
+            <tr><td>의존성 고정</td><td>pip-tools</td><td><span class="inline-code">uv lock</span></td></tr>
+            <tr><td>프로젝트 관리</td><td>Poetry / PDM</td><td><span class="inline-code">uv init / uv add</span></td></tr>
+            <tr><td>Python 버전 관리</td><td>pyenv</td><td><span class="inline-code">uv python install</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════ -->
+<!-- 요약 -->
+<!-- ════════════════════════════════════════ -->
+<section>
+  <div class="container">
+    <div class="summary-card">
+      <h3>📋 오늘 배운 것 완전 정리</h3>
+      <ul class="summary-list">
+        <li><strong>(base)</strong>는 Conda의 <strong>관리 사무소</strong>다 — conda 명령 자체가 Python이 필요하기 때문에 존재한다</li>
+        <li>고수 규칙: base에는 아무것도 설치하지 않고, <strong>프로젝트별 환경만</strong> 만들어 사용한다</li>
+        <li><strong>venv</strong>는 Conda보다 먼저 나온 Python 공식 가상환경 — 가볍지만 C++ 의존성 관리 불가</li>
+        <li><strong>Conda</strong>는 Python + C++ + CUDA 전부 관리하는 <strong>대형 SUV</strong></li>
+        <li><strong>uv</strong>는 venv + pip + pip-tools + Poetry + pyenv를 합친 <strong>초고속 전동 킥보드</strong></li>
+        <li>분야 기준: <strong>AI/로봇/CUDA → Conda</strong>, <strong>웹/API/RAG 서버 → uv</strong></li>
+        <li>2026년은 "Conda vs venv" 시대에서 <strong>"Conda vs uv" 시대</strong>로 전환 중</li>
+      </ul>
+    </div>
+
+    <div class="point-cards" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));">
+      <div class="point-card">
+        <div class="point-card-icon">🛋️</div>
+        <div class="point-card-title">base = 관리 사무소</div>
+        <div class="point-card-desc">Conda가 동작하기 위한 최소 환경. 작업은 여기서 하지 않는다!</div>
+      </div>
+      <div class="point-card purple">
+        <div class="point-card-icon">🏗️</div>
+        <div class="point-card-title">Conda = 새 집 건설</div>
+        <div class="point-card-desc">Python + C++ + CUDA 전부 관리. AI 개발의 든든한 파트너</div>
+      </div>
+      <div class="point-card" style="border-top-color:var(--color-secondary);">
+        <div class="point-card-icon">🧱</div>
+        <div class="point-card-title">venv = 방 칸막이</div>
+        <div class="point-card-desc">가볍고 빠른 Python 공식 도구. 웹 개발에서 오래 사용됨</div>
+      </div>
+      <div class="point-card green">
+        <div class="point-card-icon">⚡</div>
+        <div class="point-card-title">uv = 차세대 킥보드</div>
+        <div class="point-card-desc">10~100배 빠르게 venv를 대체 중. 웹·API 개발에 강력 추천</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <p>Python 환경 관리 완전 정복 — base · venv · Conda · uv의 모든 것</p>
+    <p style="margin-top:0.25rem;">Physical AI Education Series · Zeta Satellite Robotics</p>
+  </div>
+</footer>
+
+</body>
+</html>

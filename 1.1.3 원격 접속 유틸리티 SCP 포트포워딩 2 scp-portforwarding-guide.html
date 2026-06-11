@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>cp · scp · 포트포워딩 완전 정복</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --p:  #0891B2; --pl: #CFFAFE;
+      --s:  #7C3AED; --sl: #EDE9FE;
+      --g:  #059669; --gl: #D1FAE5;
+      --w:  #D97706; --wl: #FEF3C7;
+      --d:  #DC2626; --dl: #FEE2E2;
+      --bg: #F0F9FF;
+      --card: #fff;
+      --tx: #1E293B;
+      --mu: #64748B;
+      --bo: #E2E8F0;
+    }
+    body { font-family:'Noto Sans KR',sans-serif; color:var(--tx); background:var(--bg); line-height:1.75; }
+    code,pre,.mono { font-family:'JetBrains Mono',monospace; }
+    .wrap { max-width:900px; margin:0 auto; padding:0 1.5rem; }
+    section { padding:3.5rem 0; }
+    section+section { border-top:2px dashed var(--bo); }
+    h2 { font-size:1.75rem; font-weight:700; margin-bottom:.5rem; }
+    h3 { font-size:1.15rem; font-weight:700; margin-bottom:.75rem; }
+    p  { line-height:1.85; margin-bottom:.75rem; }
+
+    /* ── 히어로 ── */
+    .hero {
+      background:linear-gradient(135deg,#164E63 0%,#0e7490 50%,#7C3AED 100%);
+      color:#fff; padding:4rem 0 3rem; position:relative; overflow:hidden;
+    }
+    .hero::after {
+      content:'cp → scp';
+      position:absolute; right:2rem; top:50%; transform:translateY(-50%);
+      font-size:5rem; font-weight:900; font-family:'JetBrains Mono';
+      opacity:.07; pointer-events:none; white-space:nowrap;
+    }
+    .tags { display:flex; flex-wrap:wrap; gap:.5rem; margin-bottom:1.25rem; }
+    .tag { padding:.3rem 1rem; border-radius:999px; font-size:.78rem; font-weight:700; letter-spacing:.05em; }
+    .tg { background:rgba(255,255,255,.15); color:#fff; }
+    .tg2{ background:rgba(16,185,129,.3); color:#6EE7B7; }
+    .tg3{ background:rgba(251,191,36,.3); color:#FDE68A; }
+    .tg4{ background:rgba(167,139,250,.3); color:#C4B5FD; }
+    .hero h1 { font-size:clamp(1.9rem,5vw,2.7rem); font-weight:900; line-height:1.2; margin-bottom:1rem; }
+    .hero p  { font-size:1.05rem; opacity:.85; max-width:620px; }
+
+    /* ── 배지 ── */
+    .badge {
+      display:inline-flex; align-items:center; gap:.5rem;
+      background:var(--pl); color:var(--p);
+      padding:.3rem .9rem; border-radius:999px;
+      font-size:.78rem; font-weight:700; letter-spacing:.05em;
+      margin-bottom:.75rem;
+    }
+
+    /* ── 4-카드 개요 ── */
+    .overview-grid {
+      display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+      gap:1rem; margin:1.5rem 0;
+    }
+    .ov-card {
+      background:var(--card); border-radius:14px;
+      border:2px solid var(--bo); padding:1.25rem;
+      text-align:center; transition:transform .2s,box-shadow .2s;
+    }
+    .ov-card:hover { transform:translateY(-4px); box-shadow:0 8px 24px rgba(0,0,0,.1); }
+    .ov-icon { font-size:2.2rem; margin-bottom:.6rem; }
+    .ov-name { font-weight:900; font-size:1rem; font-family:'JetBrains Mono'; margin-bottom:.4rem; }
+    .ov-desc { font-size:.83rem; color:var(--mu); line-height:1.6; }
+    .ov-cp   { border-color:#059669; }
+    .ov-scp  { border-color:#0891B2; }
+    .ov-pf   { border-color:#7C3AED; }
+    .ov-wf   { border-color:#D97706; }
+    .ov-cn   { font-size:.72rem; font-weight:700; color:#fff; padding:.2rem .6rem; border-radius:999px; margin-bottom:.5rem; display:inline-block; }
+    .cn-cp  { background:#059669; }
+    .cn-scp { background:#0891B2; }
+    .cn-pf  { background:#7C3AED; }
+    .cn-wf  { background:#D97706; }
+
+    /* ── 터미널 ── */
+    .term {
+      background:#0F172A; border-radius:12px;
+      padding:1rem 1.25rem; margin:.75rem 0;
+      font-family:'JetBrains Mono'; font-size:.875rem; line-height:2;
+    }
+    .tlb { display:inline-block; background:#1E293B; color:#64748B; font-size:.7rem; padding:.12rem .5rem; border-radius:4px; margin-bottom:.4rem; letter-spacing:.06em; }
+    .tc  { color:#475569; }
+    .tp  { color:#34D399; font-weight:700; }
+    .tk  { color:#E2E8F0; }
+    .ta  { color:#60A5FA; }
+    .tf  { color:#A78BFA; }
+    .ts  { color:#FCD34D; }
+    .to  { color:#94A3B8; font-style:italic; }
+    .tok { color:#34D399; }
+    .ter { color:#F87171; }
+
+    /* ── 기대 출력 ── */
+    .ex {
+      background:#064E3B; border-radius:8px; padding:.85rem 1.1rem;
+      margin-top:.4rem; font-family:'JetBrains Mono'; font-size:.82rem;
+      line-height:1.8; color:#6EE7B7;
+    }
+    .exl { color:#34D399; font-size:.7rem; font-weight:700; margin-bottom:.3rem; letter-spacing:.07em; }
+
+    /* ── callout ── */
+    .co { display:flex; gap:.75rem; padding:1rem 1.25rem; border-radius:10px; align-items:flex-start; margin:.9rem 0; }
+    .co-i { font-size:1.2rem; flex-shrink:0; padding-top:.1rem; }
+    .co-c { font-size:.93rem; line-height:1.65; }
+    .co-tip  { background:var(--gl); border-left:3px solid var(--g); }
+    .co-warn { background:var(--wl); border-left:3px solid var(--w); }
+    .co-dng  { background:var(--dl); border-left:3px solid var(--d); }
+    .co-inf  { background:var(--pl); border-left:3px solid var(--p); }
+    .co-pur  { background:var(--sl); border-left:3px solid var(--s); }
+
+    /* ── 비유 박스 ── */
+    .anl {
+      display:flex; gap:1.25rem; padding:1.5rem;
+      background:var(--pl); border-radius:12px; border-left:4px solid var(--p);
+      margin:1.5rem 0;
+    }
+    .anl-icon { font-size:2.5rem; flex-shrink:0; }
+    .anl-ttl  { font-weight:700; font-size:.75rem; color:var(--p); text-transform:uppercase; letter-spacing:.08em; margin-bottom:.4rem; }
+    .anl-txt  { line-height:1.75; }
+    .anl-real { margin-top:.75rem; padding-top:.75rem; border-top:1px dashed #67E8F9; font-size:.88rem; color:var(--mu); }
+
+    /* ── 흐름 다이어그램 ── */
+    .flow-wrap { background:#0F172A; border-radius:16px; padding:2rem; margin:1.5rem 0; overflow-x:auto; }
+    .flow-row  { display:flex; align-items:center; justify-content:center; gap:.6rem; min-width:max-content; }
+    .fn {
+      background:#1E293B; border:2px solid var(--fnc,#0891B2);
+      border-radius:12px; padding:.85rem 1rem;
+      text-align:center; min-width:110px;
+      transition:transform .2s;
+    }
+    .fn:hover { transform:translateY(-3px); }
+    .fn-i { font-size:1.6rem; margin-bottom:.35rem; }
+    .fn-t { font-weight:700; font-size:.85rem; color:#fff; }
+    .fn-d { font-size:.72rem; color:#94A3B8; margin-top:.15rem; }
+    .fa   { color:#0891B2; font-size:1.5rem; flex-shrink:0; }
+
+    /* ── 비교 테이블 ── */
+    .tbl {
+      width:100%; border-collapse:collapse; margin:1.25rem 0;
+      border-radius:12px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,.07);
+    }
+    .tbl th { background:var(--p); color:#fff; padding:.85rem 1.1rem; font-size:.88rem; text-align:left; }
+    .tbl td { padding:.78rem 1.1rem; border-bottom:1px solid var(--bo); font-size:.88rem; }
+    .tbl tr:last-child td { border-bottom:none; }
+    .tbl tr:nth-child(even) td { background:#F0F9FF; }
+    .tbl code { font-family:'JetBrains Mono'; font-weight:700; background:#F1F5F9; padding:.08rem .35rem; border-radius:4px; font-size:.83rem; }
+    .ok  { background:var(--gl); color:#065F46; padding:.15rem .6rem; border-radius:999px; font-size:.78rem; font-weight:700; }
+    .no  { background:var(--dl); color:#991B1B; padding:.15rem .6rem; border-radius:999px; font-size:.78rem; font-weight:700; }
+
+    /* ── SCP 방향 카드 ── */
+    .dir-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin:1.5rem 0; }
+    .dir-card { background:var(--card); border-radius:12px; overflow:hidden; border:1px solid var(--bo); box-shadow:0 2px 8px rgba(0,0,0,.06); }
+    .dir-hd   { padding:.85rem 1.1rem; font-weight:700; font-size:.9rem; display:flex; align-items:center; gap:.5rem; color:#fff; }
+    .dh-up    { background:linear-gradient(90deg,#0891B2,#0e7490); }
+    .dh-dn    { background:linear-gradient(90deg,#059669,#047857); }
+    .dir-body { background:#0F172A; padding:1rem 1.1rem; font-family:'JetBrains Mono'; font-size:.8rem; line-height:1.8; }
+
+    /* ── 포트포워딩 터널 ── */
+    .tunnel-visual {
+      background:#0F172A; border-radius:16px; padding:2rem; margin:1.5rem 0;
+      display:flex; flex-direction:column; gap:.5rem; align-items:center;
+    }
+    .tv-row  { display:flex; align-items:center; gap:.75rem; }
+    .tv-box  {
+      background:#1E293B; border-radius:10px; padding:.75rem 1.25rem;
+      font-family:'JetBrains Mono'; font-size:.88rem; color:#fff; font-weight:700;
+      border:2px solid var(--fnc,#475569); white-space:nowrap;
+    }
+    .tv-arr  { color:#0891B2; font-size:1.25rem; flex-shrink:0; }
+    .tv-lbl  { font-size:.72rem; color:#64748B; text-align:center; font-family:'JetBrains Mono'; }
+    .tv-enc  {
+      background:linear-gradient(90deg,rgba(8,145,178,.15),rgba(124,58,237,.15));
+      border:1px dashed #0891B2; border-radius:8px; padding:.4rem 1rem;
+      color:#22D3EE; font-size:.78rem; font-family:'JetBrains Mono'; font-weight:700;
+      text-align:center; width:100%; max-width:300px;
+    }
+
+    /* ── 실전 시나리오 카드 ── */
+    .sc-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:1rem; margin:1.5rem 0; }
+    .sc-card { background:var(--card); border-radius:12px; overflow:hidden; border:1px solid var(--bo); box-shadow:0 2px 8px rgba(0,0,0,.06); }
+    .sc-hd   { padding:1rem 1.25rem; color:#fff; }
+    .sc-hd h4 { font-size:.95rem; font-weight:700; }
+    .sc-hd p  { font-size:.78rem; opacity:.85; margin:0; }
+    .sc-body  { padding:1rem 1.25rem; }
+    .sc-row   { display:flex; justify-content:space-between; align-items:center; padding:.5rem 0; border-bottom:1px solid var(--bo); gap:.5rem; }
+    .sc-row:last-child { border-bottom:none; }
+    .sc-lbl   { color:var(--mu); font-size:.82rem; flex-shrink:0; }
+    .sc-val   { font-weight:700; font-size:.82rem; font-family:'JetBrains Mono'; }
+
+    /* ── 홈 디렉토리 시각화 ── */
+    .tilde-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:.75rem; margin:1.25rem 0; }
+    .tc-card {
+      background:var(--card); border-radius:10px; border:1px solid var(--bo);
+      padding:1rem; text-align:center;
+    }
+    .tc-user { font-size:.72rem; color:var(--mu); margin-bottom:.2rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; }
+    .tc-tilde { font-size:1.8rem; font-weight:900; font-family:'JetBrains Mono'; color:var(--s); }
+    .tc-eq { color:var(--mu); font-size:.9rem; margin:.2rem 0; }
+    .tc-path  { font-size:.78rem; font-family:'JetBrains Mono'; color:var(--tx); font-weight:700; }
+
+    /* ── 윈도우 vs 리눅스 경로 ── */
+    .path-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin:1.25rem 0; }
+    .path-card { border-radius:12px; overflow:hidden; border:1px solid var(--bo); }
+    .path-hd   { padding:.85rem 1.1rem; font-weight:700; font-size:.9rem; }
+    .ph-win    { background:#0078D4; color:#fff; }
+    .ph-lnx    { background:#E95420; color:#fff; }
+    .path-body { background:#0F172A; padding:1rem 1.1rem; font-family:'JetBrains Mono'; font-size:.85rem; line-height:1.8; }
+
+    /* ── 패턴 치트시트 ── */
+    .cheat-table { width:100%; border-collapse:collapse; margin:1.25rem 0; border-radius:12px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,.07); }
+    .cheat-table th { background:#1E293B; color:#94A3B8; padding:.75rem 1rem; font-size:.8rem; text-align:left; font-family:'JetBrains Mono'; letter-spacing:.04em; }
+    .cheat-table td { padding:.75rem 1rem; border-bottom:1px solid #1E293B; font-size:.85rem; background:#0F172A; }
+    .cheat-table tr:last-child td { border-bottom:none; }
+    .cheat-table code { font-family:'JetBrains Mono'; color:#60A5FA; }
+
+    /* ── accordion ── */
+    .acc { border:1px solid var(--bo); border-radius:10px; overflow:hidden; margin:.85rem 0; }
+    .acc-tog { display:none; }
+    .acc-hd  {
+      display:flex; justify-content:space-between; align-items:center;
+      padding:1rem 1.25rem; cursor:pointer; font-weight:600;
+      background:var(--bg); user-select:none; font-size:.93rem;
+    }
+    .acc-bd  { max-height:0; overflow:hidden; transition:max-height .35s ease,padding .3s ease; padding:0 1.25rem; background:var(--card); }
+    .acc-tog:checked ~ .acc-bd { max-height:1500px; padding:1.25rem; }
+    .acc-tog:checked ~ .acc-hd .acc-ch { transform:rotate(90deg); }
+    .acc-ch  { transition:transform .2s; color:var(--mu); }
+
+    /* ── 반응형 ── */
+    @media(max-width:768px){
+      .flow-row { flex-direction:column; min-width:auto; }
+      .fa       { transform:rotate(90deg); }
+      .dir-grid,
+      .path-grid { grid-template-columns:1fr; }
+      .hero::after { display:none; }
+    }
+    @media print {
+      .hero { background:var(--p) !important; }
+      .acc-bd { max-height:none !important; padding:1.25rem !important; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ 히어로 ══ -->
+<header class="hero">
+  <div class="wrap">
+    <div class="tags">
+      <span class="tag tg">cp · scp</span>
+      <span class="tag tg2">파일 전송</span>
+      <span class="tag tg3">포트포워딩</span>
+      <span class="tag tg4">SSH 터널</span>
+    </div>
+    <h1>cp · scp · 포트포워딩<br>완전 정복</h1>
+    <p>이름은 비슷하지만 역할이 완전히 다른 네 가지 개념을
+      비유와 실전 예제로 한 번에 이해합니다.<br>
+      NUC ↔ Raspberry Pi ↔ Jetson 환경에서 바로 쓸 수 있는 패턴 중심으로 정리했어요.</p>
+  </div>
+</header>
+
+<!-- ══ CH1: 개념 한눈에 ══ -->
+<section>
+  <div class="wrap">
+    <div class="badge">🗺️ CHAPTER 1</div>
+    <h2>네 가지 개념, 한눈에 구분하기</h2>
+    <p style="color:var(--mu); margin-bottom:1.5rem;">
+      "복사인지, 터널인지, 주소 전달인지" — 이 한 가지만 먼저 기억하세요.
+    </p>
+
+    <div class="overview-grid">
+      <div class="ov-card ov-cp">
+        <div class="ov-cn cn-cp">같은 PC 안</div>
+        <div class="ov-icon">📋</div>
+        <div class="ov-name">cp</div>
+        <div class="ov-desc">내 컴퓨터 안에서<br>파일을 복사</div>
+      </div>
+      <div class="ov-card ov-scp">
+        <div class="ov-cn cn-scp">다른 PC로</div>
+        <div class="ov-icon">📦</div>
+        <div class="ov-name">scp</div>
+        <div class="ov-desc">SSH 암호화로<br>원격 PC에 파일 전송</div>
+      </div>
+      <div class="ov-card ov-pf">
+        <div class="ov-cn cn-pf">서비스 입구 빌리기</div>
+        <div class="ov-icon">🔌</div>
+        <div class="ov-name">SSH 포트포워딩</div>
+        <div class="ov-desc">원격 서비스를<br>내 PC 포트처럼 사용</div>
+      </div>
+      <div class="ov-card ov-wf">
+        <div class="ov-cn cn-wf">주소 전달</div>
+        <div class="ov-icon">🌐</div>
+        <div class="ov-name">웹 포워딩</div>
+        <div class="ov-desc">웹 주소를<br>다른 주소로 넘기기</div>
+      </div>
+    </div>
+
+    <!-- 비교 테이블 -->
+    <table class="tbl">
+      <thead><tr><th>구분</th><th>cp</th><th>scp</th><th>SSH 포트포워딩</th><th>웹 포워딩</th></tr></thead>
+      <tbody>
+        <tr><td>역할</td><td>로컬 복사</td><td>원격 파일 전송</td><td>포트 터널링</td><td>주소 리다이렉트</td></tr>
+        <tr><td>네트워크</td><td><span class="no">❌ 불필요</span></td><td><span class="ok">✅ SSH 사용</span></td><td><span class="ok">✅ SSH 터널</span></td><td><span class="ok">✅ HTTP/HTTPS</span></td></tr>
+        <tr><td>암호화</td><td>해당 없음</td><td>SSH 암호화</td><td>SSH 암호화</td><td>HTTPS 또는 내부</td></tr>
+        <tr><td>도구</td><td>내장 명령어</td><td>내장 명령어</td><td>SSH 클라이언트</td><td>Nginx / Apache</td></tr>
+        <tr><td>대표 예시</td><td>파일 백업 정리</td><td>NUC→라즈베리파이</td><td>Grafana, Jupyter</td><td>홈페이지, API</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ══ CH2: cp vs scp ══ -->
+<section>
+  <div class="wrap">
+    <div class="badge">📋 CHAPTER 2</div>
+    <h2>cp vs scp — 왜 cp가 있는데 scp가 필요한가?</h2>
+
+    <div class="anl">
+      <div class="anl-icon">🏠</div>
+      <div>
+        <div class="anl-ttl">이렇게 생각해 보세요!</div>
+        <p class="anl-txt">
+          <strong>cp</strong>는 내 방 안에서 노트를 복사하는 것이에요.
+          같은 건물(컴퓨터) 안에서만 가능하죠.<br><br>
+          <strong>scp</strong>는 친구 집으로 노트를 <em>잠금 봉투에 넣어 택배로</em> 보내는 것이에요.
+          다른 건물(원격 컴퓨터)로 보내야 하고, 중간에 누가 열어봐도 내용을 알 수 없어요!
+        </p>
+        <p class="anl-real">
+          💡 <strong>실제로는</strong> — scp는 내부적으로 SSH 프로토콜을 사용합니다.
+          그래서 파일 복사 + 암호화 + 로그인 인증이 한 번에 처리됩니다.
+        </p>
+      </div>
+    </div>
+
+    <!-- 흐름 다이어그램 -->
+    <h3>cp — 같은 PC 안에서 복사</h3>
+    <div class="flow-wrap">
+      <div class="flow-row">
+        <div class="fn" style="--fnc:#059669;">
+          <div class="fn-i">📄</div>
+          <div class="fn-t">a.txt</div>
+          <div class="fn-d">/home/zeta/</div>
+        </div>
+        <div class="fa">→</div>
+        <div class="fn" style="--fnc:#059669;">
+          <div class="fn-i">📋</div>
+          <div class="fn-t">cp 명령</div>
+          <div class="fn-d">네트워크 없음</div>
+        </div>
+        <div class="fa">→</div>
+        <div class="fn" style="--fnc:#059669;">
+          <div class="fn-i">📄</div>
+          <div class="fn-t">b.txt</div>
+          <div class="fn-d">/home/zeta/backup/</div>
+        </div>
+      </div>
+    </div>
+    <div class="term">
+      <div class="tc"># 같은 PC 안에서 파일 복사</div>
+      <div><span class="tp">$</span> <span class="tk">cp </span><span class="ta">a.txt</span> <span class="ts">b.txt</span></div>
+      <div class="tc"># 다른 폴더로 복사</div>
+      <div><span class="tp">$</span> <span class="tk">cp </span><span class="ta">a.txt</span> <span class="ts">/home/zeta/Downloads/</span></div>
+      <div class="tc"># 폴더 전체 복사 (-r 옵션)</div>
+      <div><span class="tp">$</span> <span class="tk">cp </span><span class="tf">-r</span> <span class="ta">my_folder/</span> <span class="ts">/home/zeta/backup/</span></div>
+    </div>
+
+    <h3 style="margin-top:1.5rem;">scp — 다른 PC로 암호화 전송</h3>
+    <div class="flow-wrap">
+      <div class="flow-row">
+        <div class="fn" style="--fnc:#0891B2;">
+          <div class="fn-i">💻</div>
+          <div class="fn-t">내 PC</div>
+          <div class="fn-d">test.py</div>
+        </div>
+        <div class="fa">→</div>
+        <div class="fn" style="--fnc:#7C3AED;">
+          <div class="fn-i">🔒</div>
+          <div class="fn-t">SSH 암호화</div>
+          <div class="fn-d">Port 22</div>
+        </div>
+        <div class="fa">→</div>
+        <div class="fn" style="--fnc:#0891B2;">
+          <div class="fn-i">🖥️</div>
+          <div class="fn-t">원격 서버</div>
+          <div class="fn-d">192.168.0.50</div>
+        </div>
+        <div class="fa">→</div>
+        <div class="fn" style="--fnc:#059669;">
+          <div class="fn-i">📄</div>
+          <div class="fn-t">저장 완료</div>
+          <div class="fn-d">/home/zeta/test.py</div>
+        </div>
+      </div>
+    </div>
+    <div class="term">
+      <div class="tc"># 기본 구조: scp [보낼파일] [사용자]@[IP]:[받을경로]</div>
+      <div><span class="tp">$</span> <span class="tk">scp </span><span class="ta">test.py</span> <span class="ts">zeta</span><span class="tk">@</span><span class="ta">192.168.0.50</span><span class="tk">:</span><span class="ts">/home/zeta/</span></div>
+    </div>
+
+    <div class="co co-tip">
+      <div class="co-i">💡</div>
+      <div class="co-c">
+        <strong>scp 구조 분석</strong><br>
+        <code>scp</code> = 안전 복사 명령어 &nbsp;|&nbsp;
+        <code>test.py</code> = 보낼 파일 &nbsp;|&nbsp;
+        <code>zeta</code> = 원격 사용자명 &nbsp;|&nbsp;
+        <code>192.168.0.50</code> = 원격 IP &nbsp;|&nbsp;
+        <code>/home/zeta/</code> = 저장 위치
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ CH3: scp 방향 ══ -->
+<section>
+  <div class="wrap">
+    <div class="badge">📦 CHAPTER 3</div>
+    <h2>scp 방향 — 헷갈리지 않는 법</h2>
+
+    <div class="co co-inf" style="margin-bottom:1.5rem;">
+      <div class="co-i">🎯</div>
+      <div class="co-c">
+        <strong>이것만 기억!</strong> &nbsp;&nbsp; <code>scp &nbsp;출발지 &nbsp;&nbsp;도착지</code><br>
+        왼쪽이 나가는 곳, 오른쪽이 도착하는 곳입니다. 항상 같아요!
+      </div>
+    </div>
+
+    <div class="dir-grid">
+      <!-- 업로드 -->
+      <div class="dir-card">
+        <div class="dir-hd dh-up">⬆️ 내 PC → 원격 서버 (업로드)</div>
+        <div class="dir-body">
+          <div class="tc"># 파일 전송</div>
+          <div><span class="ts">test.py</span> &nbsp;<span class="tf">→</span>&nbsp; <span class="ta">zeta@192.168.0.50:/home/zeta/</span></div>
+          <div>&nbsp;</div>
+          <div><span class="tp">$</span> <span class="tk">scp </span><span class="ts">test.py</span> <span class="ta">zeta@192.168.0.50:/home/zeta/</span></div>
+          <div>&nbsp;</div>
+          <div class="tc"># 폴더 전송 (-r 옵션)</div>
+          <div><span class="tp">$</span> <span class="tk">scp </span><span class="tf">-r</span> <span class="ts">my_project/</span> <span class="ta">zeta@192.168.0.50:~</span></div>
+          <div>&nbsp;</div>
+          <div class="tc"># Downloads 폴더 지정</div>
+          <div><span class="tp">$</span> <span class="tk">scp </span><span class="ts">robot_config.yaml</span> <span class="ta">zeta@192.168.0.50:~/Downloads/</span></div>
+        </div>
+      </div>
+      <!-- 다운로드 -->
+      <div class="dir-card">
+        <div class="dir-hd dh-dn">⬇️ 원격 서버 → 내 PC (다운로드)</div>
+        <div class="dir-body">
+          <div class="tc"># 파일 가져오기 (마지막 . = 현재 폴더)</div>
+          <div><span class="ta">zeta@192.168.0.50:~/result.txt</span> <span class="tf">→</span> <span class="ts">./</span></div>
+          <div>&nbsp;</div>
+          <div><span class="tp">$</span> <span class="tk">scp </span><span class="ta">zeta@192.168.0.50</span><span class="tk">:~/result.txt</span> <span class="ts">./</span></div>
+          <div>&nbsp;</div>
+          <div class="tc"># 로그 파일 가져오기</div>
+          <div><span class="tp">$</span> <span class="tk">scp </span><span class="ta">zeta@192.168.0.50</span><span class="tk">:~/syslog</span> <span class="ts">./syslog_backup.txt</span></div>
+          <div>&nbsp;</div>
+          <div class="tc"># 폴더 전체 가져오기</div>
+          <div><span class="tp">$</span> <span class="tk">scp </span><span class="tf">-r</span> <span class="ta">zeta@192.168.0.50</span><span class="tk">:~/lerobot_logs</span> <span class="ts">./</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="co co-warn">
+      <div class="co-i">⚠️</div>
+      <div class="co-c">
+        <strong>권한 오류가 날 때</strong> — <code>/var/log/syslog</code> 같은 시스템 파일은 권한 때문에 바로 scp가 안 됩니다.
+        서버에서 먼저 홈 디렉토리로 복사하세요.
+        <div class="term" style="margin-top:.6rem; font-size:.8rem;">
+          <div><span class="tc"># 서버에서: 홈 디렉토리로 복사</span></div>
+          <div><span class="tp">서버$</span> <span class="tk">sudo cp </span><span class="ta">/var/log/syslog</span> <span class="ts">~/syslog</span></div>
+          <div><span class="tc"># 내 PC에서: scp로 가져오기</span></div>
+          <div><span class="tp">내PC$</span> <span class="tk">scp </span><span class="ta">zeta@192.168.0.50</span><span class="tk">:~/syslog</span> <span class="ts">./</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ CH4: ~ 홈 디렉토리 ══ -->
+<section>
+  <div class="wrap">
+    <div class="badge">🏠 CHAPTER 4</div>
+    <h2>~ (틸드) 는 무엇인가요?</h2>
+
+    <div class="anl">
+      <div class="anl-icon">🏠</div>
+      <div>
+        <div class="anl-ttl">집 주소 단축키!</div>
+        <p class="anl-txt">
+          리눅스에서 <strong>~</strong> (틸드)는 <strong>"내 홈 디렉토리"</strong>를 뜻하는 단축기호예요.
+          사용자 이름에 따라 가리키는 폴더가 달라집니다.
+          학교 이름이 달라도 "우리 학교"라고 말하면 각자 자기 학교를 뜻하는 것처럼요!
+        </p>
+        <p class="anl-real">
+          💡 <strong>결론</strong> — <code>scp test.py zeta@192.168.0.50:~</code> 와
+          <code>scp test.py zeta@192.168.0.50:/home/zeta/</code> 는 <strong>완전히 같은 의미</strong>입니다.
+          교육 자료에서는 이해하기 쉽도록 풀어쓴 경로를 더 많이 사용해요.
+        </p>
+      </div>
+    </div>
+
+    <!-- 사용자별 ~ 의미 -->
+    <div class="tilde-grid">
+      <div class="tc-card">
+        <div class="tc-user">사용자: zeta</div>
+        <div class="tc-tilde">~</div>
+        <div class="tc-eq">=</div>
+        <div class="tc-path">/home/zeta</div>
+      </div>
+      <div class="tc-card">
+        <div class="tc-user">사용자: pi</div>
+        <div class="tc-tilde">~</div>
+        <div class="tc-eq">=</div>
+        <div class="tc-path">/home/pi</div>
+      </div>
+      <div class="tc-card">
+        <div class="tc-user">사용자: nvidia (Jetson)</div>
+        <div class="tc-tilde">~</div>
+        <div class="tc-eq">=</div>
+        <div class="tc-path">/home/nvidia</div>
+      </div>
+      <div class="tc-card">
+        <div class="tc-user">사용자: ubuntu</div>
+        <div class="tc-tilde">~</div>
+        <div class="tc-eq">=</div>
+        <div class="tc-path">/home/ubuntu</div>
+      </div>
+    </div>
+
+    <div class="term">
+      <div class="tc"># 아래 두 명령은 완전히 같습니다</div>
+      <div><span class="tp">$</span> <span class="tk">scp test.py </span><span class="ta">zeta@192.168.0.50</span><span class="tk">:</span><span class="ts">~</span></div>
+      <div><span class="tp">$</span> <span class="tk">scp test.py </span><span class="ta">zeta@192.168.0.50</span><span class="tk">:</span><span class="ts">/home/zeta/</span></div>
+      <div>&nbsp;</div>
+      <div class="tc"># 하위 폴더도 가능</div>
+      <div><span class="tp">$</span> <span class="tk">scp test.py </span><span class="ta">zeta@192.168.0.50</span><span class="tk">:</span><span class="ts">~/Downloads/</span></div>
+      <div class="tc"># = /home/zeta/Downloads/</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ CH5: scp 옵션 ══ -->
+<section>
+  <div class="wrap">
+    <div class="badge">⚙️ CHAPTER 5</div>
+    <h2>scp 주요 옵션 모음</h2>
+
+    <table class="tbl">
+      <thead><tr><th>옵션</th><th>의미</th><th>예시</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>-r</code></td>
+          <td>폴더 전체 (recursive)</td>
+          <td><code>scp -r my_project/ zeta@IP:~/</code></td>
+        </tr>
+        <tr>
+          <td><code>-P 포트</code></td>
+          <td>SSH 포트 지정 (대문자 P!)</td>
+          <td><code>scp -P 2222 test.py zeta@IP:~/</code></td>
+        </tr>
+        <tr>
+          <td><code>-i 키파일</code></td>
+          <td>SSH 개인키 지정</td>
+          <td><code>scp -i ~/.ssh/id_ed25519 test.py zeta@IP:~/</code></td>
+        </tr>
+        <tr>
+          <td><code>-v</code></td>
+          <td>진행 상황 상세 출력 (verbose)</td>
+          <td><code>scp -v big_file.zip zeta@IP:~/</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="co co-dng">
+      <div class="co-i">🚨</div>
+      <div class="co-c">
+        <strong>포트 옵션 대소문자 주의!</strong><br>
+        <code>ssh <strong>-p</strong> 2222</code> → 소문자 p &nbsp;&nbsp;&nbsp;
+        <code>scp <strong>-P</strong> 2222</code> → 대문자 P<br>
+        두 명령어가 다릅니다. 실수가 많은 부분이에요!
+      </div>
+    </div>
+
+    <div class="term" style="margin-top:1rem;">
+      <div class="tlb">포트 옵션 예제</div>
+      <div class="tc"># SSH 접속 - 소문자 p</div>
+      <div><span class="tp">$</span> <span class="tk">ssh </span><span class="tf">-p</span> <span class="ts">2222</span> <span class="ta">zeta@192.168.0.50</span></div>
+      <div>&nbsp;</div>
+      <div class="tc"># SCP 전송 - 대문자 P</div>
+      <div><span class="tp">$</span> <span class="tk">scp </span><span class="tf">-P</span> <span class="ts">2222</span> <span class="ta">test.py</span> <span class="tk">zeta@192.168.0.50:~/</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ CH6: Windows ↔ Ubuntu ══ -->
+<section>
+  <div class="wrap">
+    <div class="badge">🪟 CHAPTER 6</div>
+    <h2>Windows ↔ Ubuntu 파일 전송</h2>
+
+    <div class="anl" style="background:var(--wl); border-color:var(--w);">
+      <div class="anl-icon">⚠️</div>
+      <div>
+        <div class="anl-ttl" style="color:var(--w);">경로 형식이 다릅니다!</div>
+        <p class="anl-txt">
+          Windows와 Linux는 경로 구분자가 달라요.
+          Windows는 <strong>\(백슬래시)</strong>, Linux는 <strong>/(슬래시)</strong>를 씁니다.
+          SCP에서 헷갈리기 쉬운 부분이에요.
+        </p>
+      </div>
+    </div>
+
+    <div class="path-grid">
+      <div class="path-card">
+        <div class="path-hd ph-win">🪟 Windows 경로</div>
+        <div class="path-body">
+          <div style="color:#FCD34D;">C:\Users\user\Desktop\test.py</div>
+          <div style="color:#475569; margin-top:.5rem; font-size:.78rem;"># 백슬래시(\) 사용</div>
+        </div>
+      </div>
+      <div class="path-card">
+        <div class="path-hd ph-lnx">🐧 Linux 경로</div>
+        <div class="path-body">
+          <div style="color:#60A5FA;">/home/zeta/test.py</div>
+          <div style="color:#475569; margin-top:.5rem; font-size:.78rem;"># 슬래시(/) 사용</div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Windows → Ubuntu (업로드)</h3>
+    <div class="term">
+      <div class="tlb">Windows PowerShell</div>
+      <div class="tc"># Windows 파일을 Ubuntu로 전송</div>
+      <div><span class="tp">PS C:\Users\user\Desktop&gt;</span> <span class="tk">scp </span><span class="ts">C:\Users\user\Desktop\test.py</span> <span class="ta">zeta@192.168.0.50</span><span class="tk">:~/</span></div>
+    </div>
+
+    <h3 style="margin-top:1.25rem;">Ubuntu → Windows (다운로드)</h3>
+    <div class="co co-inf">
+      <div class="co-i">⭐</div>
+      <div class="co-c">
+        <strong>가장 쉬운 방법</strong> — Ubuntu에서 Windows로 보낼 때는
+        <em>Windows PowerShell에서 당겨오는 것</em>이 훨씬 편합니다.
+        Windows OpenSSH 버전마다 경로 형식이 달라 Ubuntu에서 보내면 헷갈려요.
+      </div>
+    </div>
+    <div class="term">
+      <div class="tlb">Windows PowerShell (바탕화면에서 실행)</div>
+      <div class="tc"># Ubuntu 파일을 Windows 현재 폴더로 가져오기</div>
+      <div><span class="tp">PS C:\Users\user\Desktop&gt;</span> <span class="tk">scp </span><span class="ta">zeta@192.168.0.50</span><span class="tk">:~/result.csv</span> <span class="ts">.</span></div>
+      <div class="tc"># . = PowerShell 현재 위치 (바탕화면으로 저장됨)</div>
+    </div>
+
+    <table class="tbl" style="margin-top:1rem;">
+      <thead><tr><th>방향</th><th>권장 방식</th><th>이유</th></tr></thead>
+      <tbody>
+        <tr><td>Windows → Ubuntu</td><td><span class="ok">PowerShell에서 scp 실행</span></td><td>경로 형식 일관성</td></tr>
+        <tr><td>Ubuntu → Windows</td><td><span class="ok">PowerShell에서 당겨오기</span></td><td>Windows SSH 버전 호환성</td></tr>
+        <tr><td>Ubuntu에서 Windows로 push</td><td><span class="no">잘 안 씀</span></td><td>Windows OpenSSH 경로가 버전마다 다름</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ══ CH7: 포트포워딩 ══ -->
+<section>
+  <div class="wrap">
+    <div class="badge">🔌 CHAPTER 7</div>
+    <h2>SSH 포트포워딩 — 원격 서비스를 내 PC처럼</h2>
+
+    <div class="anl" style="background:var(--sl); border-color:var(--s);">
+      <div class="anl-icon">🚇</div>
+      <div>
+        <div class="anl-ttl" style="color:var(--s);">지하철 터널 비유!</div>
+        <p class="anl-txt">
+          원격 서버 안에 Grafana가 실행 중인데, 서버가 인터넷에 공개되어 있지 않아 브라우저로 바로 접속이 안 돼요.<br><br>
+          SSH 포트포워딩은 <strong>원격 서버까지 지하 터널(SSH)을 뚫고</strong>,
+          그 터널 끝에 있는 Grafana 입구를 내 PC 입구처럼 사용하는 것이에요.
+          외부에서 볼 때는 내 PC 로컬에서 실행되는 것처럼 보여요!
+        </p>
+        <p class="anl-real" style="border-color:var(--s);">
+          💡 <strong>실제로는</strong> — <code>ssh -L 내포트:서버에서볼주소:서버포트 사용자@서버IP</code><br>
+          이 명령 하나로 암호화된 SSH 터널이 생기고, 내 PC 포트로 접속하면 자동으로 서버 포트로 전달됩니다.
+        </p>
+      </div>
+    </div>
+
+    <!-- 포트포워딩 시각화 -->
+    <h3>포트포워딩 흐름도 (Grafana 예시)</h3>
+    <div class="tunnel-visual">
+      <div class="tv-row">
+        <div class="tv-box" style="--fnc:#7C3AED; border-color:#7C3AED;">
+          🌐 브라우저<br><small style="color:#94A3B8; font-weight:400;">http://localhost:3000</small>
+        </div>
+        <div class="tv-arr">↓</div>
+      </div>
+      <div class="tv-row">
+        <div class="tv-box" style="border-color:#0891B2;">
+          💻 내 PC<br><small style="color:#94A3B8; font-weight:400;">3000번 포트</small>
+        </div>
+        <div class="tv-arr">↓</div>
+      </div>
+      <div class="tv-enc">🔒 SSH 암호화 터널 (Port 22)</div>
+      <div class="tv-row">
+        <div class="tv-arr">↓</div>
+      </div>
+      <div class="tv-row">
+        <div class="tv-box" style="border-color:#0891B2;">
+          🖥️ 원격 서버<br><small style="color:#94A3B8; font-weight:400;">localhost:3000</small>
+        </div>
+        <div class="tv-arr">↓</div>
+      </div>
+      <div class="tv-row">
+        <div class="tv-box" style="border-color:#059669;">
+          📊 Grafana<br><small style="color:#94A3B8; font-weight:400;">3000번 포트로 실행 중</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- -L 구조 해설 -->
+    <h3>ssh -L 명령어 구조 분석</h3>
+    <div class="term">
+      <div class="tc"># 구조: ssh -L [내PC포트]:[서버기준주소]:[서버포트] [사용자]@[서버IP]</div>
+      <div><span class="tp">$</span> <span class="tk">ssh </span><span class="tf">-L </span><span class="ta">3000</span><span class="tk">:</span><span class="ts">localhost</span><span class="tk">:</span><span class="ta">3000</span> <span class="tk">zeta@192.168.0.50</span></div>
+      <div>&nbsp;</div>
+      <div class="tc"># 해석:</div>
+      <div class="tc">#  -L 3000     → 내 PC의 3000번 포트로 들어오면</div>
+      <div class="tc">#  :localhost  → SSH로 접속한 서버 기준으로 localhost(자기 자신)의</div>
+      <div class="tc">#  :3000       → 3000번 포트로 전달해라</div>
+      <div class="tc">#  zeta@192.168.0.50 → 이 서버에 SSH로 연결</div>
+    </div>
+
+    <div class="co co-tip">
+      <div class="co-i">💡</div>
+      <div class="co-c">
+        명령 실행 후 터미널이 열려 있는 동안 터널이 유지됩니다.
+        브라우저에서 <code>http://localhost:3000</code>으로 접속하면 원격 Grafana가 열려요.
+        터미널을 닫으면 터널도 닫힙니다.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ CH8: 실전 시나리오 ══ -->
+<section>
+  <div class="wrap">
+    <div class="badge">🚀 CHAPTER 8</div>
+    <h2>실전 시나리오 — 제타위성로보틱스 환경</h2>
+
+    <div class="sc-grid">
+      <div class="sc-card">
+        <div class="sc-hd" style="background:linear-gradient(135deg,#0891B2,#0e7490);">
+          <h4>📊 NUC에서 Grafana</h4>
+          <p>NUC IP: 192.168.0.50</p>
+        </div>
+        <div class="sc-body">
+          <div class="sc-row"><span class="sc-lbl">서비스</span><span class="sc-val">Grafana</span></div>
+          <div class="sc-row"><span class="sc-lbl">서버 포트</span><span class="sc-val">3000</span></div>
+          <div class="sc-row"><span class="sc-lbl">접속 URL</span><span class="sc-val">localhost:3000</span></div>
+        </div>
+        <div class="term" style="margin:0; border-radius:0; font-size:.8rem;">
+          <div><span class="tp">$</span> <span class="tk">ssh </span><span class="tf">-L</span> <span class="ta">3000:localhost:3000</span> <span class="tk">zeta@192.168.0.50</span></div>
+        </div>
+      </div>
+
+      <div class="sc-card">
+        <div class="sc-hd" style="background:linear-gradient(135deg,#059669,#047857);">
+          <h4>🤖 라즈베리파이 ROSBridge</h4>
+          <p>Pi IP: 192.168.0.60</p>
+        </div>
+        <div class="sc-body">
+          <div class="sc-row"><span class="sc-lbl">서비스</span><span class="sc-val">ROSBridge</span></div>
+          <div class="sc-row"><span class="sc-lbl">서버 포트</span><span class="sc-val">9090</span></div>
+          <div class="sc-row"><span class="sc-lbl">접속 URL</span><span class="sc-val">ws://localhost:9090</span></div>
+        </div>
+        <div class="term" style="margin:0; border-radius:0; font-size:.8rem;">
+          <div><span class="tp">$</span> <span class="tk">ssh </span><span class="tf">-L</span> <span class="ta">9090:localhost:9090</span> <span class="tk">zeta@192.168.0.60</span></div>
+        </div>
+      </div>
+
+      <div class="sc-card">
+        <div class="sc-hd" style="background:linear-gradient(135deg,#7C3AED,#6D28D9);">
+          <h4>📓 Jupyter Notebook</h4>
+          <p>서버 IP: 192.168.0.70</p>
+        </div>
+        <div class="sc-body">
+          <div class="sc-row"><span class="sc-lbl">서비스</span><span class="sc-val">Jupyter</span></div>
+          <div class="sc-row"><span class="sc-lbl">서버 포트</span><span class="sc-val">8888</span></div>
+          <div class="sc-row"><span class="sc-lbl">접속 URL</span><span class="sc-val">localhost:8888</span></div>
+        </div>
+        <div class="term" style="margin:0; border-radius:0; font-size:.8rem;">
+          <div><span class="tp">$</span> <span class="tk">ssh </span><span class="tf">-L</span> <span class="ta">8888:localhost:8888</span> <span class="tk">zeta@192.168.0.70</span></div>
+        </div>
+      </div>
+
+      <div class="sc-card">
+        <div class="sc-hd" style="background:linear-gradient(135deg,#D97706,#B45309);">
+          <h4>⚡ FastAPI 서버</h4>
+          <p>서버 IP: 192.168.0.50</p>
+        </div>
+        <div class="sc-body">
+          <div class="sc-row"><span class="sc-lbl">서비스</span><span class="sc-val">FastAPI</span></div>
+          <div class="sc-row"><span class="sc-lbl">서버 포트</span><span class="sc-val">8000</span></div>
+          <div class="sc-row"><span class="sc-lbl">접속 URL</span><span class="sc-val">localhost:8000</span></div>
+        </div>
+        <div class="term" style="margin:0; border-radius:0; font-size:.8rem;">
+          <div><span class="tp">$</span> <span class="tk">ssh </span><span class="tf">-L</span> <span class="ta">8000:localhost:8000</span> <span class="tk">zeta@192.168.0.50</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 포트 다르게 쓰는 예제 -->
+    <div class="acc">
+      <input type="checkbox" id="acc-port" class="acc-tog">
+      <label for="acc-port" class="acc-hd">
+        <span>💡 내 PC 포트와 서버 포트를 다르게 쓰는 경우</span>
+        <span class="acc-ch">▸</span>
+      </label>
+      <div class="acc-bd">
+        <p style="color:var(--mu); font-size:.9rem;">
+          내 PC에 이미 8000번 포트가 사용 중이라면 다른 번호로 받을 수 있어요.
+        </p>
+        <div class="term">
+          <div class="tc"># 내 PC 18000번 → 서버 8000번으로 포워딩</div>
+          <div><span class="tp">$</span> <span class="tk">ssh </span><span class="tf">-L</span> <span class="ta">18000:localhost:8000</span> <span class="tk">zeta@192.168.0.50</span></div>
+          <div>&nbsp;</div>
+          <div class="tc"># 이후 브라우저에서: http://localhost:18000</div>
+          <div class="tc"># 실제로는 서버의 8000번 FastAPI로 연결됨</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ CH9: SSH 포트포워딩 vs 웹 포워딩 ══ -->
+<section>
+  <div class="wrap">
+    <div class="badge">🌐 CHAPTER 9</div>
+    <h2>SSH 포트포워딩 vs 웹 포워딩 — 무엇이 다른가?</h2>
+
+    <div class="anl" style="background:var(--wl); border-color:var(--w);">
+      <div class="anl-icon">🎯</div>
+      <div>
+        <div class="anl-ttl" style="color:var(--w);">핵심 차이</div>
+        <p class="anl-txt">
+          <strong>SSH 포트포워딩</strong>은 개발자가 원격 서버 내부 서비스에 <em>몰래 안전하게</em> 접속하는 개인용 터널이에요.<br><br>
+          <strong>웹 포워딩(Nginx 등)</strong>은 일반 사용자들이 도메인 주소로 서비스에 접속할 수 있도록
+          <em>공개적으로</em> 길을 만들어주는 것이에요.
+        </p>
+      </div>
+    </div>
+
+    <table class="tbl">
+      <thead><tr><th>구분</th><th>SSH 포트포워딩</th><th>웹 포워딩 (Nginx)</th></tr></thead>
+      <tbody>
+        <tr><td>주 사용자</td><td>개발자, 관리자</td><td>일반 사용자</td></tr>
+        <tr><td>도구</td><td>SSH 클라이언트</td><td>Nginx, Apache, DNS</td></tr>
+        <tr><td>보안</td><td>SSH 암호화 터널</td><td>HTTPS 또는 내부 프록시</td></tr>
+        <tr><td>접속 방식</td><td><code>localhost:포트</code></td><td><code>https://mycompany.com</code></td></tr>
+        <tr><td>목적</td><td>원격 내부 서비스 임시 접속</td><td>외부 서비스 정식 공개</td></tr>
+        <tr><td>공개 여부</td><td>비공개 (개인만)</td><td>공개 (누구든 접속)</td></tr>
+        <tr><td>대표 예시</td><td>Jupyter, Grafana, ROSBridge</td><td>홈페이지, API 서버, 관리 페이지</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ══ CH10: 치트시트 ══ -->
+<section style="background:#0F172A; border-top:none;">
+  <div class="wrap">
+    <div class="badge" style="background:rgba(8,145,178,.2); color:#22D3EE;">📌 CHAPTER 10</div>
+    <h2 style="color:#fff; margin-bottom:1.5rem;">자주 쓰는 패턴 치트시트</h2>
+
+    <div class="term" style="font-size:.87rem; line-height:2.1;">
+      <div class="tlb">📋 cp — 같은 PC 내 복사</div>
+      <div><span class="tp">$</span> <span class="tk">cp </span><span class="ta">a.txt</span> <span class="ts">b.txt</span>               <span class="tc"># 파일 복사</span></div>
+      <div><span class="tp">$</span> <span class="tk">cp </span><span class="tf">-r</span> <span class="ta">folder/</span> <span class="ts">/backup/</span>     <span class="tc"># 폴더 복사</span></div>
+      <div>&nbsp;</div>
+      <div class="tlb">📦 scp — 원격 전송 (업로드)</div>
+      <div><span class="tp">$</span> <span class="tk">scp </span><span class="ta">robot.py</span> <span class="ts">pi@192.168.0.60</span><span class="tk">:~</span>      <span class="tc"># NUC → 라즈베리파이</span></div>
+      <div><span class="tp">$</span> <span class="tk">scp </span><span class="ta">model.pt</span> <span class="ts">nvidia@192.168.0.70</span><span class="tk">:~</span>   <span class="tc"># NUC → Jetson</span></div>
+      <div><span class="tp">$</span> <span class="tk">scp </span><span class="tf">-r</span> <span class="ta">my_project/</span> <span class="ts">zeta@192.168.0.50</span><span class="tk">:~</span> <span class="tc"># 폴더 전송</span></div>
+      <div>&nbsp;</div>
+      <div class="tlb">📥 scp — 원격에서 가져오기 (다운로드)</div>
+      <div><span class="tp">$</span> <span class="tk">scp </span><span class="ts">nvidia@192.168.0.70</span><span class="tk">:~/result.csv</span> <span class="ta">.</span>  <span class="tc"># Jetson → NUC</span></div>
+      <div><span class="tp">$</span> <span class="tk">scp </span><span class="tf">-r</span> <span class="ts">zeta@192.168.0.50</span><span class="tk">:~/logs</span> <span class="ta">./</span>     <span class="tc"># 폴더 가져오기</span></div>
+      <div>&nbsp;</div>
+      <div class="tlb">🪟 Windows PowerShell</div>
+      <div><span class="tp">PS&gt;</span> <span class="tk">scp </span><span class="ta">C:\Desktop\test.py</span> <span class="ts">zeta@192.168.0.50</span><span class="tk">:~/</span>    <span class="tc"># Win → Ubuntu</span></div>
+      <div><span class="tp">PS&gt;</span> <span class="tk">scp </span><span class="ts">zeta@192.168.0.50</span><span class="tk">:~/result.csv</span> <span class="ta">.</span>         <span class="tc"># Ubuntu → Win (당겨오기)</span></div>
+      <div>&nbsp;</div>
+      <div class="tlb">🔌 SSH 포트포워딩</div>
+      <div><span class="tp">$</span> <span class="tk">ssh </span><span class="tf">-L</span> <span class="ta">3000:localhost:3000</span> <span class="tk">zeta@192.168.0.50</span>  <span class="tc"># Grafana</span></div>
+      <div><span class="tp">$</span> <span class="tk">ssh </span><span class="tf">-L</span> <span class="ta">8888:localhost:8888</span> <span class="tk">zeta@192.168.0.70</span>  <span class="tc"># Jupyter</span></div>
+      <div><span class="tp">$</span> <span class="tk">ssh </span><span class="tf">-L</span> <span class="ta">9090:localhost:9090</span> <span class="tk">zeta@192.168.0.60</span>  <span class="tc"># ROSBridge</span></div>
+      <div><span class="tp">$</span> <span class="tk">ssh </span><span class="tf">-L</span> <span class="ta">8000:localhost:8000</span> <span class="tk">zeta@192.168.0.50</span>  <span class="tc"># FastAPI</span></div>
+    </div>
+  </div>
+</section>
+
+<footer style="background:#0C1628; color:#475569; text-align:center; padding:1.75rem 1rem; font-size:.83rem;">
+  <p>cp · scp · SSH 포트포워딩 · 웹 포워딩 완전 정복</p>
+  <p style="margin-top:.3rem; font-family:'JetBrains Mono'; font-size:.78rem; color:#334155;">
+    scp [출발지] [도착지] &nbsp;|&nbsp; ssh -L [내포트]:localhost:[서버포트] [user]@[IP]
+  </p>
+</footer>
+
+</body>
+</html>

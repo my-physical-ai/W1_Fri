@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Git Clone 완전 정복 - Physical AI Education</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --color-primary: #7C3AED;
+    --color-primary-light: #EDE9FE;
+    --color-primary-dark: #5B21B6;
+    --color-secondary: #2563EB;
+    --color-secondary-light: #DBEAFE;
+    --color-success: #059669;
+    --color-success-light: #D1FAE5;
+    --color-warning: #D97706;
+    --color-warning-light: #FEF3C7;
+    --color-danger: #DC2626;
+    --color-danger-light: #FEE2E2;
+    --color-surface: #FAF8FF;
+    --color-card: #FFFFFF;
+    --color-text: #1E1B2E;
+    --color-muted: #6B6580;
+    --color-border: #E8E4F0;
+  }
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    color: var(--color-text);
+    background: var(--color-surface);
+    line-height: 1.75;
+  }
+  code, pre, .mono { font-family: 'JetBrains Mono', monospace; }
+  .container { max-width: 900px; margin: 0 auto; padding: 0 1.5rem; }
+  section { padding: 3rem 0; }
+  h2 { font-size: 1.75rem; font-weight: 700; line-height: 1.3; margin-bottom: 1rem; color: var(--color-text); }
+  h3 { font-size: 1.25rem; font-weight: 700; line-height: 1.4; margin: 1.75rem 0 0.75rem; color: var(--color-text); }
+  p { margin-bottom: 1rem; }
+  strong { color: var(--color-text); }
+
+  /* === 히어로 === */
+  .hero {
+    background: linear-gradient(135deg, #4C1D95, #7C3AED 60%, #A78BFA);
+    color: white;
+    padding: 4rem 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 15% 25%, rgba(255,255,255,0.10) 0%, transparent 35%),
+      radial-gradient(circle at 85% 75%, rgba(255,255,255,0.08) 0%, transparent 45%);
+    pointer-events: none;
+  }
+  .hero::after {
+    content: '$ git clone';
+    position: absolute;
+    bottom: 1rem;
+    right: 1.5rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: rgba(255,255,255,0.15);
+    font-size: 4rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    pointer-events: none;
+  }
+  .hero .container { position: relative; z-index: 1; }
+  .hero-tags { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+  .hero-tag {
+    background: rgba(255,255,255,0.15);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.25);
+    color: white;
+    padding: 0.35rem 0.9rem;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 500;
+  }
+  .hero h1 {
+    font-size: 2.75rem;
+    font-weight: 900;
+    line-height: 1.15;
+    margin-bottom: 1rem;
+    letter-spacing: -0.02em;
+  }
+  .hero-subtitle {
+    font-size: 1.1rem;
+    opacity: 0.92;
+    max-width: 700px;
+    line-height: 1.6;
+  }
+
+  /* === 섹션 헤더 === */
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+  .section-num {
+    width: 36px; height: 36px;
+    background: var(--color-primary);
+    color: white;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900;
+    font-size: 1rem;
+  }
+  .section-header h2 { margin: 0; }
+
+  /* === 핵심 한 줄 (Overview 메인) === */
+  .keystroke {
+    background: var(--color-card);
+    border-radius: 20px;
+    padding: 2.5rem 2rem;
+    box-shadow: 0 8px 32px rgba(124, 58, 237, 0.10);
+    border: 1px solid var(--color-border);
+    margin: 1.5rem 0;
+    text-align: center;
+  }
+  .keystroke-label {
+    font-size: 0.85rem;
+    color: var(--color-muted);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+  .keystroke-code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.4rem;
+    font-weight: 500;
+    color: var(--color-primary);
+    background: var(--color-primary-light);
+    padding: 1rem 1.25rem;
+    border-radius: 12px;
+    display: inline-block;
+    border: 2px dashed var(--color-primary);
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  .keystroke-desc {
+    margin-top: 1rem;
+    color: var(--color-muted);
+    font-size: 0.95rem;
+  }
+
+  /* === 빅 플로우 (전체 그림) === */
+  .big-flow {
+    background: var(--color-card);
+    border-radius: 16px;
+    padding: 2rem;
+    border: 1px solid var(--color-border);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    margin: 1.5rem 0;
+  }
+  .big-flow-row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 1rem;
+  }
+  .big-flow-side {
+    text-align: center;
+    padding: 1.5rem;
+    border-radius: 12px;
+  }
+  .big-flow-side.cloud {
+    background: linear-gradient(135deg, #EDE9FE, #DDD6FE);
+    border: 2px solid var(--color-primary);
+  }
+  .big-flow-side.pc {
+    background: linear-gradient(135deg, #DBEAFE, #BFDBFE);
+    border: 2px solid var(--color-secondary);
+  }
+  .big-flow-emoji { font-size: 3.5rem; line-height: 1; }
+  .big-flow-title { font-weight: 900; margin-top: 0.5rem; font-size: 1.1rem; }
+  .big-flow-sub { font-size: 0.85rem; color: var(--color-muted); margin-top: 0.25rem; }
+  .big-flow-arrow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .big-flow-arrow svg { color: var(--color-primary); }
+  .big-flow-arrow-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--color-primary);
+    font-weight: 700;
+    background: var(--color-primary-light);
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+    white-space: nowrap;
+  }
+
+  /* === 비유 박스 === */
+  .analogy-box {
+    display: flex;
+    gap: 1.25rem;
+    padding: 1.5rem;
+    background: var(--color-primary-light);
+    border-radius: 12px;
+    border-left: 4px solid var(--color-primary);
+    margin: 1.5rem 0;
+  }
+  .analogy-box.green { background: var(--color-success-light); border-left-color: var(--color-success); }
+  .analogy-box.green .analogy-title { color: var(--color-success); }
+  .analogy-box.green .analogy-real { border-top-color: var(--color-success); }
+  .analogy-icon { font-size: 2.5rem; flex-shrink: 0; line-height: 1; }
+  .analogy-content { flex: 1; }
+  .analogy-title {
+    font-weight: 700;
+    font-size: 0.8rem;
+    color: var(--color-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+  }
+  .analogy-text { line-height: 1.7; color: var(--color-text); }
+  .analogy-real {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px dashed var(--color-primary);
+    font-size: 0.9rem;
+    color: var(--color-muted);
+  }
+
+  /* === "왜" 카드 그리드 === */
+  .why-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0;
+  }
+  .why-card {
+    background: var(--color-card);
+    border-radius: 12px;
+    padding: 1.25rem 1rem;
+    text-align: center;
+    border: 1px solid var(--color-border);
+    border-top: 4px solid var(--color-primary);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .why-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(124, 58, 237, 0.12);
+  }
+  .why-card-emoji { font-size: 2rem; margin-bottom: 0.4rem; }
+  .why-card-title { font-weight: 700; color: var(--color-primary); font-size: 0.92rem; margin-bottom: 0.25rem; }
+  .why-card-desc { font-size: 0.78rem; color: var(--color-muted); line-height: 1.45; }
+
+  /* === 디렉토리 트리 (밝은 버전) === */
+  .tree-card {
+    background: var(--color-card);
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid var(--color-border);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    margin: 1.25rem 0;
+  }
+  .tree-card-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+  }
+  .tree-card-title::before {
+    content: '📂';
+    font-size: 1.1rem;
+  }
+  .tree-content {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    line-height: 1.85;
+    color: var(--color-text);
+  }
+  .tree-content .folder { color: var(--color-primary); font-weight: 600; }
+  .tree-content .file { color: var(--color-muted); }
+  .tree-content .desc { color: var(--color-success); font-size: 0.8rem; }
+
+  /* === 터미널 블록 === */
+  .terminal {
+    background: #1A1325;
+    color: #E2E8F0;
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.88rem;
+    line-height: 1.7;
+    overflow-x: auto;
+    margin: 1rem 0;
+    box-shadow: 0 8px 24px rgba(76, 29, 149, 0.15);
+    border: 1px solid #2D1F47;
+  }
+  .terminal::before {
+    content: '● ● ●';
+    display: block;
+    color: #5B4D78;
+    font-size: 0.7rem;
+    letter-spacing: 0.3em;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #2D1F47;
+  }
+  .terminal .prompt { color: #A78BFA; }
+  .terminal .cmd-text { color: #60A5FA; }
+  .terminal .comment { color: #6B6580; }
+  .terminal .highlight { color: #FBBF24; font-weight: 500; }
+  .terminal .ok { color: #34D399; }
+
+  /* === 비교 카드 === */
+  .compare-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.5rem;
+  }
+  .compare-card {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.08);
+    background: var(--color-card);
+    border: 1px solid var(--color-border);
+  }
+  .compare-header {
+    padding: 1.25rem;
+    color: white;
+    text-align: center;
+  }
+  .compare-header h4 { margin: 0.4rem 0 0; font-size: 1.1rem; font-weight: 700; }
+  .compare-icon { font-size: 2rem; }
+  .compare-body { padding: 1rem 1.25rem; }
+  .compare-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.7rem 0;
+    border-bottom: 1px solid var(--color-border);
+    font-size: 0.9rem;
+  }
+  .compare-item:last-child { border-bottom: none; }
+  .compare-label { color: var(--color-muted); }
+  .compare-value { font-weight: 700; color: var(--color-text); }
+  .compare-value.yes { color: var(--color-success); }
+  .compare-value.no { color: var(--color-danger); }
+
+  /* === 4단계 흐름 === */
+  .step-flow {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0;
+  }
+  .step-card {
+    background: var(--color-card);
+    border-radius: 12px;
+    padding: 1.25rem;
+    border: 1px solid var(--color-border);
+    position: relative;
+    overflow: hidden;
+  }
+  .step-card::before {
+    content: attr(data-step);
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    font-size: 4rem;
+    font-weight: 900;
+    color: var(--color-primary-light);
+    line-height: 1;
+    z-index: 0;
+  }
+  .step-card > * { position: relative; z-index: 1; }
+  .step-label {
+    font-size: 0.75rem;
+    color: var(--color-primary);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .step-title { font-weight: 700; margin: 0.4rem 0 0.5rem; font-size: 1rem; }
+  .step-cmd {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    background: var(--color-primary-light);
+    color: var(--color-primary-dark);
+    padding: 0.35rem 0.6rem;
+    border-radius: 6px;
+    display: inline-block;
+    margin-bottom: 0.5rem;
+    word-break: break-all;
+  }
+  .step-desc { font-size: 0.82rem; color: var(--color-muted); line-height: 1.5; }
+
+  /* === 핵심 포인트 (clone의 진짜 의미) === */
+  .core-card {
+    background: linear-gradient(135deg, #4C1D95, #7C3AED);
+    color: white;
+    border-radius: 16px;
+    padding: 2rem;
+    margin: 1.5rem 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .core-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 50%);
+    pointer-events: none;
+  }
+  .core-label {
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    opacity: 0.8;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+  }
+  .core-title {
+    font-size: 1.5rem;
+    font-weight: 900;
+    margin-bottom: 1.5rem;
+    line-height: 1.3;
+  }
+  .core-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    position: relative;
+    z-index: 1;
+  }
+  .core-item {
+    background: rgba(255,255,255,0.12);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 10px;
+    padding: 1rem;
+    text-align: center;
+  }
+  .core-item-icon { font-size: 1.75rem; margin-bottom: 0.4rem; }
+  .core-item-text { font-size: 0.88rem; font-weight: 600; }
+
+  /* === 콜아웃 === */
+  .callout {
+    display: flex;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    border-radius: 10px;
+    align-items: flex-start;
+    margin: 1.25rem 0;
+  }
+  .callout-icon { font-size: 1.25rem; flex-shrink: 0; padding-top: 0.1rem; }
+  .callout-content { font-size: 0.95rem; line-height: 1.65; flex: 1; }
+  .callout-tip { background: var(--color-success-light); border-left: 3px solid var(--color-success); }
+  .callout-warning { background: var(--color-warning-light); border-left: 3px solid var(--color-warning); }
+
+  /* === 명령어 표 === */
+  .cmd-table {
+    background: var(--color-card);
+    border-radius: 12px;
+    border: 1px solid var(--color-border);
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+  .cmd-row {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .cmd-row:last-child { border-bottom: none; }
+  .cmd-row.header {
+    background: var(--color-primary-light);
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--color-primary-dark);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .cmd-cell { padding: 1rem 1.25rem; }
+  .cmd-cell.cmd {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.88rem;
+    color: var(--color-primary);
+    font-weight: 500;
+    border-right: 1px solid var(--color-border);
+  }
+  .cmd-cell.desc { font-size: 0.95rem; }
+
+  /* === 인용 강조 === */
+  .pull-quote {
+    font-size: 1.15rem;
+    font-weight: 500;
+    color: var(--color-primary-dark);
+    padding: 1.25rem 1.5rem;
+    border-left: 4px solid var(--color-primary);
+    background: var(--color-primary-light);
+    border-radius: 0 12px 12px 0;
+    margin: 1.5rem 0;
+    line-height: 1.55;
+  }
+
+  /* === 인라인 코드 === */
+  p code, li code, td code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85em;
+    background: var(--color-primary-light);
+    color: var(--color-primary-dark);
+    padding: 0.12em 0.4em;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+
+  /* === 사용 분야 태그 === */
+  .tech-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 1rem 0;
+  }
+  .tech-tag {
+    background: var(--color-card);
+    border: 2px solid var(--color-primary);
+    color: var(--color-primary);
+    padding: 0.45rem 0.9rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  /* === Footer === */
+  footer {
+    background: #1E1B2E;
+    color: #A09BB8;
+    padding: 2rem 0;
+    text-align: center;
+    font-size: 0.85rem;
+  }
+
+  /* === 반응형 === */
+  @media (max-width: 768px) {
+    .hero { padding: 3rem 0; }
+    .hero h1 { font-size: 1.9rem; }
+    .hero-subtitle { font-size: 1rem; }
+    .hero::after { font-size: 2.5rem; }
+    section { padding: 2.5rem 0; }
+    h2 { font-size: 1.4rem; }
+    .keystroke-code { font-size: 1rem; padding: 0.75rem 1rem; }
+    .big-flow-row { grid-template-columns: 1fr; gap: 0.75rem; }
+    .big-flow-arrow svg { transform: rotate(90deg); }
+    .cmd-row { grid-template-columns: 1fr; }
+    .cmd-cell.cmd { border-right: none; border-bottom: 1px solid var(--color-border); }
+    .core-title { font-size: 1.2rem; }
+  }
+
+  /* === 인쇄 === */
+  @media print {
+    .hero { background: white !important; color: black !important; }
+    .hero::after { display: none; }
+    .hero-tag { background: #f0f0f0 !important; color: #333 !important; border-color: #ccc !important; }
+    .why-card:hover, .compare-card:hover { transform: none; box-shadow: none; }
+    .terminal { background: #f5f3fa !important; color: #222 !important; border: 1px solid #ddd; }
+    .terminal .prompt, .terminal .cmd-text, .terminal .comment, .terminal .highlight, .terminal .ok { color: #222 !important; }
+    .core-card { background: #f0ebfa !important; color: #222 !important; }
+    .core-item { background: white !important; border: 1px solid #ccc !important; color: #222 !important; }
+    section { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ 1. 히어로 ============ -->
+<header class="hero">
+  <div class="container">
+    <div class="hero-tags">
+      <span class="hero-tag">📦 Git</span>
+      <span class="hero-tag">🌐 GitHub</span>
+      <span class="hero-tag">🤖 LeRobot</span>
+      <span class="hero-tag">🚀 ROS2</span>
+    </div>
+    <h1>Git Clone 완전 정복<br><span style="opacity:0.85;font-size:0.85em;">— 오픈소스 시대의 USB</span></h1>
+    <p class="hero-subtitle">
+      <code style="background:rgba(255,255,255,0.18);color:white;padding:0.15em 0.5em;border-radius:6px;font-family:'JetBrains Mono',monospace;">git clone</code> 한 줄이
+      전 세계 개발자의 작업물을 내 컴퓨터로 가져오는 마법이 되는 이유.
+      마인크래프트 월드 복사부터 LeRobot 설치까지, 한 번에 정리합니다.
+    </p>
+  </div>
+</header>
+
+<!-- ============ 2. Overview: 한 줄 명령어가 만드는 일 ============ -->
+<section>
+  <div class="container">
+    <div class="section-header">
+      <div class="section-num">0</div>
+      <h2>한 줄 명령어가 만드는 일</h2>
+    </div>
+
+    <div class="keystroke">
+      <div class="keystroke-label">⌨️ 이 한 줄이 모든 것의 시작</div>
+      <div class="keystroke-code">git clone https://github.com/huggingface/lerobot.git</div>
+      <div class="keystroke-desc">이 한 줄을 입력하면 ↓ 아래의 일이 벌어집니다</div>
+    </div>
+
+    <div class="big-flow">
+      <div class="big-flow-row">
+        <div class="big-flow-side cloud">
+          <div class="big-flow-emoji">☁️</div>
+          <div class="big-flow-title">GitHub</div>
+          <div class="big-flow-sub">공유 창고<br>(전 세계 개발자의 저장소)</div>
+        </div>
+        <div class="big-flow-arrow">
+          <svg width="60" height="32" viewBox="0 0 60 32">
+            <path d="M0 16h45M38 6l12 10-12 10" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span class="big-flow-arrow-label">통째로 복사</span>
+        </div>
+        <div class="big-flow-side pc">
+          <div class="big-flow-emoji">💻</div>
+          <div class="big-flow-title">내 컴퓨터</div>
+          <div class="big-flow-sub">내 작업실<br>(/home/zeta/lerobot/)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pull-quote">
+      💡 한 줄로 정리하면: <strong>"남이 만든 프로그램 전체를 내 컴퓨터에서 실행 가능하게 만드는 과정"</strong>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 3. 비유: 마인크래프트 ============ -->
+<section style="background: white;">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-num">1</div>
+      <h2>초등학생도 이해하는 비유</h2>
+    </div>
+
+    <div class="analogy-box">
+      <div class="analogy-icon">🎮</div>
+      <div class="analogy-content">
+        <div class="analogy-title">마인크래프트 월드 복사 비유</div>
+        <p class="analogy-text">
+          친구가 만든 멋진 마인크래프트 월드가 <strong>서버에 올라가 있어요</strong>.<br>
+          그걸 ① <strong>인터넷에서</strong> → ② <strong>내 컴퓨터로</strong> → ③ <strong>그대로 복사</strong>하면,<br>
+          내 컴퓨터에서도 <strong>실행하고 수정</strong>할 수 있죠.
+        </p>
+        <p class="analogy-real">
+          💡 <strong>이게 바로 git clone입니다.</strong> 차이가 있다면, 친구가 월드를 업데이트해도 <code>git pull</code> 한 번이면 내 것도 같이 따라간다는 점이에요.
+        </p>
+      </div>
+    </div>
+
+    <div class="analogy-box green">
+      <div class="analogy-icon">🏭</div>
+      <div class="analogy-content">
+        <div class="analogy-title">공유 창고 ↔ 내 작업실</div>
+        <p class="analogy-text">
+          <strong>GitHub = 전 세계 개발자가 공동으로 쓰는 창고</strong><br>
+          <strong>내 컴퓨터 = 내 작업실</strong><br>
+          창고에 있는 부품(=프로젝트)을 내 작업실로 가져와야 비로소 조립하고 수정할 수 있습니다.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 4. 왜 clone을 하는가 ============ -->
+<section>
+  <div class="container">
+    <div class="section-header">
+      <div class="section-num">2</div>
+      <h2>왜 Clone을 하나요?</h2>
+    </div>
+    <p>피지컬 AI · 로봇 개발자가 git clone을 쓰는 6가지 대표 상황입니다.</p>
+
+    <div class="why-grid">
+      <div class="why-card">
+        <div class="why-card-emoji">🚀</div>
+        <div class="why-card-title">ROS2 프로젝트 실행</div>
+        <div class="why-card-desc">로봇 OS 패키지 받아 빌드</div>
+      </div>
+      <div class="why-card">
+        <div class="why-card-emoji">🤖</div>
+        <div class="why-card-title">LeRobot 설치</div>
+        <div class="why-card-desc">허깅페이스 로봇 프레임워크</div>
+      </div>
+      <div class="why-card">
+        <div class="why-card-emoji">🔧</div>
+        <div class="why-card-title">오픈소스 수정</div>
+        <div class="why-card-desc">받아서 내 입맛대로 개조</div>
+      </div>
+      <div class="why-card">
+        <div class="why-card-emoji">🧠</div>
+        <div class="why-card-title">AI 모델 코드 실행</div>
+        <div class="why-card-desc">SmolVLA, ACT 등 학습/추론</div>
+      </div>
+      <div class="why-card">
+        <div class="why-card-emoji">🔄</div>
+        <div class="why-card-title">업데이트 받기</div>
+        <div class="why-card-desc">git pull로 최신 동기화</div>
+      </div>
+      <div class="why-card">
+        <div class="why-card-emoji">👥</div>
+        <div class="why-card-title">공동 개발</div>
+        <div class="why-card-desc">팀원과 같은 코드 공유</div>
+      </div>
+    </div>
+
+    <h3>피지컬 AI는 거의 모든 게 GitHub 기반입니다</h3>
+    <div class="tech-tags">
+      <span class="tech-tag">ROS2</span>
+      <span class="tech-tag">LeRobot</span>
+      <span class="tech-tag">SmolVLA</span>
+      <span class="tech-tag">ACT</span>
+      <span class="tech-tag">Diffusion Policy</span>
+      <span class="tech-tag">피지컬 AI</span>
+      <span class="tech-tag">로봇 관제</span>
+    </div>
+
+    <div class="pull-quote">
+      🌐 git은 <strong>"오픈소스 시대의 USB"</strong> 같은 역할이에요.<br>
+      세계 어디서나 같은 코드를 받고, 같은 코드를 공유합니다.
+    </div>
+  </div>
+</section>
+
+<!-- ============ 5. 실제 동작: LeRobot 예시 ============ -->
+<section style="background: white;">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-num">3</div>
+      <h2>실제로 어떻게 동작하나? — LeRobot 예시</h2>
+    </div>
+
+    <p>빅맨님이 자주 쓰시는 <strong>LeRobot</strong>을 예로 들어보겠습니다.</p>
+
+    <div class="terminal">
+<span class="prompt">(base) zeta@zeta-MS-7E12:~$</span> <span class="cmd-text">git clone https://github.com/huggingface/lerobot.git</span>
+Cloning into 'lerobot'...
+remote: Enumerating objects: 12453, done.
+remote: Counting objects: 100% (12453/12453), done.
+Receiving objects: 100% (12453/12453), 45.2 MiB | 8.1 MiB/s, done.
+Resolving deltas: 100% (8234/8234), done.
+<span class="ok">✓ 완료!</span>
+    </div>
+
+    <p style="margin-top: 1rem;">실행이 끝나면 <code>/home/zeta/lerobot/</code> 폴더가 만들어지고, 안에는 이런 게 들어있어요:</p>
+
+    <div class="tree-card">
+      <div class="tree-card-title">lerobot/ (clone 직후의 모습)</div>
+      <div class="tree-content">
+<span class="folder">lerobot/</span>
+ ├── <span class="folder">examples/</span>           <span class="desc"># 예제 스크립트 (학습/평가/추론)</span>
+ ├── <span class="folder">lerobot/</span>             <span class="desc"># 핵심 모듈 (모델, 데이터셋, 환경)</span>
+ ├── <span class="folder">tests/</span>               <span class="desc"># 동작 검증용 테스트</span>
+ ├── <span class="file">README.md</span>            <span class="desc"># 프로젝트 설명서 (꼭 읽기!)</span>
+ ├── <span class="file">requirements.txt</span>     <span class="desc"># 필요한 파이썬 패키지 목록</span>
+ ├── <span class="file">pyproject.toml</span>       <span class="desc"># 패키지 설치 설정</span>
+ └── <span class="file">.git/</span>                <span class="desc"># Git 메타데이터 (숨김 폴더, 절대 지우지 말 것!)</span>
+      </div>
+    </div>
+
+    <h3>들어있는 것들의 정체</h3>
+    <div class="why-grid">
+      <div class="why-card">
+        <div class="why-card-emoji">🐍</div>
+        <div class="why-card-title">Python 코드</div>
+        <div class="why-card-desc">실제 실행되는 로직</div>
+      </div>
+      <div class="why-card">
+        <div class="why-card-emoji">🧠</div>
+        <div class="why-card-title">AI 모델 정의</div>
+        <div class="why-card-desc">SmolVLA, ACT 등 구조</div>
+      </div>
+      <div class="why-card">
+        <div class="why-card-emoji">🦾</div>
+        <div class="why-card-title">로봇 제어 코드</div>
+        <div class="why-card-desc">모터, 카메라, 센서</div>
+      </div>
+      <div class="why-card">
+        <div class="why-card-emoji">⚙️</div>
+        <div class="why-card-title">설정 파일</div>
+        <div class="why-card-desc">하이퍼파라미터 YAML</div>
+      </div>
+      <div class="why-card">
+        <div class="why-card-emoji">📖</div>
+        <div class="why-card-title">README</div>
+        <div class="why-card-desc">사용법 안내서</div>
+      </div>
+      <div class="why-card">
+        <div class="why-card-emoji">📊</div>
+        <div class="why-card-title">데이터 구조</div>
+        <div class="why-card-desc">데이터셋 포맷 정의</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 6. ZIP vs clone ============ -->
+<section>
+  <div class="container">
+    <div class="section-header">
+      <div class="section-num">4</div>
+      <h2>그냥 ZIP 다운로드 vs git clone</h2>
+    </div>
+
+    <p>
+      GitHub에는 <strong>"Download ZIP"</strong> 버튼이 있어요. 그냥 그걸 누르면 안 되나요? — 안 되는 건 아니지만,
+      <strong>두 가지는 결과물이 완전히 다릅니다.</strong>
+    </p>
+
+    <div class="compare-grid">
+      <div class="compare-card">
+        <div class="compare-header" style="background: var(--color-muted);">
+          <span class="compare-icon">📥</span>
+          <h4>ZIP 다운로드</h4>
+        </div>
+        <div class="compare-body">
+          <div class="compare-item">
+            <span class="compare-label">방식</span>
+            <span class="compare-value">단순 파일 복사</span>
+          </div>
+          <div class="compare-item">
+            <span class="compare-label">최신 업데이트</span>
+            <span class="compare-value no">❌ 매번 다시 받기</span>
+          </div>
+          <div class="compare-item">
+            <span class="compare-label">버전 히스토리</span>
+            <span class="compare-value no">❌ 없음</span>
+          </div>
+          <div class="compare-item">
+            <span class="compare-label">이전 버전 복구</span>
+            <span class="compare-value no">❌ 불가능</span>
+          </div>
+          <div class="compare-item">
+            <span class="compare-label">팀 협업</span>
+            <span class="compare-value no">❌ 어려움</span>
+          </div>
+          <div class="compare-item">
+            <span class="compare-label">크기</span>
+            <span class="compare-value">.git 폴더 없음 (가벼움)</span>
+          </div>
+        </div>
+      </div>
+      <div class="compare-card">
+        <div class="compare-header" style="background: var(--color-primary);">
+          <span class="compare-icon">🌐</span>
+          <h4>git clone</h4>
+        </div>
+        <div class="compare-body">
+          <div class="compare-item">
+            <span class="compare-label">방식</span>
+            <span class="compare-value">복사 + 원격 연결</span>
+          </div>
+          <div class="compare-item">
+            <span class="compare-label">최신 업데이트</span>
+            <span class="compare-value yes">✅ git pull 한 줄</span>
+          </div>
+          <div class="compare-item">
+            <span class="compare-label">버전 히스토리</span>
+            <span class="compare-value yes">✅ 전체 기록 보존</span>
+          </div>
+          <div class="compare-item">
+            <span class="compare-label">이전 버전 복구</span>
+            <span class="compare-value yes">✅ checkout 한 번</span>
+          </div>
+          <div class="compare-item">
+            <span class="compare-label">팀 협업</span>
+            <span class="compare-value yes">✅ 표준 방식</span>
+          </div>
+          <div class="compare-item">
+            <span class="compare-label">크기</span>
+            <span class="compare-value">.git 포함 (조금 큼)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-tip">
+      <div class="callout-icon">💡</div>
+      <div class="callout-content">
+        <strong>실전 결론:</strong> 단순히 코드 한 번 구경만 할 거면 ZIP도 OK. 하지만 <strong>실제로 개발하거나 LeRobot처럼 빠르게 바뀌는 프로젝트</strong>를 쓴다면
+        반드시 <code>git clone</code>으로 받아야 업데이트와 버전 관리가 가능합니다.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 7. clone 이후의 흐름 ============ -->
+<section style="background: white;">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-num">5</div>
+      <h2>Clone 이후의 흐름 — 4단계 표준 절차</h2>
+    </div>
+
+    <p>git clone은 끝이 아니라 <strong>시작</strong>이에요. 받은 다음에 보통 이 순서로 진행합니다.</p>
+
+    <div class="step-flow">
+      <div class="step-card" data-step="1">
+        <div class="step-label">Step 1</div>
+        <div class="step-title">받기</div>
+        <div class="step-cmd">git clone &lt;URL&gt;</div>
+        <div class="step-desc">GitHub에서 프로젝트 통째로 가져오기</div>
+      </div>
+      <div class="step-card" data-step="2">
+        <div class="step-label">Step 2</div>
+        <div class="step-title">들어가기</div>
+        <div class="step-cmd">cd lerobot</div>
+        <div class="step-desc">프로젝트 폴더 안으로 이동</div>
+      </div>
+      <div class="step-card" data-step="3">
+        <div class="step-label">Step 3</div>
+        <div class="step-title">설치하기</div>
+        <div class="step-cmd">pip install -e .</div>
+        <div class="step-desc">필요한 파이썬 패키지 설치</div>
+      </div>
+      <div class="step-card" data-step="4">
+        <div class="step-label">Step 4</div>
+        <div class="step-title">실행하기</div>
+        <div class="step-cmd">python examples/...</div>
+        <div class="step-desc">예제 코드 돌려보기</div>
+      </div>
+    </div>
+
+    <h3>실전 예시: LeRobot 처음부터 끝까지</h3>
+    <div class="terminal">
+<span class="comment"># 1. GitHub에서 LeRobot 받기</span>
+<span class="prompt">(base) zeta@zeta-MS-7E12:~$</span> <span class="cmd-text">git clone https://github.com/huggingface/lerobot.git</span>
+
+<span class="comment"># 2. 프로젝트 폴더로 이동</span>
+<span class="prompt">(base) zeta@zeta-MS-7E12:~$</span> <span class="cmd-text">cd lerobot</span>
+<span class="prompt">(base) zeta@zeta-MS-7E12:~/lerobot$</span>
+
+<span class="comment"># 3. conda 환경 활성화 후 패키지 설치</span>
+<span class="prompt">(base) zeta@zeta-MS-7E12:~/lerobot$</span> <span class="cmd-text">conda activate lerobot</span>
+<span class="prompt">(lerobot) zeta@zeta-MS-7E12:~/lerobot$</span> <span class="cmd-text">pip install -e .</span>
+
+<span class="comment"># 4. 실행</span>
+<span class="prompt">(lerobot) zeta@zeta-MS-7E12:~/lerobot$</span> <span class="cmd-text">python examples/1_load_lerobot_dataset.py</span>
+<span class="ok">✓ 데이터셋 로드 성공!</span>
+    </div>
+
+    <div class="callout callout-warning">
+      <div class="callout-icon">💡</div>
+      <div class="callout-content">
+        <code>pip install -e .</code>의 <strong>-e는 "editable" 모드</strong>예요.
+        설치 후에도 lerobot 폴더의 코드를 수정하면 즉시 반영됩니다. 오픈소스 수정/실험할 때 필수 옵션입니다.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 8. clone의 진짜 핵심 ============ -->
+<section>
+  <div class="container">
+    <div class="section-header">
+      <div class="section-num">6</div>
+      <h2>Clone의 진짜 핵심 — 단순 복사가 아니다</h2>
+    </div>
+
+    <p>
+      여기까지만 보면 "그냥 폴더 복사 아냐?" 싶을 수 있어요.<br>
+      하지만 <strong>clone은 단순 복사가 아닙니다.</strong> 실제로는 훨씬 강력한 일이 일어납니다.
+    </p>
+
+    <div class="core-card">
+      <div class="core-label">🎯 git clone이 실제로 가져오는 것</div>
+      <div class="core-title">파일 + 프로젝트의 역사 전체 + 원격 연결</div>
+      <div class="core-items">
+        <div class="core-item">
+          <div class="core-item-icon">📂</div>
+          <div class="core-item-text">현재 파일들</div>
+        </div>
+        <div class="core-item">
+          <div class="core-item-icon">📜</div>
+          <div class="core-item-text">모든 변경 기록 (커밋 히스토리)</div>
+        </div>
+        <div class="core-item">
+          <div class="core-item-icon">🌿</div>
+          <div class="core-item-text">모든 브랜치 정보</div>
+        </div>
+        <div class="core-item">
+          <div class="core-item-icon">🔗</div>
+          <div class="core-item-text">원격 저장소 연결 (origin)</div>
+        </div>
+      </div>
+    </div>
+
+    <h3>그래서 가능해지는 것</h3>
+
+    <div class="cmd-table">
+      <div class="cmd-row header">
+        <div class="cmd-cell">한 줄 명령어</div>
+        <div class="cmd-cell">하는 일</div>
+      </div>
+      <div class="cmd-row">
+        <div class="cmd-cell cmd">git pull</div>
+        <div class="cmd-cell desc"><strong>최신 코드로 업데이트</strong> — 원격 저장소에서 변경분만 가져옴</div>
+      </div>
+      <div class="cmd-row">
+        <div class="cmd-cell cmd">git log</div>
+        <div class="cmd-cell desc"><strong>프로젝트 변경 역사 보기</strong> — 누가 언제 무엇을 바꿨는지 전부</div>
+      </div>
+      <div class="cmd-row">
+        <div class="cmd-cell cmd">git checkout v1.0</div>
+        <div class="cmd-cell desc"><strong>특정 시점으로 되돌리기</strong> — 옛 버전이 잘 돌아갔다면 그때로 점프</div>
+      </div>
+      <div class="cmd-row">
+        <div class="cmd-cell cmd">git diff</div>
+        <div class="cmd-cell desc"><strong>내가 수정한 부분 보기</strong> — 원본과 무엇이 달라졌는지 비교</div>
+      </div>
+    </div>
+
+    <div class="pull-quote">
+      🎓 <code>git clone</code>은 폴더 복사가 아니라,<br>
+      <strong>"프로젝트의 살아있는 타임머신을 통째로 내 컴퓨터에 설치"</strong>하는 것입니다.
+    </div>
+  </div>
+</section>
+
+<!-- ============ 9. 평생 쓰는 명령어 5개 ============ -->
+<section style="background: white;">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-num">7</div>
+      <h2>평생 쓰는 Git 명령어 5개</h2>
+    </div>
+
+    <p>피지컬 AI 개발하면서 가장 많이 만나는 5개. 이것만 외워도 90% 해결됩니다.</p>
+
+    <div class="cmd-table">
+      <div class="cmd-row">
+        <div class="cmd-cell cmd">git clone &lt;URL&gt;</div>
+        <div class="cmd-cell desc">원격 저장소를 내 컴퓨터로 통째로 받기 <strong>(가장 자주)</strong></div>
+      </div>
+      <div class="cmd-row">
+        <div class="cmd-cell cmd">git pull</div>
+        <div class="cmd-cell desc">받아둔 프로젝트 최신 버전으로 동기화 (변경분만 받음)</div>
+      </div>
+      <div class="cmd-row">
+        <div class="cmd-cell cmd">git status</div>
+        <div class="cmd-cell desc">내가 뭘 수정했는지, 어떤 파일이 추가/삭제됐는지 확인</div>
+      </div>
+      <div class="cmd-row">
+        <div class="cmd-cell cmd">git log --oneline</div>
+        <div class="cmd-cell desc">프로젝트 커밋 히스토리를 한 줄씩 간단히 보기</div>
+      </div>
+      <div class="cmd-row">
+        <div class="cmd-cell cmd">git checkout &lt;브랜치&gt;</div>
+        <div class="cmd-cell desc">다른 브랜치나 특정 버전으로 이동 (안전한 실험용 분기)</div>
+      </div>
+    </div>
+
+    <div class="callout callout-tip">
+      <div class="callout-icon">🎯</div>
+      <div class="callout-content">
+        <strong>꿀팁:</strong> 새 프로젝트를 받았다면 가장 먼저 <code>README.md</code>를 열어보세요.
+        설치법, 실행법, 의존성이 거기 다 적혀있어요. README는 개발자의 설명서입니다.
+      </div>
+    </div>
+
+    <h3>한 줄 요약 — 이걸 외우면 됩니다</h3>
+    <div class="pull-quote">
+      <strong>"git clone은 인터넷 창고에서 내 작업실로 프로젝트를 통째로 가져오는 마법.<br>
+      복사 + 역사 + 원격 연결 — 이 세 가지가 한 줄에 들어있다."</strong>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    Physical AI Education Series · Git Clone 완전 정복<br>
+    제작: 빅맥 · 제타위성로보틱스 (Zeta Satellite Robotics)
+  </div>
+</footer>
+
+</body>
+</html>
