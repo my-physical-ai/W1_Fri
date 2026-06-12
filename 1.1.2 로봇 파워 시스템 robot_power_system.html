@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>로봇 전원 시스템 완전 정복</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #070B12;
+  --surface: #0D1420;
+  --surface2: #111827;
+  --border: #1E2D42;
+  --text: #E2EAF4;
+  --muted: #5A7090;
+  --battery: #34D399;
+  --bms: #60A5FA;
+  --switch: #FBBF24;
+  --fuse: #F87171;
+  --dcdc: #A78BFA;
+  --motor: #FB923C;
+  --lidar: #38BDF8;
+  --cpu: #4ADE80;
+  --sensor: #E879F9;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Sans KR', sans-serif;
+  line-height: 1.7;
+  overflow-x: hidden;
+}
+
+/* ── HERO ── */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 700px 400px at 20% 50%, rgba(52,211,153,0.06) 0%, transparent 70%),
+    radial-gradient(ellipse 500px 500px at 80% 50%, rgba(96,165,250,0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* grid lines */
+.hero-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(30,45,66,0.4) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(30,45,66,0.4) 1px, transparent 1px);
+  background-size: 50px 50px;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 0%, transparent 100%);
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  max-width: 800px;
+}
+
+.hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(52,211,153,0.1);
+  border: 1px solid rgba(52,211,153,0.2);
+  padding: 6px 18px;
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--battery);
+  margin-bottom: 32px;
+  animation: fadeUp 0.8s ease both;
+}
+
+.hero-title {
+  font-size: clamp(2.4rem, 5vw, 4.5rem);
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: -1px;
+  margin-bottom: 20px;
+  animation: fadeUp 0.8s 0.15s ease both;
+}
+
+.hero-title .accent-green { color: var(--battery); }
+.hero-title .accent-blue  { color: var(--bms); }
+
+.hero-sub {
+  font-size: 1.05rem;
+  color: var(--muted);
+  max-width: 500px;
+  margin: 0 auto 60px;
+  animation: fadeUp 0.8s 0.3s ease both;
+}
+
+/* Component badges row */
+.component-badges {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  animation: fadeUp 0.8s 0.45s ease both;
+}
+
+.cbadge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.cbadge:hover { transform: translateY(-3px); }
+.cbadge .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+/* ── SECTIONS ── */
+.container { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+
+section { padding: 80px 0; }
+
+.section-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+h2 {
+  font-size: clamp(1.7rem, 3vw, 2.4rem);
+  font-weight: 800;
+  margin-bottom: 40px;
+  line-height: 1.2;
+}
+
+.divider {
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--border) 30%, var(--border) 70%, transparent);
+}
+
+/* ── POWER FLOW DIAGRAM ── */
+.power-diagram {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 48px 32px;
+  position: relative;
+  overflow: hidden;
+}
+
+.power-diagram::before {
+  content: '';
+  position: absolute;
+  top: -100px; right: -100px;
+  width: 300px; height: 300px;
+  background: radial-gradient(circle, rgba(96,165,250,0.06), transparent 70%);
+  pointer-events: none;
+}
+
+.pd-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+.pd-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  padding: 16px 28px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-align: center;
+  position: relative;
+  min-width: 160px;
+  transition: transform 0.2s;
+  cursor: default;
+}
+
+.pd-node:hover { transform: scale(1.04); }
+
+.pd-node .node-label {
+  font-size: 0.72rem;
+  font-weight: 400;
+  font-family: 'IBM Plex Mono', monospace;
+  opacity: 0.7;
+  margin-top: 4px;
+  letter-spacing: 0.5px;
+}
+
+.node-battery {
+  background: rgba(52,211,153,0.12);
+  border: 2px solid var(--battery);
+  color: var(--battery);
+}
+.node-bms {
+  background: rgba(96,165,250,0.12);
+  border: 2px solid var(--bms);
+  color: var(--bms);
+}
+.node-switch {
+  background: rgba(251,191,36,0.12);
+  border: 2px solid var(--switch);
+  color: var(--switch);
+}
+.node-fuse {
+  background: rgba(248,113,113,0.12);
+  border: 2px solid var(--fuse);
+  color: var(--fuse);
+}
+.node-dcdc {
+  background: rgba(167,139,250,0.12);
+  border: 2px solid var(--dcdc);
+  color: var(--dcdc);
+}
+
+.pd-arrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 0;
+}
+
+.arrow-line {
+  width: 2px;
+  height: 32px;
+  background: linear-gradient(to bottom, var(--border), var(--muted));
+  position: relative;
+}
+
+.arrow-line::after {
+  content: '▼';
+  position: absolute;
+  bottom: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.arrow-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 20px;
+  letter-spacing: 1px;
+}
+
+/* Branch outputs */
+.pd-branch {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.branch-line {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.branch-voltage {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 6px;
+}
+
+.v24 { background: rgba(251,146,60,0.15); color: var(--motor); border: 1px solid rgba(251,146,60,0.3); }
+.v12 { background: rgba(56,189,248,0.15); color: var(--lidar); border: 1px solid rgba(56,189,248,0.3); }
+.v5  { background: rgba(74,222,128,0.15);  color: var(--cpu);   border: 1px solid rgba(74,222,128,0.3); }
+.v33 { background: rgba(232,121,249,0.15); color: var(--sensor);border: 1px solid rgba(232,121,249,0.3); }
+
+.branch-device {
+  padding: 12px 18px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: center;
+  border: 1px solid;
+}
+
+.dev-motor  { background: rgba(251,146,60,0.08);  border-color: rgba(251,146,60,0.3);  color: var(--motor); }
+.dev-lidar  { background: rgba(56,189,248,0.08);  border-color: rgba(56,189,248,0.3);  color: var(--lidar); }
+.dev-cpu    { background: rgba(74,222,128,0.08);  border-color: rgba(74,222,128,0.3);  color: var(--cpu); }
+.dev-sensor { background: rgba(232,121,249,0.08); border-color: rgba(232,121,249,0.3); color: var(--sensor); }
+
+/* horizontal connector for branch */
+.pd-branch-connector {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 8px;
+  gap: 0;
+  position: relative;
+}
+
+.h-line {
+  height: 2px;
+  background: var(--border);
+  flex: 1;
+  max-width: 60px;
+  margin-top: 10px;
+}
+
+/* ── CARDS ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px 32px;
+  margin-bottom: 16px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.25s, transform 0.25s;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+}
+
+.card-accent {
+  position: absolute;
+  top: 0; left: 0;
+  width: 4px; height: 100%;
+  border-radius: 4px 0 0 4px;
+}
+
+.card h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ── TABLE ── */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  margin: 12px 0;
+}
+
+th {
+  padding: 10px 14px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.8rem;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+  text-transform: uppercase;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+td {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(30,45,66,0.5);
+  font-size: 0.88rem;
+}
+
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(255,255,255,0.02); }
+
+/* ── COMPARISON GRID ── */
+.cmp-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin: 20px 0;
+}
+
+@media (max-width: 600px) {
+  .cmp-grid { grid-template-columns: 1fr; }
+  .pd-branch { gap: 10px; }
+}
+
+.cmp-card {
+  background: var(--surface2);
+  border-radius: 14px;
+  padding: 24px;
+  border: 1px solid var(--border);
+}
+
+.cmp-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-family: 'IBM Plex Mono', monospace;
+  margin-bottom: 12px;
+}
+
+/* ── HIGHLIGHT BOX ── */
+.highlight {
+  background: rgba(251,191,36,0.06);
+  border: 1px solid rgba(251,191,36,0.2);
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin: 16px 0;
+}
+
+.highlight-label {
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--switch);
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* ── DANGER BOX ── */
+.danger {
+  background: rgba(248,113,113,0.06);
+  border: 1px solid rgba(248,113,113,0.2);
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin: 16px 0;
+}
+
+.danger-label {
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--fuse);
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* ── INFO ROW ── */
+.info-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+  font-size: 0.9rem;
+}
+
+.info-icon {
+  flex-shrink: 0;
+  width: 24px; height: 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  margin-top: 1px;
+}
+
+/* ── FUSE ANIMATION ── */
+.fuse-visual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin: 24px 0;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.85rem;
+}
+
+.fuse-wire {
+  height: 3px;
+  width: 80px;
+  background: linear-gradient(to right, var(--battery), var(--battery));
+  border-radius: 2px;
+}
+
+.fuse-body {
+  background: var(--surface2);
+  border: 2px solid var(--fuse);
+  border-radius: 8px;
+  padding: 8px 20px;
+  color: var(--fuse);
+  font-weight: 700;
+  font-size: 0.85rem;
+  position: relative;
+}
+
+.fuse-body.broken {
+  border-color: var(--muted);
+  color: var(--muted);
+}
+
+.fuse-body.broken::after {
+  content: '✕';
+  position: absolute;
+  top: -10px; right: -10px;
+  background: var(--fuse);
+  color: white;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+}
+
+.fuse-device {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.wire-broken {
+  height: 3px;
+  width: 80px;
+  background: repeating-linear-gradient(to right, var(--muted) 0px, var(--muted) 10px, transparent 10px, transparent 16px);
+}
+
+/* ── PRICE TABLE ── */
+.price-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  margin: 16px 0;
+}
+
+.price-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+
+.price-type {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-bottom: 6px;
+  font-family: 'IBM Plex Mono', monospace;
+  letter-spacing: 0.5px;
+}
+
+.price-val {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+/* ── FINAL STRUCTURE ── */
+.final-structure {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 48px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.final-structure::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 600px 400px at 50% 50%, rgba(52,211,153,0.04), transparent 70%);
+  pointer-events: none;
+}
+
+.fs-node {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 32px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  min-width: 200px;
+  position: relative;
+  z-index: 1;
+}
+
+.fs-arrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 0;
+  position: relative;
+  z-index: 1;
+}
+
+.fs-vline {
+  width: 2px;
+  height: 28px;
+  background: linear-gradient(to bottom, var(--border), var(--muted));
+}
+
+.fs-arrow-head { color: var(--muted); font-size: 10px; margin-top: -4px; }
+
+.fs-branches {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 16px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 1;
+}
+
+/* ── SCROLL REVEAL ── */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.65s ease, transform 0.65s ease;
+}
+
+.reveal.in { opacity: 1; transform: translateY(0); }
+
+/* ── FOOTER ── */
+footer {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 60px 24px;
+  text-align: center;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 20px;
+  max-width: 900px;
+  margin: 0 auto 40px;
+  text-align: left;
+}
+
+.summary-item {
+  padding: 20px;
+  background: var(--surface2);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.summary-title {
+  font-weight: 700;
+  margin-bottom: 6px;
+  font-size: 0.9rem;
+}
+
+.summary-desc {
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+/* ── ANIM ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.pulse-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--battery);
+  animation: pulse 2s ease-in-out infinite;
+  display: inline-block;
+}
+</style>
+</head>
+<body>
+
+<!-- ══ HERO ══ -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-content">
+    <div class="hero-eyebrow"><span class="pulse-dot"></span> 로봇 전원 시스템 교육</div>
+    <h1 class="hero-title">
+      <span class="accent-green">배터리</span>부터<br>
+      <span class="accent-blue">DC-DC</span>까지<br>
+      전원 구조 완전 정복
+    </h1>
+    <p class="hero-sub">BMS · 메인 스위치 · 퓨즈 · DC-DC 컨버터의 역할과 전체 전원 흐름을 한눈에</p>
+
+    <div class="component-badges">
+      <div class="cbadge"><div class="dot" style="background:var(--battery)"></div> 배터리</div>
+      <div class="cbadge"><div class="dot" style="background:var(--bms)"></div> BMS</div>
+      <div class="cbadge"><div class="dot" style="background:var(--switch)"></div> 메인 스위치</div>
+      <div class="cbadge"><div class="dot" style="background:var(--fuse)"></div> 퓨즈</div>
+      <div class="cbadge"><div class="dot" style="background:var(--dcdc)"></div> DC-DC 컨버터</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ SECTION 1: 전체 전원 흐름 ══ -->
+<div class="divider"></div>
+<section>
+  <div class="container">
+    <div class="section-label">Section 01</div>
+    <h2>로봇 전원 <span style="color:var(--battery)">전체 흐름</span></h2>
+
+    <div class="power-diagram reveal">
+      <!-- Battery -->
+      <div class="pd-row">
+        <div class="pd-node node-battery">
+          🔋 배터리 (Lithium Pack)
+          <span class="node-label">12V / 24V DC</span>
+        </div>
+      </div>
+      <div class="pd-arrow"><div class="arrow-line"></div><div class="arrow-label">배터리 전압 공급</div></div>
+
+      <!-- BMS -->
+      <div class="pd-row">
+        <div class="pd-node node-bms">
+          🛡 BMS
+          <span class="node-label">Battery Management System</span>
+        </div>
+      </div>
+      <div class="pd-arrow"><div class="arrow-line"></div><div class="arrow-label">안전하게 보호된 전원</div></div>
+
+      <!-- Switch -->
+      <div class="pd-row">
+        <div class="pd-node node-switch">
+          ⏻ 메인 스위치
+          <span class="node-label">전원 ON / OFF</span>
+        </div>
+      </div>
+      <div class="pd-arrow"><div class="arrow-line"></div><div class="arrow-label">차단 가능한 전원</div></div>
+
+      <!-- Fuse -->
+      <div class="pd-row">
+        <div class="pd-node node-fuse">
+          ⚡ 퓨즈
+          <span class="node-label">과전류 차단</span>
+        </div>
+      </div>
+      <div class="pd-arrow"><div class="arrow-line"></div><div class="arrow-label">보호된 전원</div></div>
+
+      <!-- DCDC -->
+      <div class="pd-row">
+        <div class="pd-node node-dcdc">
+          🔄 DC-DC 컨버터
+          <span class="node-label">전압 변환 분배</span>
+        </div>
+      </div>
+      <div style="height:24px"></div>
+
+      <!-- Branch outputs -->
+      <div class="pd-branch">
+        <div class="branch-line">
+          <div class="branch-voltage v24">24V</div>
+          <div style="width:2px;height:20px;background:rgba(251,146,60,0.3)"></div>
+          <div class="branch-device dev-motor">⚙️ 모터<br>Motor</div>
+        </div>
+        <div class="branch-line">
+          <div class="branch-voltage v12">12V</div>
+          <div style="width:2px;height:20px;background:rgba(56,189,248,0.3)"></div>
+          <div class="branch-device dev-lidar">📡 LiDAR<br>센서</div>
+        </div>
+        <div class="branch-line">
+          <div class="branch-voltage v5">5V</div>
+          <div style="width:2px;height:20px;background:rgba(74,222,128,0.3)"></div>
+          <div class="branch-device dev-cpu">💻 컴퓨터<br>NUC / RPi</div>
+        </div>
+        <div class="branch-line">
+          <div class="branch-voltage v33">3.3V</div>
+          <div style="width:2px;height:20px;background:rgba(232,121,249,0.3)"></div>
+          <div class="branch-device dev-sensor">🔬 MCU<br>센서류</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ SECTION 2: BMS ══ -->
+<div class="divider"></div>
+<section>
+  <div class="container">
+    <div class="section-label">Section 02</div>
+    <h2>🛡 <span style="color:var(--bms)">BMS</span> — 배터리 보호 시스템</h2>
+
+    <div class="highlight reveal">
+      <div class="highlight-label">정의</div>
+      <p>BMS = <strong>B</strong>attery <strong>M</strong>anagement <strong>S</strong>ystem<br>
+      리튬 배터리를 안전하게 관리하는 전자 시스템입니다. 리튬 배터리는 민감하기 때문에 보호 장치가 반드시 필요합니다.</p>
+    </div>
+
+    <div class="card reveal" style="border-color:rgba(96,165,250,0.25)">
+      <div class="card-accent" style="background:var(--bms)"></div>
+      <h3>BMS 6가지 핵심 기능</h3>
+      <table>
+        <thead><tr><th>기능</th><th>설명</th><th>없으면?</th></tr></thead>
+        <tbody>
+          <tr><td>🔴 과충전 보호</td><td>충전이 너무 되면 차단</td><td>배터리 팽창</td></tr>
+          <tr><td>🔵 과방전 보호</td><td>배터리 완전 방전 방지</td><td>배터리 수명 파괴</td></tr>
+          <tr><td>⚡ 과전류 보호</td><td>너무 많은 전류 차단</td><td>화재</td></tr>
+          <tr><td>🔗 단락 보호</td><td>쇼트 발생 시 즉시 차단</td><td>폭발</td></tr>
+          <tr><td>🌡 온도 보호</td><td>배터리 과열 방지</td><td>화재 · 폭발</td></tr>
+          <tr><td>⚖ 셀 밸런싱</td><td>여러 셀 전압 균형 유지</td><td>조기 용량 저하</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="danger reveal">
+      <div class="danger-label">⚠ BMS 없는 리튬 배터리</div>
+      <p>과충전 → 배터리 팽창 | 과방전 → 수명 파괴 | 과전류 → <strong>화재 · 폭발</strong><br>
+      리튬 배터리는 반드시 BMS가 필요합니다.</p>
+    </div>
+
+    <div class="cmp-grid reveal">
+      <div class="cmp-card">
+        <div class="cmp-title" style="color:var(--bms)">BMS가 하는 것</div>
+        <div class="info-row"><div class="info-icon" style="background:rgba(96,165,250,0.1);color:var(--bms)">✓</div><div>배터리 셀 전압 모니터링</div></div>
+        <div class="info-row"><div class="info-icon" style="background:rgba(96,165,250,0.1);color:var(--bms)">✓</div><div>과충전 · 과방전 차단</div></div>
+        <div class="info-row"><div class="info-icon" style="background:rgba(96,165,250,0.1);color:var(--bms)">✓</div><div>온도 감지 및 차단</div></div>
+        <div class="info-row"><div class="info-icon" style="background:rgba(96,165,250,0.1);color:var(--bms)">✓</div><div>셀 밸런싱</div></div>
+      </div>
+      <div class="cmp-card">
+        <div class="cmp-title" style="color:var(--fuse)">BMS가 못하는 것</div>
+        <div class="info-row"><div class="info-icon" style="background:rgba(248,113,113,0.1);color:var(--fuse)">✗</div><div>전체 전원 ON/OFF</div></div>
+        <div class="info-row"><div class="info-icon" style="background:rgba(248,113,113,0.1);color:var(--fuse)">✗</div><div>정비 중 물리적 차단</div></div>
+        <div class="info-row"><div class="info-icon" style="background:rgba(248,113,113,0.1);color:var(--fuse)">✗</div><div>전압 변환</div></div>
+        <div class="info-row"><div class="info-icon" style="background:rgba(248,113,113,0.1);color:var(--fuse)">✗</div><div>전선 쇼트 보호</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ SECTION 3: 메인 스위치 ══ -->
+<div class="divider"></div>
+<section>
+  <div class="container">
+    <div class="section-label">Section 03</div>
+    <h2>⏻ <span style="color:var(--switch)">메인 스위치</span> — 전원 ON/OFF</h2>
+
+    <div class="highlight reveal">
+      <div class="highlight-label">정의</div>
+      <p>배터리 전원을 전체 시스템에 <strong>공급할지 차단할지</strong> 결정하는 물리 스위치입니다.<br>
+      로봇의 전원 버튼입니다. BMS는 "보호 장치"이지 "전원 스위치"가 아닙니다.</p>
+    </div>
+
+    <div class="card reveal" style="border-color:rgba(251,191,36,0.25)">
+      <div class="card-accent" style="background:var(--switch)"></div>
+      <h3>메인 스위치가 필요한 3가지 이유</h3>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:8px">
+        <div style="background:var(--surface2);border-radius:12px;padding:20px">
+          <div style="font-size:1.4rem;margin-bottom:10px">🔧</div>
+          <div style="font-weight:700;margin-bottom:6px;color:var(--switch)">① 유지보수 안전</div>
+          <div style="font-size:0.85rem;color:var(--muted)">로봇 수리 시 배터리가 연결된 상태면 위험합니다. 메인 스위치 OFF → 전체 전원 차단</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:12px;padding:20px">
+          <div style="font-size:1.4rem;margin-bottom:10px">🔋</div>
+          <div style="font-weight:700;margin-bottom:6px;color:var(--switch)">② 대기전력 차단</div>
+          <div style="font-size:0.85rem;color:var(--muted)">DC-DC 컨버터는 항상 미세 전력을 소비합니다. 보관 시 메인 스위치 OFF로 방전 방지</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:12px;padding:20px">
+          <div style="font-size:1.4rem;margin-bottom:10px">🚨</div>
+          <div style="font-weight:700;margin-bottom:6px;color:var(--switch)">③ 비상 정지 (E-Stop)</div>
+          <div style="font-size:0.85rem;color:var(--muted)">이상 발생 시 즉시 전원 차단. 실외 자율주행 로봇에서 필수 안전 요소</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card reveal">
+      <div class="card-accent" style="background:var(--switch)"></div>
+      <h3>메인 스위치 종류 및 가격</h3>
+      <div class="price-grid">
+        <div class="price-card">
+          <div class="price-type">배터리 차단 스위치</div>
+          <div class="price-val" style="color:var(--switch)">5,000 ~ 20,000원</div>
+          <div style="font-size:0.78rem;color:var(--muted);margin-top:4px">12V~48V, 100A 이상</div>
+        </div>
+        <div class="price-card">
+          <div class="price-type">산업용 전원 스위치</div>
+          <div class="price-val" style="color:var(--switch)">20,000 ~ 50,000원</div>
+          <div style="font-size:0.78rem;color:var(--muted);margin-top:4px">로봇 / AGV / 장비용</div>
+        </div>
+        <div class="price-card">
+          <div class="price-type">비상 정지 스위치 (E-Stop)</div>
+          <div class="price-val" style="color:var(--fuse)">10,000 ~ 30,000원</div>
+          <div style="font-size:0.78rem;color:var(--muted);margin-top:4px">로봇 안전 규격 필수</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ SECTION 4: 퓨즈 ══ -->
+<div class="divider"></div>
+<section>
+  <div class="container">
+    <div class="section-label">Section 04</div>
+    <h2>⚡ <span style="color:var(--fuse)">퓨즈</span> — 과전류 차단 보호</h2>
+
+    <div class="highlight reveal">
+      <div class="highlight-label">정의</div>
+      <p>전류가 너무 많이 흐르면 <strong>내부 금속선이 녹아 끊어지는</strong> 1회용 보호 장치입니다.<br>
+      배터리 가까이 설치해야 전선 쇼트를 즉시 차단할 수 있습니다.</p>
+    </div>
+
+    <!-- Fuse animation -->
+    <div class="card reveal" style="border-color:rgba(248,113,113,0.25)">
+      <div class="card-accent" style="background:var(--fuse)"></div>
+      <h3>퓨즈 동작 원리</h3>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;flex-wrap:wrap">
+        <div>
+          <div style="font-size:0.78rem;color:var(--cpu);font-family:'IBM Plex Mono',monospace;letter-spacing:1px;margin-bottom:14px;text-transform:uppercase">✅ 정상 상태</div>
+          <div class="fuse-visual">
+            <div class="fuse-wire" style="background:var(--battery)"></div>
+            <div class="fuse-body">퓨즈</div>
+            <div class="fuse-wire" style="background:var(--battery)"></div>
+            <div class="fuse-device">장치</div>
+          </div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:0.78rem;color:var(--muted);text-align:center">정상 전류 → 정상 통전</div>
+        </div>
+        <div>
+          <div style="font-size:0.78rem;color:var(--fuse);font-family:'IBM Plex Mono',monospace;letter-spacing:1px;margin-bottom:14px;text-transform:uppercase">⚠ 과전류 발생</div>
+          <div class="fuse-visual">
+            <div class="fuse-wire" style="background:var(--fuse)"></div>
+            <div class="fuse-body broken">퓨즈</div>
+            <div class="wire-broken"></div>
+            <div class="fuse-device" style="opacity:0.4">장치</div>
+          </div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:0.78rem;color:var(--fuse);text-align:center">과전류 → 퓨즈 끊김 → 차단</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cmp-grid reveal">
+      <div class="cmp-card">
+        <div class="cmp-title" style="color:var(--bms)">BMS 역할</div>
+        <p style="font-size:0.88rem">배터리 자체를 보호합니다.<br>충전/방전/온도/셀 밸런싱</p>
+      </div>
+      <div class="cmp-card">
+        <div class="cmp-title" style="color:var(--fuse)">퓨즈 역할</div>
+        <p style="font-size:0.88rem">전선과 회로를 보호합니다.<br>전선 쇼트 · 단락 즉시 차단</p>
+      </div>
+    </div>
+
+    <div class="card reveal">
+      <div class="card-accent" style="background:var(--fuse)"></div>
+      <h3>퓨즈 종류 및 선택 기준</h3>
+      <table>
+        <thead><tr><th>종류</th><th>용도</th><th>용량</th><th>가격</th></tr></thead>
+        <tbody>
+          <tr><td>자동차 블레이드 퓨즈</td><td>소형 로봇 / 자동차</td><td>5A ~ 40A</td><td>100 ~ 500원</td></tr>
+          <tr><td>ANL 퓨즈 (배터리용)</td><td>로봇 메인 라인</td><td>30A ~ 200A</td><td>2,000 ~ 10,000원</td></tr>
+          <tr><td>산업용 퓨즈</td><td>AGV / 대형 장비</td><td>50A ~ 200A+</td><td>5,000 ~ 30,000원</td></tr>
+        </tbody>
+      </table>
+      <div class="highlight" style="margin-top:16px">
+        <div class="highlight-label">퓨즈 용량 선택 공식</div>
+        <p style="font-family:'IBM Plex Mono',monospace;font-size:0.88rem">
+          장치 정격 전류 5A → 퓨즈는 <strong>7.5A 또는 10A</strong> 선택<br>
+          정격의 1.25 ~ 2배 선택 (너무 크면 보호 불가, 너무 작으면 자주 끊김)
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ SECTION 5: DC-DC ══ -->
+<div class="divider"></div>
+<section>
+  <div class="container">
+    <div class="section-label">Section 05</div>
+    <h2>🔄 <span style="color:var(--dcdc)">DC-DC 컨버터</span> — 전압 변환 분배</h2>
+
+    <div class="card reveal" style="border-color:rgba(167,139,250,0.25)">
+      <div class="card-accent" style="background:var(--dcdc)"></div>
+      <h3>DC-DC 컨버터의 역할</h3>
+      <p style="margin-bottom:16px;font-size:0.9rem">배터리의 높은 전압을 각 장치에 맞는 전압으로 낮춰 공급합니다.</p>
+      <table>
+        <thead><tr><th>입력 (배터리)</th><th>출력 (장치)</th><th>대상 장치</th></tr></thead>
+        <tbody>
+          <tr>
+            <td rowspan="4" style="vertical-align:middle;font-weight:700;color:var(--dcdc)">24V DC</td>
+            <td><span style="color:var(--motor);font-weight:700">24V</span></td>
+            <td>⚙️ 구동 모터</td>
+          </tr>
+          <tr>
+            <td><span style="color:var(--lidar);font-weight:700">12V</span></td>
+            <td>📡 LiDAR · 카메라</td>
+          </tr>
+          <tr>
+            <td><span style="color:var(--cpu);font-weight:700">5V</span></td>
+            <td>💻 Jetson · Raspberry Pi · NUC</td>
+          </tr>
+          <tr>
+            <td><span style="color:var(--sensor);font-weight:700">3.3V</span></td>
+            <td>🔬 MCU · 센서류</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="cmp-grid reveal">
+      <div class="cmp-card">
+        <div class="cmp-title" style="color:var(--dcdc)">DC-DC가 하는 것</div>
+        <div class="info-row"><div class="info-icon" style="background:rgba(167,139,250,0.1);color:var(--dcdc)">✓</div><div>전압을 높이거나 낮춤</div></div>
+        <div class="info-row"><div class="info-icon" style="background:rgba(167,139,250,0.1);color:var(--dcdc)">✓</div><div>여러 장치에 분배 공급</div></div>
+        <div class="info-row"><div class="info-icon" style="background:rgba(167,139,250,0.1);color:var(--dcdc)">✓</div><div>전압 안정화</div></div>
+      </div>
+      <div class="cmp-card">
+        <div class="cmp-title" style="color:var(--fuse)">DC-DC가 못하는 것</div>
+        <div class="info-row"><div class="info-icon" style="background:rgba(248,113,113,0.1);color:var(--fuse)">✗</div><div>배터리 보호 (BMS 필요)</div></div>
+        <div class="info-row"><div class="info-icon" style="background:rgba(248,113,113,0.1);color:var(--fuse)">✗</div><div>충전 관리</div></div>
+        <div class="info-row"><div class="info-icon" style="background:rgba(248,113,113,0.1);color:var(--fuse)">✗</div><div>셀 밸런싱</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ SECTION 6: 역할 비교 ══ -->
+<div class="divider"></div>
+<section>
+  <div class="container">
+    <div class="section-label">Section 06</div>
+    <h2>4가지 부품 <span style="color:var(--switch)">역할 비교</span></h2>
+
+    <div class="card reveal">
+      <div class="card-accent" style="background:linear-gradient(to bottom,var(--battery),var(--dcdc))"></div>
+      <table>
+        <thead><tr><th>부품</th><th>핵심 역할</th><th>없으면?</th><th>자동차 비유</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span style="color:var(--battery);font-weight:700">🔋 배터리</span></td>
+            <td>에너지 저장 · 공급</td>
+            <td>로봇 작동 불가</td>
+            <td>연료 탱크</td>
+          </tr>
+          <tr>
+            <td><span style="color:var(--bms);font-weight:700">🛡 BMS</span></td>
+            <td>배터리 보호 관리</td>
+            <td>화재 · 폭발 위험</td>
+            <td>엔진 보호 장치</td>
+          </tr>
+          <tr>
+            <td><span style="color:var(--switch);font-weight:700">⏻ 메인 스위치</span></td>
+            <td>전원 물리적 ON/OFF</td>
+            <td>정비 중 감전 위험</td>
+            <td>차 키 / 이그니션</td>
+          </tr>
+          <tr>
+            <td><span style="color:var(--fuse);font-weight:700">⚡ 퓨즈</span></td>
+            <td>과전류 · 쇼트 차단</td>
+            <td>전선 화재</td>
+            <td>안전벨트 / 에어백</td>
+          </tr>
+          <tr>
+            <td><span style="color:var(--dcdc);font-weight:700">🔄 DC-DC</span></td>
+            <td>전압 변환 · 분배</td>
+            <td>장치별 전압 공급 불가</td>
+            <td>기어 변속기</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ══ SECTION 7: 추천 최종 구조 ══ -->
+<div class="divider"></div>
+<section>
+  <div class="container">
+    <div class="section-label">Section 07</div>
+    <h2>🤖 자율주행 로봇 <span style="color:var(--battery)">추천 전원 구조</span></h2>
+
+    <div class="final-structure reveal">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:32px">Recommended Architecture</div>
+
+      <!-- Battery -->
+      <div style="display:flex;justify-content:center">
+        <div class="fs-node node-battery" style="font-size:1rem">🔋 배터리 <span style="font-size:0.75rem;opacity:0.7">24V Lithium Pack</span></div>
+      </div>
+      <div class="fs-arrow"><div class="fs-vline"></div><div class="fs-arrow-head">▼</div></div>
+
+      <!-- BMS -->
+      <div style="display:flex;justify-content:center">
+        <div class="fs-node node-bms" style="font-size:0.9rem">🛡 Smart BMS <span style="font-size:0.72rem;opacity:0.7">보호 · 밸런싱</span></div>
+      </div>
+      <div class="fs-arrow"><div class="fs-vline"></div><div class="fs-arrow-head">▼</div></div>
+
+      <!-- Switch -->
+      <div style="display:flex;justify-content:center">
+        <div class="fs-node node-switch" style="font-size:0.9rem">⏻ 메인 스위치 <span style="font-size:0.72rem;opacity:0.7">물리 ON/OFF</span></div>
+      </div>
+      <div class="fs-arrow"><div class="fs-vline"></div><div class="fs-arrow-head">▼</div></div>
+
+      <!-- Fuse -->
+      <div style="display:flex;justify-content:center">
+        <div class="fs-node node-fuse" style="font-size:0.9rem">⚡ 퓨즈 <span style="font-size:0.72rem;opacity:0.7">과전류 차단</span></div>
+      </div>
+      <div class="fs-arrow"><div class="fs-vline"></div><div class="fs-arrow-head">▼</div></div>
+
+      <!-- DCDC -->
+      <div style="display:flex;justify-content:center">
+        <div class="fs-node node-dcdc" style="font-size:0.9rem">🔄 DC-DC 컨버터 <span style="font-size:0.72rem;opacity:0.7">전압 분배</span></div>
+      </div>
+
+      <div style="height:24px"></div>
+
+      <!-- Outputs -->
+      <div class="fs-branches">
+        <div style="text-align:center">
+          <div class="branch-voltage v24" style="margin-bottom:8px">24V</div>
+          <div class="branch-device dev-motor">⚙️ 모터</div>
+        </div>
+        <div style="text-align:center">
+          <div class="branch-voltage v12" style="margin-bottom:8px">12V</div>
+          <div class="branch-device dev-lidar">📡 LiDAR</div>
+        </div>
+        <div style="text-align:center">
+          <div class="branch-voltage v5" style="margin-bottom:8px">5V</div>
+          <div class="branch-device dev-cpu">💻 Jetson<br>RPi / NUC</div>
+        </div>
+        <div style="text-align:center">
+          <div class="branch-voltage v33" style="margin-bottom:8px">3.3V</div>
+          <div class="branch-device dev-sensor">🔬 센서<br>MCU</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="highlight reveal" style="margin-top:24px">
+      <div class="highlight-label">💡 설계 원칙</div>
+      <p>BMS(전자 보호) + 메인 스위치(물리 차단)는 항상 함께 사용합니다.<br>
+      BMS만으로는 정비 중 안전을 보장할 수 없고, 스위치만으로는 배터리를 보호할 수 없습니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ FOOTER SUMMARY ══ -->
+<footer>
+  <div class="summary-grid">
+    <div class="summary-item">
+      <div class="summary-title" style="color:var(--battery)">🔋 배터리</div>
+      <div class="summary-desc">리튬 팩, DC 전원 공급원<br>12V / 24V 출력</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-title" style="color:var(--bms)">🛡 BMS</div>
+      <div class="summary-desc">과충전 · 과방전 · 온도 보호<br>셀 밸런싱 수행</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-title" style="color:var(--switch)">⏻ 메인 스위치</div>
+      <div class="summary-desc">물리적 전원 ON/OFF<br>정비 안전 · E-Stop</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-title" style="color:var(--fuse)">⚡ 퓨즈</div>
+      <div class="summary-desc">과전류 · 쇼트 즉시 차단<br>배터리 가까이 설치</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-title" style="color:var(--dcdc)">🔄 DC-DC</div>
+      <div class="summary-desc">전압 변환 · 다중 출력<br>24V/12V/5V/3.3V</div>
+    </div>
+  </div>
+  <p style="color:var(--muted);font-size:0.85rem">로봇 전원 시스템 교육 자료 &nbsp;|&nbsp; <span style="color:var(--battery)">배터리 → BMS → 스위치 → 퓨즈 → DC-DC</span></p>
+</footer>
+
+<script>
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('in'); });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>

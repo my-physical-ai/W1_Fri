@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>로봇 배터리 전압 구조 - Physical AI Education</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --color-primary: #2563EB;
+      --color-primary-light: #DBEAFE;
+      --color-secondary: #7C3AED;
+      --color-secondary-light: #EDE9FE;
+      --color-success: #059669;
+      --color-success-light: #D1FAE5;
+      --color-warning: #D97706;
+      --color-warning-light: #FEF3C7;
+      --color-danger: #DC2626;
+      --color-danger-light: #FEE2E2;
+      --color-surface: #F8FAFC;
+      --color-card: #FFFFFF;
+      --color-text: #1E293B;
+      --color-muted: #64748B;
+      --color-border: #E2E8F0;
+
+      /* 전압별 색상 */
+      --v24: #DC2626;
+      --v24-light: #FEE2E2;
+      --v19: #D97706;
+      --v19-light: #FEF3C7;
+      --v12: #7C3AED;
+      --v12-light: #EDE9FE;
+      --v5:  #2563EB;
+      --v5-light: #DBEAFE;
+      --v33: #059669;
+      --v33-light: #D1FAE5;
+    }
+
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      color: var(--color-text);
+      background: var(--color-surface);
+      line-height: 1.75;
+    }
+
+    .container { max-width: 900px; margin: 0 auto; padding: 0 1.5rem; }
+    section { padding: 3.5rem 0; }
+    .section-divider { border: none; border-top: 1px solid var(--color-border); margin: 0; }
+
+    /* ── HERO ── */
+    .hero {
+      background: linear-gradient(135deg, #1E3A8A 0%, #1E40AF 40%, #7C3AED 100%);
+      color: white;
+      padding: 4rem 0 3rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(circle at 20% 80%, rgba(255,255,255,0.05) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(255,255,255,0.05) 0%, transparent 50%);
+    }
+    .hero .container { position: relative; z-index: 1; }
+    .hero-tags { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem; }
+    .hero-tag {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.25);
+      padding: 0.3rem 0.9rem;
+      border-radius: 100px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+    .hero h1 {
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 900;
+      line-height: 1.2;
+      margin-bottom: 1rem;
+    }
+    .hero h1 span { color: #FCD34D; }
+    .hero-subtitle {
+      font-size: 1.1rem;
+      opacity: 0.85;
+      max-width: 600px;
+      margin-bottom: 2rem;
+    }
+    .hero-voltage-bar {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-top: 1.5rem;
+    }
+    .hero-v-chip {
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 8px;
+      padding: 0.6rem 1.2rem;
+      text-align: center;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .hero-v-chip .v-num { font-size: 1.4rem; font-weight: 700; }
+    .hero-v-chip .v-device { font-size: 0.72rem; opacity: 0.75; margin-top: 2px; }
+
+    /* ── SECTION TITLE ── */
+    .section-title {
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: var(--color-text);
+    }
+    .section-subtitle {
+      color: var(--color-muted);
+      margin-bottom: 2rem;
+      font-size: 0.95rem;
+    }
+    .section-num {
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--color-primary);
+      font-family: 'JetBrains Mono', monospace;
+      margin-bottom: 0.4rem;
+    }
+
+    /* ── OVERVIEW POWER TREE ── */
+    .power-tree {
+      background: var(--color-card);
+      border-radius: 16px;
+      padding: 2.5rem 2rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      border: 1px solid var(--color-border);
+      overflow-x: auto;
+    }
+    .pt-root {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 0;
+    }
+    .pt-node {
+      border-radius: 12px;
+      padding: 0.9rem 1.8rem;
+      font-weight: 700;
+      font-size: 0.95rem;
+      text-align: center;
+      border: 2px solid;
+      min-width: 160px;
+    }
+    .pt-node.battery { background: #FEF3C7; border-color: #D97706; color: #92400E; }
+    .pt-node.bms     { background: #DBEAFE; border-color: #2563EB; color: #1E3A8A; }
+    .pt-node.dcdc    { background: #EDE9FE; border-color: #7C3AED; color: #4C1D95; }
+    .pt-connector {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 36px;
+      color: var(--color-muted);
+      font-size: 1.2rem;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .pt-connector-line {
+      width: 2px;
+      height: 28px;
+      background: var(--color-border);
+    }
+    .pt-branch-wrap {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-top: 0;
+    }
+    .pt-branch {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .v-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 0.85rem;
+      padding: 3px 12px;
+      border-radius: 6px;
+    }
+    .v24b { background: var(--v24-light); color: var(--v24); }
+    .v19b { background: var(--v19-light); color: var(--v19); }
+    .v12b { background: var(--v12-light); color: var(--v12); }
+    .v5b  { background: var(--v5-light);  color: var(--v5); }
+    .v33b { background: var(--v33-light); color: var(--v33); }
+
+    .pt-branch-line { width: 2px; height: 20px; background: var(--color-border); }
+    .pt-device {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 10px;
+      padding: 0.7rem 1rem;
+      font-size: 0.82rem;
+      text-align: center;
+      min-width: 110px;
+      font-weight: 500;
+    }
+
+    /* ── STAT GRID ── */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+    .stat-card {
+      background: var(--color-card);
+      border-radius: 12px;
+      padding: 1.25rem;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      border: 1px solid var(--color-border);
+    }
+    .stat-number { font-size: 2.2rem; font-weight: 900; line-height: 1; font-family: 'JetBrains Mono', monospace; }
+    .stat-label  { font-weight: 700; font-size: 0.85rem; margin-top: 0.4rem; color: var(--color-text); }
+    .stat-desc   { font-size: 0.75rem; color: var(--color-muted); margin-top: 0.25rem; }
+
+    /* ── ANALOGY BOX ── */
+    .analogy-box {
+      display: flex;
+      gap: 1.25rem;
+      padding: 1.5rem;
+      background: var(--color-primary-light);
+      border-radius: 12px;
+      border-left: 4px solid var(--color-primary);
+      margin: 1.5rem 0;
+    }
+    .analogy-icon { font-size: 2.5rem; flex-shrink: 0; }
+    .analogy-title {
+      font-weight: 700; font-size: 0.82rem; color: var(--color-primary);
+      text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem;
+    }
+    .analogy-text  { line-height: 1.7; color: var(--color-text); font-size: 0.95rem; }
+    .analogy-real  {
+      margin-top: 0.6rem; padding-top: 0.6rem;
+      border-top: 1px dashed var(--color-primary);
+      font-size: 0.88rem; color: var(--color-muted);
+    }
+
+    /* ── COMPARE CARD ── */
+    .compare-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.25rem;
+      margin: 1.5rem 0;
+    }
+    .compare-card { border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08); background: var(--color-card); }
+    .compare-header { padding: 1.1rem 1.25rem; color: white; text-align: center; }
+    .compare-header h4 { margin: 0.4rem 0 0; font-size: 1rem; }
+    .compare-icon { font-size: 1.8rem; }
+    .compare-body { padding: 0.75rem 1rem; }
+    .compare-item { display: flex; justify-content: space-between; padding: 0.65rem 0; border-bottom: 1px solid var(--color-border); font-size: 0.88rem; }
+    .compare-item:last-child { border-bottom: none; }
+    .compare-label { color: var(--color-muted); }
+    .compare-value { font-weight: 700; color: var(--color-text); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; }
+
+    /* ── CALLOUT ── */
+    .callout {
+      display: flex; gap: 0.75rem; padding: 1rem 1.25rem;
+      border-radius: 10px; align-items: flex-start; margin: 1rem 0;
+    }
+    .callout-icon { font-size: 1.25rem; flex-shrink: 0; padding-top: 0.1rem; }
+    .callout-content { font-size: 0.92rem; line-height: 1.65; }
+    .callout-tip     { background: var(--color-success-light); border-left: 3px solid var(--color-success); }
+    .callout-warning { background: var(--color-warning-light); border-left: 3px solid var(--color-warning); }
+    .callout-info    { background: var(--color-primary-light); border-left: 3px solid var(--color-primary); }
+
+    /* ── VOLTAGE DETAIL CARD ── */
+    .voltage-cards { display: flex; flex-direction: column; gap: 1.25rem; margin: 1.5rem 0; }
+    .voltage-card {
+      background: var(--color-card);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+      border: 1px solid var(--color-border);
+      display: grid;
+      grid-template-columns: 120px 1fr;
+    }
+    .vc-left {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 1.5rem 1rem; color: white; text-align: center;
+    }
+    .vc-voltage { font-size: 2rem; font-weight: 900; font-family: 'JetBrains Mono', monospace; }
+    .vc-tag     { font-size: 0.7rem; opacity: 0.85; margin-top: 4px; }
+    .vc-right   { padding: 1.25rem 1.5rem; }
+    .vc-title   { font-weight: 700; font-size: 1rem; margin-bottom: 0.4rem; }
+    .vc-desc    { font-size: 0.88rem; color: var(--color-muted); line-height: 1.6; margin-bottom: 0.75rem; }
+    .vc-devices { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .vc-device  {
+      font-size: 0.78rem; padding: 0.25rem 0.7rem; border-radius: 6px;
+      border: 1px solid; font-weight: 500;
+    }
+
+    /* ── 19V WHY SECTION ── */
+    .why-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.25rem;
+      margin: 1.5rem 0;
+    }
+    .why-card {
+      background: var(--color-card);
+      border-radius: 12px;
+      padding: 1.5rem;
+      border: 1px solid var(--color-border);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .why-icon { font-size: 2rem; margin-bottom: 0.75rem; }
+    .why-title { font-weight: 700; margin-bottom: 0.5rem; font-size: 0.95rem; }
+    .why-desc  { font-size: 0.87rem; color: var(--color-muted); line-height: 1.65; }
+    .why-formula {
+      margin-top: 0.75rem; padding: 0.6rem 0.85rem;
+      background: var(--color-surface); border-radius: 8px;
+      font-family: 'JetBrains Mono', monospace; font-size: 0.82rem;
+      color: var(--color-text); line-height: 1.7;
+    }
+
+    /* ── MOTOR DRIVER DIAGRAM ── */
+    .motor-flow {
+      background: var(--color-surface);
+      border-radius: 14px;
+      padding: 2rem;
+      margin: 1.5rem 0;
+    }
+    .mf-row {
+      display: flex; align-items: center; justify-content: center;
+      gap: 0.5rem; flex-wrap: wrap;
+    }
+    .mf-node {
+      background: var(--color-card);
+      border-radius: 10px;
+      padding: 0.9rem 1.2rem;
+      text-align: center;
+      border: 2px solid;
+      min-width: 130px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .mf-node:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
+    .mf-icon  { font-size: 1.6rem; margin-bottom: 0.3rem; }
+    .mf-title { font-weight: 700; font-size: 0.85rem; }
+    .mf-sub   { font-size: 0.72rem; color: var(--color-muted); margin-top: 2px; font-family: 'JetBrains Mono', monospace; }
+    .mf-arrow { font-size: 1.5rem; color: var(--color-muted); }
+    .mf-signal {
+      font-size: 0.7rem; color: var(--color-muted); text-align: center;
+      font-family: 'JetBrains Mono', monospace; padding: 0.2rem 0.5rem;
+      background: rgba(0,0,0,0.04); border-radius: 4px;
+    }
+    .mf-stack { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+
+    /* ── LEKIWI DIAGRAM ── */
+    .lekiwi-power {
+      background: linear-gradient(135deg, #1E3A8A08, #7C3AED08);
+      border: 1px solid var(--color-border);
+      border-radius: 16px;
+      padding: 2rem;
+      margin: 1.5rem 0;
+    }
+    .lkw-title { font-weight: 700; font-size: 0.85rem; color: var(--color-muted); text-align: center; margin-bottom: 1.5rem; font-family: 'JetBrains Mono', monospace; letter-spacing: 0.05em; }
+    .lkw-battery {
+      display: flex; justify-content: center; margin-bottom: 8px;
+    }
+    .lkw-bat-node {
+      background: #FEF3C7; border: 2px solid #D97706;
+      border-radius: 10px; padding: 0.75rem 2rem;
+      font-weight: 700; color: #92400E; font-size: 0.9rem;
+    }
+    .lkw-center-line { display: flex; justify-content: center; height: 32px; }
+    .lkw-line { width: 2px; background: var(--color-border); }
+    .lkw-dcdc-node {
+      display: flex; justify-content: center; margin-bottom: 8px;
+    }
+    .lkw-dcdc {
+      background: #EDE9FE; border: 2px solid #7C3AED;
+      border-radius: 10px; padding: 0.75rem 2rem;
+      font-weight: 700; color: #4C1D95; font-size: 0.9rem;
+    }
+    .lkw-branches {
+      display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; margin-top: 8px;
+    }
+    .lkw-branch { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .lkw-branch-line { width: 2px; height: 24px; background: var(--color-border); }
+    .lkw-dev {
+      border-radius: 10px; padding: 0.65rem 0.9rem;
+      font-size: 0.78rem; font-weight: 600; text-align: center;
+      border: 1px solid; min-width: 105px;
+    }
+
+    /* ── TABLE ── */
+    .data-table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+    .data-table th {
+      background: var(--color-surface); padding: 0.75rem 1rem;
+      text-align: left; font-weight: 700; font-size: 0.8rem;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      color: var(--color-muted); border-bottom: 2px solid var(--color-border);
+    }
+    .data-table td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--color-border); }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--color-surface); }
+    .data-table .mono { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; }
+
+    /* ── ACCORDION ── */
+    .accordion { border: 1px solid var(--color-border); border-radius: 10px; overflow: hidden; margin: 1rem 0; }
+    .accordion-toggle { display: none; }
+    .accordion-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 1rem 1.25rem; cursor: pointer; font-weight: 600;
+      background: var(--color-surface); user-select: none; font-size: 0.95rem;
+    }
+    .accordion-body {
+      max-height: 0; overflow: hidden;
+      transition: max-height 0.35s ease, padding 0.35s ease;
+      padding: 0 1.25rem; background: var(--color-card);
+    }
+    .accordion-toggle:checked ~ .accordion-body { max-height: 1200px; padding: 1.25rem; }
+    .accordion-toggle:checked ~ .accordion-header .accordion-chevron { transform: rotate(90deg); }
+    .accordion-chevron { transition: transform 0.2s; font-size: 0.75rem; color: var(--color-muted); }
+
+    /* ── SUMMARY TABLE ── */
+    .summary-box {
+      background: var(--color-card);
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      border: 1px solid var(--color-border);
+      margin: 1.5rem 0;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      .voltage-card { grid-template-columns: 1fr; }
+      .vc-left { padding: 1rem; flex-direction: row; justify-content: flex-start; gap: 1rem; border-radius: 0; }
+      .mf-row { flex-direction: column; }
+      .mf-arrow { transform: rotate(90deg); }
+      .hero h1 { font-size: 1.8rem; }
+      .lkw-branches { gap: 0.75rem; }
+      .lkw-dev { min-width: 90px; font-size: 0.72rem; }
+    }
+
+    @media print {
+      .hero { background: #1E3A8A !important; }
+      .accordion-body { max-height: none !important; padding: 1rem !important; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ HERO ══ -->
+<header class="hero">
+  <div class="container">
+    <div class="hero-tags">
+      <span class="hero-tag">⚡ 전원 시스템</span>
+      <span class="hero-tag">🔋 배터리 전압</span>
+      <span class="hero-tag">🤖 로봇 하드웨어</span>
+      <span class="hero-tag">🔄 DC-DC 컨버터</span>
+    </div>
+    <h1>로봇 배터리<br><span>전압 구조</span> 완전 정복</h1>
+    <p class="hero-subtitle">배터리 하나에서 왜 24V·19V·12V·5V·3.3V가 나오는지, 각 장치가 왜 그 전압이 필요한지 이해합니다</p>
+    <div class="hero-voltage-bar">
+      <div class="hero-v-chip" style="border-left: 3px solid #EF4444;">
+        <div class="v-num">24V</div>
+        <div class="v-device">모터</div>
+      </div>
+      <div class="hero-v-chip" style="border-left: 3px solid #F59E0B;">
+        <div class="v-num">19V</div>
+        <div class="v-device">NUC / Orin</div>
+      </div>
+      <div class="hero-v-chip" style="border-left: 3px solid #A78BFA;">
+        <div class="v-num">12V</div>
+        <div class="v-device">LiDAR / 카메라</div>
+      </div>
+      <div class="hero-v-chip" style="border-left: 3px solid #60A5FA;">
+        <div class="v-num">5V</div>
+        <div class="v-device">RPi / USB</div>
+      </div>
+      <div class="hero-v-chip" style="border-left: 3px solid #34D399;">
+        <div class="v-num">3.3V</div>
+        <div class="v-device">센서 / MCU</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ══ OVERVIEW ══ -->
+<section>
+  <div class="container">
+    <div class="section-num">Overview</div>
+    <h2 class="section-title">전체 전원 분배 구조</h2>
+    <p class="section-subtitle">배터리 24V 하나에서 5가지 전압이 만들어지는 흐름입니다</p>
+
+    <div class="power-tree">
+      <div class="pt-root">
+        <div class="pt-node battery">🔋 배터리 24V</div>
+      </div>
+      <div class="pt-connector"><div class="pt-connector-line"></div>▼</div>
+      <div class="pt-root">
+        <div class="pt-node bms">🛡 BMS (보호)</div>
+      </div>
+      <div class="pt-connector"><div class="pt-connector-line"></div>▼</div>
+      <div class="pt-root">
+        <div class="pt-node dcdc">🔄 DC-DC 컨버터 (전압 분배)</div>
+      </div>
+      <div class="pt-connector"><div class="pt-connector-line"></div>▼</div>
+      <div class="pt-branch-wrap">
+        <div class="pt-branch">
+          <div class="v-badge v24b">24V</div>
+          <div class="pt-branch-line"></div>
+          <div class="pt-device">⚙️ 모터 드라이버<br>→ 구동 모터</div>
+        </div>
+        <div class="pt-branch">
+          <div class="v-badge v19b">19V</div>
+          <div class="pt-branch-line"></div>
+          <div class="pt-device">💻 NUC<br>AGX Orin</div>
+        </div>
+        <div class="pt-branch">
+          <div class="v-badge v12b">12V</div>
+          <div class="pt-branch-line"></div>
+          <div class="pt-device">📡 LiDAR<br>RealSense</div>
+        </div>
+        <div class="pt-branch">
+          <div class="v-badge v5b">5V</div>
+          <div class="pt-branch-line"></div>
+          <div class="pt-device">🍓 Raspberry Pi<br>USB 장치</div>
+        </div>
+        <div class="pt-branch">
+          <div class="v-badge v33b">3.3V</div>
+          <div class="pt-branch-line"></div>
+          <div class="pt-device">🔬 MCU<br>센서류</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stat-grid" style="margin-top: 2rem;">
+      <div class="stat-card">
+        <div class="stat-number" style="color:var(--v24)">24V</div>
+        <div class="stat-label">배터리 기준 전압</div>
+        <div class="stat-desc">6S 리튬팩 기준</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" style="color:var(--color-primary)">5개</div>
+        <div class="stat-label">분배 전압 종류</div>
+        <div class="stat-desc">24 / 19 / 12 / 5 / 3.3V</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" style="color:var(--color-secondary)">1개</div>
+        <div class="stat-label">배터리</div>
+        <div class="stat-desc">DC-DC로 모두 생성</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" style="color:var(--color-success)">90%+</div>
+        <div class="stat-label">DC-DC 변환 효율</div>
+        <div class="stat-desc">열 손실 최소화</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="section-divider">
+
+<!-- ══ 24V 모터 ══ -->
+<section>
+  <div class="container">
+    <div class="section-num">Section 01</div>
+    <h2 class="section-title">왜 모터는 <span style="color:var(--v24)">24V</span>일까?</h2>
+    <p class="section-subtitle">로봇의 힘과 속도를 만드는 모터, 전압이 높아야 하는 이유가 있습니다</p>
+
+    <div class="analogy-box">
+      <div class="analogy-icon">🚰</div>
+      <div class="analogy-content">
+        <div class="analogy-title">이해하기 쉽게!</div>
+        <p class="analogy-text">
+          전압은 <strong>"수압(물의 압력)"</strong>과 같습니다.<br>
+          수압이 높으면 물이 세게 나오듯, 전압이 높으면 모터가 더 강하고 빠르게 돌아갑니다.
+        </p>
+        <p class="analogy-real">
+          💡 <strong>실제로는</strong> — 로봇 바퀴와 팔은 무게를 들어야 하므로 큰 회전력(토크)이 필요합니다. 24V는 그 힘을 안정적으로 공급합니다.
+        </p>
+      </div>
+    </div>
+
+    <div class="why-grid">
+      <div class="why-card">
+        <div class="why-icon">💪</div>
+        <div class="why-title">① 토크(회전력)가 필요하다</div>
+        <div class="why-desc">로봇 바퀴, 팔은 무게를 들고 이동해야 합니다. 전압이 높을수록 더 강한 토크가 발생합니다.</div>
+        <div class="why-formula">전압 ↑ → 자기장 ↑ → 토크 ↑</div>
+      </div>
+      <div class="why-card">
+        <div class="why-icon">🌡️</div>
+        <div class="why-title">② 전류를 줄여 발열을 낮춘다</div>
+        <div class="why-desc">같은 전력이라도 전압을 높이면 전류가 줄어 전선 발열이 적어집니다.</div>
+        <div class="why-formula">
+          12V × 10A = 120W<br>
+          24V × <strong>5A</strong> = 120W ← 전류 절반
+        </div>
+      </div>
+      <div class="why-card">
+        <div class="why-icon">⚡</div>
+        <div class="why-title">③ 반응 속도가 빠르다</div>
+        <div class="why-desc">전압이 높으면 모터가 목표 속도에 더 빠르게 도달합니다. 정밀 제어에 유리합니다.</div>
+        <div class="why-formula">전압 ↑ → 가속 응답 ↑</div>
+      </div>
+    </div>
+
+    <!-- 모터 드라이버 설명 -->
+    <h3 style="font-size:1.2rem;font-weight:700;margin:2rem 0 0.5rem;">모터 드라이버는 몇 V일까?</h3>
+    <p style="color:var(--color-muted);font-size:0.92rem;margin-bottom:1.25rem;">모터 드라이버는 전압을 변환하지 않습니다. CPU의 약한 신호를 받아서 배터리 전력을 그대로 모터에 연결하는 "스위치" 역할을 합니다.</p>
+
+    <div class="motor-flow">
+      <div class="mf-row">
+        <div class="mf-node" style="border-color:#2563EB;">
+          <div class="mf-icon">💻</div>
+          <div class="mf-title">CPU / MCU</div>
+          <div class="mf-sub">3.3V ~ 5V 신호</div>
+        </div>
+        <div class="mf-stack">
+          <div class="mf-signal">"이 방향, 이 속도"</div>
+          <div class="mf-arrow">→</div>
+        </div>
+        <div class="mf-node" style="border-color:#7C3AED;">
+          <div class="mf-icon">🎛️</div>
+          <div class="mf-title">모터 드라이버</div>
+          <div class="mf-sub">신호 입력 3~5V<br>전원 입력 24V</div>
+        </div>
+        <div class="mf-stack">
+          <div class="mf-signal">24V 전력 제어</div>
+          <div class="mf-arrow">→</div>
+        </div>
+        <div class="mf-node" style="border-color:#DC2626;">
+          <div class="mf-icon">⚙️</div>
+          <div class="mf-title">모터</div>
+          <div class="mf-sub">24V 직접 공급</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-info">
+      <div class="callout-icon">💡</div>
+      <div class="callout-content">
+        <strong>핵심:</strong> 모터 드라이버는 <strong>"약한 신호(5V)로 강한 전력(24V)을 제어하는 스위치"</strong>입니다. 전압을 바꾸지 않고, 배터리 24V를 그대로 모터에 연결합니다.
+      </div>
+    </div>
+
+    <table class="data-table" style="margin-top:1.25rem;">
+      <thead><tr><th>단자</th><th>전압</th><th>역할</th></tr></thead>
+      <tbody>
+        <tr><td>신호 입력 (CPU에서)</td><td class="mono" style="color:var(--color-primary)">3.3 ~ 5V</td><td>방향·속도 명령 수신</td></tr>
+        <tr><td>전원 입력 (배터리에서)</td><td class="mono" style="color:var(--v24)">24V</td><td>모터에 줄 실제 전력</td></tr>
+        <tr><td>출력 (모터로)</td><td class="mono" style="color:var(--v24)">24V</td><td>그대로 모터에 전달</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<hr class="section-divider">
+
+<!-- ══ 19V 섹션 ══ -->
+<section>
+  <div class="container">
+    <div class="section-num">Section 02</div>
+    <h2 class="section-title">왜 고사양 PC는 <span style="color:var(--v19)">19V</span>일까?</h2>
+    <p class="section-subtitle">NUC, AGX Orin 등 고성능 컴퓨터가 19V를 사용하는 역사적·기술적 이유</p>
+
+    <div class="analogy-box" style="background:var(--color-warning-light);border-left-color:var(--color-warning);">
+      <div class="analogy-icon">📜</div>
+      <div class="analogy-content">
+        <div class="analogy-title" style="color:var(--color-warning)">역사적 배경</div>
+        <p class="analogy-text">
+          1990년대 노트북 설계자들이 고민했습니다. <strong>배터리(3~4셀)를 충전하려면 배터리 전압보다 높아야 합니다.</strong><br>
+          4셀 완충 = 16.8V + 여유분 2~3V → 딱 <strong>19V</strong>가 맞아 떨어졌습니다.
+        </p>
+        <p class="analogy-real" style="border-top-color:var(--color-warning)">
+          💡 <strong>결론</strong> — 19V는 "노트북 어댑터 업계 표준"이 되었고, NUC·AGX Orin도 같은 설계를 이어받았습니다.
+        </p>
+      </div>
+    </div>
+
+    <div class="why-grid">
+      <div class="why-card">
+        <div class="why-icon">⚡</div>
+        <div class="why-title">① 효율적인 전력 공급</div>
+        <div class="why-desc">NUC, AGX Orin의 최대 소비전력은 60~65W입니다. 19V는 이 범위를 가장 효율적으로 커버합니다.</div>
+        <div class="why-formula">
+          19V × 3A = 57W<br>
+          19V × 4A = 76W<br>
+          → NUC 65W에 딱 맞음
+        </div>
+      </div>
+      <div class="why-card">
+        <div class="why-icon">🌡️</div>
+        <div class="why-title">② 발열 최소화</div>
+        <div class="why-desc">5V로 65W를 공급하면 13A가 흘러 전선이 굵어지고 발열이 심해집니다. 19V면 전류가 적어 전선도 얇아집니다.</div>
+        <div class="why-formula">
+          5V × 13A = 65W ← 발열 많음<br>
+          19V × 3.4A = 65W ← 발열 적음
+        </div>
+      </div>
+      <div class="why-card">
+        <div class="why-icon">🔄</div>
+        <div class="why-title">③ 내부 변환 효율</div>
+        <div class="why-desc">PC 내부에서 19V를 CPU 전압(1.2V)으로 변환할 때, 비율이 적당해서 변환 효율이 좋습니다.</div>
+        <div class="why-formula">
+          19V → 1.2V (CPU 코어)<br>
+          19V → 3.3V (메모리)<br>
+          19V → 5V (USB)
+        </div>
+      </div>
+    </div>
+
+    <div class="compare-grid">
+      <div class="compare-card">
+        <div class="compare-header" style="background:var(--color-primary)">
+          <div class="compare-icon">🖥️</div>
+          <h4>Intel NUC</h4>
+        </div>
+        <div class="compare-body">
+          <div class="compare-item"><span class="compare-label">입력 전압</span><span class="compare-value" style="color:var(--v19)">19V DC</span></div>
+          <div class="compare-item"><span class="compare-label">최대 전력</span><span class="compare-value">65W</span></div>
+          <div class="compare-item"><span class="compare-label">커넥터</span><span class="compare-value">DC Barrel</span></div>
+          <div class="compare-item"><span class="compare-label">역할</span><span class="compare-value">AI 추론 서버</span></div>
+        </div>
+      </div>
+      <div class="compare-card">
+        <div class="compare-header" style="background:var(--color-secondary)">
+          <div class="compare-icon">🚀</div>
+          <h4>AGX Orin</h4>
+        </div>
+        <div class="compare-body">
+          <div class="compare-item"><span class="compare-label">입력 전압</span><span class="compare-value" style="color:var(--v19)">19V DC</span></div>
+          <div class="compare-item"><span class="compare-label">최대 전력</span><span class="compare-value">60W</span></div>
+          <div class="compare-item"><span class="compare-label">커넥터</span><span class="compare-value">DC / USB-C PD</span></div>
+          <div class="compare-item"><span class="compare-label">역할</span><span class="compare-value">엣지 AI 추론</span></div>
+        </div>
+      </div>
+      <div class="compare-card">
+        <div class="compare-header" style="background:var(--color-success)">
+          <div class="compare-icon">🍓</div>
+          <h4>Raspberry Pi 5</h4>
+        </div>
+        <div class="compare-body">
+          <div class="compare-item"><span class="compare-label">입력 전압</span><span class="compare-value" style="color:var(--v5)">5V DC</span></div>
+          <div class="compare-item"><span class="compare-label">최대 전력</span><span class="compare-value">25W</span></div>
+          <div class="compare-item"><span class="compare-label">커넥터</span><span class="compare-value">USB-C</span></div>
+          <div class="compare-item"><span class="compare-label">역할</span><span class="compare-value">로봇 제어</span></div>
+        </div>
+      </div>
+    </div>
+
+    <h3 style="font-size:1.1rem;font-weight:700;margin:2rem 0 0.75rem;">로봇에서 19V 공급하는 3가지 방법</h3>
+    <div class="accordion">
+      <input type="checkbox" id="acc-1" class="accordion-toggle">
+      <label for="acc-1" class="accordion-header">
+        <span>⚡ 방법 1: 24V 배터리 → DC-DC 벅 컨버터 → 19V</span>
+        <span class="accordion-chevron">▸</span>
+      </label>
+      <div class="accordion-body">
+        <p style="font-size:0.9rem;margin-bottom:0.75rem;">가장 안정적인 방법. DC-DC 벅 컨버터로 24V → 19V로 낮춰 공급합니다.</p>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;background:var(--color-surface);padding:1rem;border-radius:8px;line-height:2;">
+          24V 배터리 → DC-DC 벅 컨버터 → 19V → NUC / AGX Orin
+        </div>
+        <div class="callout callout-tip" style="margin-top:0.75rem;">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">벅 컨버터 구매 시 <strong>입력 24V, 출력 19V, 최대 전류 5A 이상</strong>인 제품을 선택하세요.</div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion">
+      <input type="checkbox" id="acc-2" class="accordion-toggle">
+      <label for="acc-2" class="accordion-header">
+        <span>🔌 방법 2: USB-PD 트리거 모듈 → 20V USB-C</span>
+        <span class="accordion-chevron">▸</span>
+      </label>
+      <div class="accordion-body">
+        <p style="font-size:0.9rem;margin-bottom:0.75rem;">AGX Orin은 USB-C PD 충전을 지원합니다. PD 트리거 모듈로 20V를 만들어 USB-C로 공급하면 배선이 깔끔합니다.</p>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;background:var(--color-surface);padding:1rem;border-radius:8px;line-height:2;">
+          24V 배터리 → USB-PD 트리거 모듈(20V) → USB-C → AGX Orin
+        </div>
+        <div class="callout callout-tip" style="margin-top:0.75rem;">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">배선이 USB-C 하나로 정리되어 로봇 내부 케이블 관리가 편해집니다.</div>
+        </div>
+      </div>
+    </div>
+    <div class="accordion">
+      <input type="checkbox" id="acc-3" class="accordion-toggle">
+      <label for="acc-3" class="accordion-header">
+        <span>🔋 방법 3: 6S 리튬 배터리 직결 (22.2V)</span>
+        <span class="accordion-chevron">▸</span>
+      </label>
+      <div class="accordion-body">
+        <p style="font-size:0.9rem;margin-bottom:0.75rem;">6셀 리튬 배터리(6S)는 방전 시 22.2V입니다. 일부 장치는 입력 전압 범위가 넓어 직결도 가능합니다.</p>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;background:var(--color-surface);padding:1rem;border-radius:8px;line-height:2;">
+          6S 리튬 완충 25.2V / 방전 22.2V → 장치 입력 범위 확인 후 직결
+        </div>
+        <div class="callout callout-warning" style="margin-top:0.75rem;">
+          <div class="callout-icon">⚠️</div>
+          <div class="callout-content">반드시 장치의 입력 전압 범위(Input Voltage Range)를 확인하세요. 초과 시 <strong>장치 파손</strong>이 발생합니다.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="section-divider">
+
+<!-- ══ 전압별 상세 ══ -->
+<section>
+  <div class="container">
+    <div class="section-num">Section 03</div>
+    <h2 class="section-title">전압별 <span style="color:var(--color-primary)">장치와 이유</span></h2>
+    <p class="section-subtitle">각 전압이 그 장치에 사용되는 기술적 이유를 알아봅니다</p>
+
+    <div class="voltage-cards">
+
+      <div class="voltage-card">
+        <div class="vc-left" style="background:var(--v24);">
+          <div class="vc-voltage">24V</div>
+          <div class="vc-tag">고전압 액추에이터</div>
+        </div>
+        <div class="vc-right">
+          <div class="vc-title">⚙️ 모터 · 모터 드라이버</div>
+          <div class="vc-desc">큰 토크와 빠른 응답이 필요한 구동계에 사용됩니다. 전류를 줄여 발열을 낮추고 전선을 얇게 유지합니다.</div>
+          <div class="vc-devices">
+            <span class="vc-device" style="background:var(--v24-light);border-color:var(--v24);color:var(--v24)">구동 모터</span>
+            <span class="vc-device" style="background:var(--v24-light);border-color:var(--v24);color:var(--v24)">모터 드라이버</span>
+            <span class="vc-device" style="background:var(--v24-light);border-color:var(--v24);color:var(--v24)">서보 시스템</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="voltage-card">
+        <div class="vc-left" style="background:var(--v19);">
+          <div class="vc-voltage">19V</div>
+          <div class="vc-tag">고사양 PC 표준</div>
+        </div>
+        <div class="vc-right">
+          <div class="vc-title">💻 NUC · AGX Orin · 노트북</div>
+          <div class="vc-desc">노트북 어댑터 업계 표준에서 시작된 전압입니다. 배터리 충전 전압(16.8V)보다 높아야 충전이 가능하기 때문에 19V가 자리잡았습니다.</div>
+          <div class="vc-devices">
+            <span class="vc-device" style="background:var(--v19-light);border-color:var(--v19);color:#92400E">Intel NUC</span>
+            <span class="vc-device" style="background:var(--v19-light);border-color:var(--v19);color:#92400E">AGX Orin</span>
+            <span class="vc-device" style="background:var(--v19-light);border-color:var(--v19);color:#92400E">노트북</span>
+            <span class="vc-device" style="background:var(--v19-light);border-color:var(--v19);color:#92400E">Mini PC</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="voltage-card">
+        <div class="vc-left" style="background:var(--v12);">
+          <div class="vc-voltage">12V</div>
+          <div class="vc-tag">센서 표준 전압</div>
+        </div>
+        <div class="vc-right">
+          <div class="vc-title">📡 LiDAR · RealSense · 카메라</div>
+          <div class="vc-desc">센서류의 전통적인 표준 전압입니다. 데스크탑 PC 내부 전원 규격(ATX 12V)이기도 해서 많은 주변기기가 12V를 사용합니다.</div>
+          <div class="vc-devices">
+            <span class="vc-device" style="background:var(--v12-light);border-color:var(--v12);color:#4C1D95">LiDAR</span>
+            <span class="vc-device" style="background:var(--v12-light);border-color:var(--v12);color:#4C1D95">RealSense</span>
+            <span class="vc-device" style="background:var(--v12-light);border-color:var(--v12);color:#4C1D95">카메라</span>
+            <span class="vc-device" style="background:var(--v12-light);border-color:var(--v12);color:#4C1D95">라우터</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="voltage-card">
+        <div class="vc-left" style="background:var(--v5);">
+          <div class="vc-voltage">5V</div>
+          <div class="vc-tag">USB 표준 전압</div>
+        </div>
+        <div class="vc-right">
+          <div class="vc-title">🍓 Raspberry Pi · USB 장치</div>
+          <div class="vc-desc">USB 표준 전압(5V)에서 비롯됐습니다. 저전력 SBC(Single Board Computer)와 USB 기반 장치가 모두 5V를 사용합니다.</div>
+          <div class="vc-devices">
+            <span class="vc-device" style="background:var(--v5-light);border-color:var(--v5);color:#1E3A8A">Raspberry Pi</span>
+            <span class="vc-device" style="background:var(--v5-light);border-color:var(--v5);color:#1E3A8A">Jetson Nano</span>
+            <span class="vc-device" style="background:var(--v5-light);border-color:var(--v5);color:#1E3A8A">USB 허브</span>
+            <span class="vc-device" style="background:var(--v5-light);border-color:var(--v5);color:#1E3A8A">아두이노</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="voltage-card">
+        <div class="vc-left" style="background:var(--v33);">
+          <div class="vc-voltage">3.3V</div>
+          <div class="vc-tag">디지털 로직 전압</div>
+        </div>
+        <div class="vc-right">
+          <div class="vc-title">🔬 MCU · 센서 · GPIO</div>
+          <div class="vc-desc">현대 디지털 로직의 표준 전압입니다. 5V보다 낮아 소비전력이 적고, 최신 마이크로컨트롤러와 센서가 대부분 3.3V로 동작합니다.</div>
+          <div class="vc-devices">
+            <span class="vc-device" style="background:var(--v33-light);border-color:var(--v33);color:#064E3B">STM32</span>
+            <span class="vc-device" style="background:var(--v33-light);border-color:var(--v33);color:#064E3B">ESP32</span>
+            <span class="vc-device" style="background:var(--v33-light);border-color:var(--v33);color:#064E3B">IMU 센서</span>
+            <span class="vc-device" style="background:var(--v33-light);border-color:var(--v33);color:#064E3B">GPIO</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="section-divider">
+
+<!-- ══ LeKiwi 실제 구조 ══ -->
+<section>
+  <div class="container">
+    <div class="section-num">Section 04</div>
+    <h2 class="section-title">LeKiwi 로봇 <span style="color:var(--color-success)">실제 전원 구조</span></h2>
+    <p class="section-subtitle">배운 내용을 실제 로봇에 적용하면 이렇게 됩니다</p>
+
+    <div class="lekiwi-power">
+      <div class="lkw-title">LeKiwi / 자율주행 로봇 전원 배분도</div>
+      <div class="lkw-battery">
+        <div class="lkw-bat-node">🔋 배터리 24V (6S Lithium)</div>
+      </div>
+      <div class="lkw-center-line"><div class="lkw-line"></div></div>
+      <div class="lkw-dcdc-node">
+        <div class="lkw-dcdc">🔄 DC-DC 컨버터 / PDB</div>
+      </div>
+      <div class="lkw-branches">
+        <div class="lkw-branch">
+          <div class="v-badge v24b">24V</div>
+          <div class="lkw-branch-line"></div>
+          <div class="lkw-dev" style="background:var(--v24-light);border-color:var(--v24);color:var(--v24)">⚙️ 모터 드라이버<br>→ 바퀴 모터 3개</div>
+        </div>
+        <div class="lkw-branch">
+          <div class="v-badge v19b">19V</div>
+          <div class="lkw-branch-line"></div>
+          <div class="lkw-dev" style="background:var(--v19-light);border-color:var(--v19);color:#92400E">💻 NUC<br>AGX Orin</div>
+        </div>
+        <div class="lkw-branch">
+          <div class="v-badge v12b">12V</div>
+          <div class="lkw-branch-line"></div>
+          <div class="lkw-dev" style="background:var(--v12-light);border-color:var(--v12);color:#4C1D95">📡 LiDAR<br>RealSense</div>
+        </div>
+        <div class="lkw-branch">
+          <div class="v-badge v5b">5V</div>
+          <div class="lkw-branch-line"></div>
+          <div class="lkw-dev" style="background:var(--v5-light);border-color:var(--v5);color:#1E3A8A">🍓 Raspberry Pi<br>USB 카메라</div>
+        </div>
+        <div class="lkw-branch">
+          <div class="v-badge v33b">3.3V</div>
+          <div class="lkw-branch-line"></div>
+          <div class="lkw-dev" style="background:var(--v33-light);border-color:var(--v33);color:#064E3B">🔬 IMU 센서<br>MCU</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-tip">
+      <div class="callout-icon">💡</div>
+      <div class="callout-content">
+        <strong>NUC과 AGX Orin 이 같은 19V를 사용하는 덕분에</strong>, DC-DC 컨버터의 19V 출력 하나로 두 장치를 묶을 수 있어 전원 설계가 단순해집니다.
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="section-divider">
+
+<!-- ══ 최종 요약 ══ -->
+<section style="padding-bottom:4rem;">
+  <div class="container">
+    <div class="section-num">Summary</div>
+    <h2 class="section-title">핵심 정리</h2>
+
+    <div class="summary-box">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>전압</th>
+            <th>주요 장치</th>
+            <th>이유</th>
+            <th>자동차 비유</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="v-badge v24b">24V</span></td>
+            <td>모터, 모터 드라이버</td>
+            <td>토크·속도 필요, 전류 절감</td>
+            <td>엔진 (힘 담당)</td>
+          </tr>
+          <tr>
+            <td><span class="v-badge v19b">19V</span></td>
+            <td>NUC, AGX Orin, 노트북</td>
+            <td>노트북 어댑터 업계 표준</td>
+            <td>차량 컴퓨터 (두뇌)</td>
+          </tr>
+          <tr>
+            <td><span class="v-badge v12b">12V</span></td>
+            <td>LiDAR, RealSense, 카메라</td>
+            <td>센서 업계 표준 (ATX 규격)</td>
+            <td>계기판·센서</td>
+          </tr>
+          <tr>
+            <td><span class="v-badge v5b">5V</span></td>
+            <td>Raspberry Pi, USB 장치</td>
+            <td>USB 표준 전압</td>
+            <td>스마트폰 충전</td>
+          </tr>
+          <tr>
+            <td><span class="v-badge v33b">3.3V</span></td>
+            <td>MCU, 센서, GPIO</td>
+            <td>현대 디지털 로직 표준</td>
+            <td>전자 제어 신호</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout callout-info" style="margin-top:1.5rem;">
+        <div class="callout-icon">🎯</div>
+        <div class="callout-content">
+          <strong>핵심 한 줄 요약:</strong> 배터리 하나(24V)에서 DC-DC 컨버터가 5가지 전압을 만들어 각 장치에 최적의 전력을 공급합니다. 전압이 다른 이유는 장치의 설계 목적과 업계 표준이 다르기 때문입니다.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>
