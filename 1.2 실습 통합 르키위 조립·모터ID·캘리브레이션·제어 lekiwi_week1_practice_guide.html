@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>실습 통합 가이드 — 르키위 조립·모터 ID·캘리브레이션·제어 (1주차 금)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --primary:#2563EB;--primary-l:#DBEAFE;--secondary:#7C3AED;--secondary-l:#EDE9FE;
+    --success:#059669;--success-l:#D1FAE5;--warning:#D97706;--warning-l:#FEF3C7;
+    --danger:#DC2626;--danger-l:#FEE2E2;--surface:#F8FAFC;--card:#FFFFFF;
+    --text:#1E293B;--muted:#64748B;--border:#E2E8F0;--code-bg:#0F172A;--code-tx:#E2E8F0;
+  }
+  body{font-family:'Noto Sans KR',sans-serif;color:var(--text);background:var(--surface);line-height:1.75}
+  code,pre,.mono{font-family:'JetBrains Mono',monospace}
+  .container{max-width:920px;margin:0 auto;padding:0 16px}
+  section{padding:2.6rem 0;border-bottom:1px solid var(--border)}
+  .hero{background:linear-gradient(135deg,#1E3A8A,#3B82F6);color:#fff;padding:3.2rem 0 2.8rem}
+  .pills{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.1rem}
+  .pill{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.35);padding:.25rem .8rem;border-radius:999px;font-size:.8rem}
+  .hero h1{font-size:clamp(1.7rem,4.5vw,2.5rem);font-weight:900;line-height:1.25}
+  .hero p{margin-top:.8rem;opacity:.95}
+  h2{font-size:1.6rem;font-weight:700;margin-bottom:.4rem}
+  h2 .no{display:inline-block;background:var(--primary);color:#fff;border-radius:10px;padding:0 .6rem;margin-right:.5rem;font-size:1.1rem;vertical-align:middle}
+  .lead{color:var(--muted);margin-bottom:1.4rem}
+  h3{font-size:1.1rem;margin:1.4rem 0 .6rem}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:1.2rem 1.3rem;margin:1rem 0;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:1rem}
+  .callout{border-left:5px solid var(--c,var(--primary));background:var(--cl,var(--primary-l));border-radius:10px;padding:.9rem 1.1rem;margin:1rem 0}
+  .callout.warn{--c:var(--warning);--cl:var(--warning-l)} .callout.danger{--c:var(--danger);--cl:var(--danger-l)}
+  .callout.ok{--c:var(--success);--cl:var(--success-l)} .callout.idea{--c:var(--secondary);--cl:var(--secondary-l)}
+  .callout b.t{display:block;margin-bottom:.2rem}
+  .step{display:flex;gap:.9rem;margin:1rem 0}
+  .step .n{flex:0 0 34px;height:34px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
+  .step .b{flex:1;min-width:0}
+  .code{position:relative;margin:.6rem 0}
+  .code pre{background:var(--code-bg);color:var(--code-tx);padding:1rem 1.1rem;border-radius:10px;overflow-x:auto;font-size:.86rem;line-height:1.6}
+  .code .where{position:absolute;left:.7rem;top:-.7rem;background:var(--secondary);color:#fff;font-size:.72rem;padding:.05rem .55rem;border-radius:6px}
+  .copy{position:absolute;right:.5rem;top:.5rem;background:#334155;color:#fff;border:0;border-radius:6px;padding:.2rem .6rem;font-size:.75rem;cursor:pointer}
+  .copy:hover{background:var(--primary)}
+  table{width:100%;border-collapse:collapse;font-size:.9rem;margin:.8rem 0;background:var(--card)}
+  th,td{border:1px solid var(--border);padding:.55rem .6rem;text-align:left;vertical-align:top}
+  th{background:var(--primary-l)}
+  .tbl{overflow-x:auto}
+  .pass{color:var(--success);font-weight:700}.fail{color:var(--danger);font-weight:700}
+  .check li{list-style:none;margin:.35rem 0}
+  .check input{margin-right:.5rem;transform:scale(1.2)}
+  .flow{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center}
+  .flow span{background:var(--card);border:2px solid var(--primary);border-radius:10px;padding:.35rem .7rem;font-size:.85rem;font-weight:500}
+  .flow i{color:var(--muted);font-style:normal}
+  svg{max-width:100%;height:auto}
+  .kbd{display:inline-block;border:1px solid #94A3B8;border-bottom-width:3px;border-radius:6px;padding:0 .45rem;font-family:'JetBrains Mono',monospace;background:#fff;font-size:.85rem}
+  footer{padding:2rem 0;color:var(--muted);font-size:.85rem;text-align:center}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="container">
+    <div class="pills"><span class="pill">1주차 금 · 블록 ②</span><span class="pill">실습 ①②③ 통합</span><span class="pill">LeKiwi 베이스 전용</span><span class="pill">Pi5 + NUC</span></div>
+    <h1>르키위 조립에서 첫 주행까지<br>하나로 따라 하는 실습 가이드</h1>
+    <p>박스 개봉 → 모터 ID → 바퀴 위치 확인 → 캘리브레이션 → 바퀴 점검 → 원격 접속 → 키보드·조이스틱 주행.<br>
+    각 단계마다 <b>합격 기준</b>이 있으니, 통과하고 나서 다음 단계로 넘어가세요.</p>
+  </div>
+</header>
+
+<main class="container">
+
+<!-- 0. 전체 흐름 -->
+<section>
+  <h2><span class="no">0</span>오늘 4.5시간의 흐름</h2>
+  <p class="lead">실습 ① 조립 1.5h · 실습 ② 모터 셋업·캘리브레이션 45m · 실습 ③ 제어 45m + 트러블슈팅 여유</p>
+  <div class="flow">
+    <span>📦 부품 점검</span><i>→</i><span>🔧 조립·배선</span><i>→</i><span>🆔 모터 ID</span><i>→</i><span>🧭 바퀴 위치</span><i>→</i><span>📐 캘리브레이션</span><i>→</i><span>🛞 바퀴 점검</span><i>→</i><span>🌐 SSH·네트워크</span><i>→</i><span>🎮 키보드·조이스틱</span>
+  </div>
+  <div class="callout idea"><b class="t">💡 비유 — 르키위는 "식당"입니다</b>
+    라즈베리파이5는 <b>주방</b>(모터를 실제로 움직임), NUC·노트북은 <b>홀의 손님</b>(키보드·조이스틱으로 주문).
+    둘 사이를 오가는 <b>웨이터</b>가 ZMQ 통신이고, 주문서는 <code>x.vel · y.vel · theta.vel</code> 세 줄짜리입니다.
+    주문이 5초간 안 오면 주방이 스스로 불을 끕니다(워치독).</div>
+</section>
+
+<!-- 1. 구조 -->
+<section>
+  <h2><span class="no">1</span>시스템 구조 한 장 정리</h2>
+  <p class="lead">이 그림을 이해하면 오늘 생기는 오류의 절반은 스스로 찾을 수 있습니다.</p>
+  <div class="card">
+  <svg viewBox="0 0 860 330" role="img" aria-label="Pi5 host와 NUC client의 ZMQ 구조">
+    <defs><marker id="ar" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10z" fill="#2563EB"/></marker>
+    <marker id="ag" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10z" fill="#059669"/></marker></defs>
+    <rect x="10" y="20" width="300" height="290" rx="16" fill="#EDE9FE" stroke="#7C3AED" stroke-width="2"/>
+    <text x="160" y="50" text-anchor="middle" font-size="17" font-weight="700" fill="#5B21B6">NUC / 노트북 (client)</text>
+    <rect x="35" y="70" width="250" height="50" rx="10" fill="#fff" stroke="#7C3AED"/><text x="160" y="100" text-anchor="middle" font-size="14">⌨ teleoperate_base_keyboard.py</text>
+    <rect x="35" y="130" width="250" height="50" rx="10" fill="#fff" stroke="#7C3AED"/><text x="160" y="160" text-anchor="middle" font-size="14">🎮 teleop_joystick_2.py</text>
+    <rect x="35" y="200" width="250" height="90" rx="10" fill="#fff" stroke="#7C3AED"/><text x="160" y="228" text-anchor="middle" font-size="14" font-weight="700">LeKiwiClient</text>
+    <text x="160" y="250" text-anchor="middle" font-size="12" fill="#64748B">remote_ip = Pi5 IP</text><text x="160" y="270" text-anchor="middle" font-size="12" fill="#64748B">PUSH → 5555 / PULL ← 5556</text>
+
+    <rect x="550" y="20" width="300" height="290" rx="16" fill="#DBEAFE" stroke="#2563EB" stroke-width="2"/>
+    <text x="700" y="50" text-anchor="middle" font-size="17" font-weight="700" fill="#1E40AF">Raspberry Pi 5 (host)</text>
+    <rect x="575" y="70" width="250" height="60" rx="10" fill="#fff" stroke="#2563EB"/><text x="700" y="96" text-anchor="middle" font-size="14" font-weight="700">lekiwi_host.py</text><text x="700" y="116" text-anchor="middle" font-size="12" fill="#64748B">워치독 5000ms · 30Hz 루프</text>
+    <rect x="575" y="145" width="250" height="50" rx="10" fill="#fff" stroke="#2563EB"/><text x="700" y="175" text-anchor="middle" font-size="14">lekiwi.py (베이스 전용)</text>
+    <rect x="575" y="210" width="250" height="80" rx="10" fill="#fff" stroke="#2563EB"/><text x="700" y="236" text-anchor="middle" font-size="13">모터보드 /dev/ttyACM0 (1,000,000bps)</text>
+    <text x="700" y="258" text-anchor="middle" font-size="13">ID 7 좌전 · ID 8 후방 · ID 9 우전</text><text x="700" y="278" text-anchor="middle" font-size="12" fill="#64748B">STS3215 × 3 · 12V</text>
+
+    <line x1="312" y1="120" x2="545" y2="120" stroke="#2563EB" stroke-width="3" marker-end="url(#ar)"/>
+    <text x="430" y="108" text-anchor="middle" font-size="13" fill="#1E40AF" font-weight="700">명령 TCP 5555</text>
+    <text x="430" y="140" text-anchor="middle" font-size="12" fill="#64748B">{"x.vel","y.vel","theta.vel"}</text>
+    <line x1="545" y1="220" x2="312" y2="220" stroke="#059669" stroke-width="3" marker-end="url(#ag)"/>
+    <text x="430" y="208" text-anchor="middle" font-size="13" fill="#047857" font-weight="700">관측 TCP 5556</text>
+    <text x="430" y="240" text-anchor="middle" font-size="12" fill="#64748B">바퀴 속도 + (카메라 JPEG)</text>
+  </svg>
+  </div>
+  <div class="tbl"><table>
+    <tr><th>항목</th><th>값</th><th>어디서 바꾸나</th></tr>
+    <tr><td>Pi5 IP</td><td>교육실 기본 192.168.50.111</td><td>키보드·조이스틱 스크립트의 <code>remote_ip</code> / <code>DEFAULT_PI_IP</code></td></tr>
+    <tr><td>robot.id</td><td><code>my_lekiwi</code> 로 통일 권장</td><td>host 실행 옵션 <code>--robot.id</code> · 캘리브레이션 파일 이름이 됨</td></tr>
+    <tr><td>명령/관측 포트</td><td>5555 / 5556</td><td><code>config_lekiwi.py</code></td></tr>
+    <tr><td>워치독</td><td>5000ms (원본 500ms → 교육용 확장)</td><td><code>--host.watchdog_timeout_ms</code></td></tr>
+    <tr><td>속도 단계</td><td>slow 0.1m/s·30°/s · medium 0.2·60 · fast 0.3·90</td><td><code>lekiwi_client.py</code> speed_levels</td></tr>
+  </table></div>
+</section>
+
+<!-- 2. 조립 -->
+<section>
+  <h2><span class="no">2</span>실습 ① 부품 점검 · 조립 · 배선 (1.5h)</h2>
+  <p class="lead">오늘은 <b>바퀴(베이스)만</b> 조립합니다. 로봇팔은 빼 둡니다 — 팔 모터 6개가 버스에 섞이면 ID 충돌·전류 부족 원인을 찾기 어렵습니다.</p>
+  <div class="grid">
+    <div class="card"><b>📦 부품 체크리스트</b>
+      <ul class="check">
+        <li><label><input type="checkbox">STS3215 모터 3개 (바퀴용)</label></li>
+        <li><label><input type="checkbox">옴니휠 3개 + 허브·볼트</label></li>
+        <li><label><input type="checkbox">Feetech 모터 컨트롤 보드 1장</label></li>
+        <li><label><input type="checkbox">3핀 데이지체인 케이블 (짧은 것 여유분)</label></li>
+        <li><label><input type="checkbox">12V 배터리 + 12V→5V 강압 모듈</label></li>
+        <li><label><input type="checkbox">라즈베리파이5 + SD카드(Ubuntu 24.04)</label></li>
+        <li><label><input type="checkbox">USB 카메라 (오늘은 연결만, 사용은 2주차)</label></li>
+        <li><label><input type="checkbox">바퀴 받침대 (점검 시 바퀴 띄우기용)</label></li>
+      </ul></div>
+    <div class="card"><b>🔌 배선 규칙 3가지</b>
+      <ol style="padding-left:1.2rem">
+        <li><b>보드는 1장만</b> — 모든 모터를 한 USB 버스(<code>/dev/ttyACM0</code>)에 연결하면 포트 혼동이 사라집니다.</li>
+        <li><b>12V는 모터, 5V는 Pi</b> — Pi5에 12V를 직접 넣으면 즉시 고장. 강압 모듈 출력이 5V인지 멀티미터로 먼저 확인.</li>
+        <li><b>데이지체인 순서</b> 보드 → ID7 → ID8 → ID9. 케이블이 바퀴에 끼지 않도록 타이로 고정.</li>
+      </ol></div>
+  </div>
+  <div class="card">
+    <b>🧭 옴니휠 배치 (위에서 본 모습, 로봇 앞 = 위쪽)</b>
+    <svg viewBox="0 0 420 260" role="img" aria-label="옴니휠 3개 배치">
+      <polygon points="210,40 340,215 80,215" fill="#F1F5F9" stroke="#94A3B8" stroke-width="2"/>
+      <text x="210" y="25" text-anchor="middle" font-size="13" fill="#64748B">▲ 전방 (+X)</text>
+      <circle cx="120" cy="90" r="26" fill="#DBEAFE" stroke="#2563EB" stroke-width="2"/><text x="120" y="95" text-anchor="middle" font-weight="700">7</text><text x="120" y="135" text-anchor="middle" font-size="12">좌전 300°</text>
+      <circle cx="300" cy="90" r="26" fill="#DBEAFE" stroke="#2563EB" stroke-width="2"/><text x="300" y="95" text-anchor="middle" font-weight="700">9</text><text x="300" y="135" text-anchor="middle" font-size="12">우전 60°</text>
+      <circle cx="210" cy="215" r="26" fill="#DBEAFE" stroke="#2563EB" stroke-width="2"/><text x="210" y="220" text-anchor="middle" font-weight="700">8</text><text x="210" y="256" text-anchor="middle" font-size="12">후방 180°</text>
+    </svg>
+    <p style="font-size:.9rem;color:var(--muted)">각도는 <code>check_wheels.py</code>의 WHEEL_ANGLES 기준입니다. 번호는 권장 배치이며, 실제 위치는 3단계에서 확인합니다.</p>
+  </div>
+  <div class="callout ok"><b class="t">✅ 합격 기준</b>전원 ON 시 보드 LED 점등 · Pi5 부팅 · 모터 3개가 체인으로 연결 · 케이블이 바퀴에 닿지 않음</div>
+</section>
+
+<!-- 3. 모터 ID -->
+<section>
+  <h2><span class="no">3</span>실습 ② 모터 ID 설정</h2>
+  <p class="lead">새 모터는 공장에서 <b>모두 같은 ID</b>로 나옵니다. 같은 번호의 학생 셋이 동시에 "네!" 하면 누가 대답했는지 모르죠. 그래서 <b>한 번에 모터 하나만</b> 연결해 번호표를 붙입니다.</p>
+
+  <div class="step"><div class="n">1</div><div class="b">SSH로 Pi5 접속 후 환경 활성화
+    <div class="code"><span class="where">NUC 터미널</span><button class="copy">복사</button><pre>ssh zeta@192.168.50.111
+conda activate lerobot</pre></div></div></div>
+
+  <div class="step"><div class="n">2</div><div class="b">모터보드 포트 찾기 — USB를 뺐다 꽂으라는 안내가 나오면 그대로 따릅니다.
+    <div class="code"><span class="where">Pi5</span><button class="copy">복사</button><pre>lerobot-find-port</pre></div>
+    <p>결과가 <code>/dev/ttyACM0</code> 이 아니면 이후 명령의 포트를 그 값으로 바꿉니다. 권한 오류 시:</p>
+    <div class="code"><span class="where">Pi5</span><button class="copy">복사</button><pre>sudo usermod -aG dialout $USER   # 이후 로그아웃 → 재접속</pre></div></div></div>
+
+  <div class="step"><div class="n">3</div><div class="b">ID 설정 실행
+    <div class="code"><span class="where">Pi5</span><button class="copy">복사</button><pre>lerobot-setup-motors \
+  --robot.type=lekiwi \
+  --robot.port=/dev/ttyACM0</pre></div>
+    <p>베이스 전용 <code>lekiwi.py</code>는 <b>역순</b>으로 묻습니다: <code>base_right_wheel(9)</code> → <code>base_back_wheel(8)</code> → <code>base_left_wheel(7)</code>.
+    화면에 모터 이름이 나오면 <b>그 모터 케이블 하나만</b> 보드에 꽂고 Enter.</p></div></div>
+
+  <div class="callout danger"><b class="t">⛔ 가장 흔한 사고</b>두 개 이상 꽂은 채 Enter → 두 모터가 같은 ID가 되어 이후 스캔에서 한 개만 보이거나 통신 오류가 납니다. 이때는 모터를 하나씩만 꽂고 다시 실행하세요.</div>
+  <div class="callout ok"><b class="t">✅ 합격 기준</b>세 번 모두 <code>'base_…' motor id set to 7/8/9</code> 출력</div>
+</section>
+
+<!-- 4. 바퀴 위치 -->
+<section>
+  <h2><span class="no">4</span>어느 ID가 어느 바퀴? — identify_wheels.py</h2>
+  <p class="lead">ID를 붙였어도, 조립할 때 7번 모터를 오른쪽에 달았을 수 있습니다. 이 상태로 주행하면 "앞으로" 눌렀는데 옆으로 갑니다.</p>
+  <div class="step"><div class="n">1</div><div class="b">바퀴를 받침 위에 띄우고 실행 (host가 켜져 있으면 먼저 Ctrl+C)
+    <div class="code"><span class="where">Pi5</span><button class="copy">복사</button><pre>python3 identify_wheels.py --ids 7 8 9</pre></div></div></div>
+  <div class="step"><div class="n">2</div><div class="b">ID마다 1.5초 저속 회전 → 돈 바퀴 위치를 <span class="kbd">1</span> 좌전 <span class="kbd">2</span> 후방 <span class="kbd">3</span> 우전 으로 답합니다.</div></div>
+  <div class="step"><div class="n">3</div><div class="b">마지막에 출력된 값으로 <code>lekiwi.py</code> 상단을 수정합니다.
+    <div class="code"><span class="where">lekiwi.py</span><button class="copy">복사</button><pre>WHEEL_ID_LEFT  = 7    # 좌전 바퀴 모터 ID
+WHEEL_ID_BACK  = 8    # 후방 바퀴 모터 ID
+WHEEL_ID_RIGHT = 9    # 우전 바퀴 모터 ID</pre></div>
+    <p style="font-size:.9rem;color:var(--muted)">editable 설치(<code>pip install -e .</code>)라면 <code>~/lerobot/src/lerobot/robots/lekiwi/lekiwi.py</code>를 고치는 즉시 반영됩니다.</p></div></div>
+  <div class="callout ok"><b class="t">✅ 합격 기준</b>"3개 바퀴 매칭 완료" 출력 + lekiwi.py 값 일치</div>
+</section>
+
+<!-- 5. 캘리브레이션 -->
+<section>
+  <h2><span class="no">5</span>캘리브레이션 — 바퀴는 왜 간단한가</h2>
+  <p class="lead">로봇팔 관절은 "0도가 어디인지(영점)"와 "어디까지 굽는지(범위)"를 손으로 알려줘야 합니다. 바퀴는 <b>끝없이 도는 모터</b>라 영점이 필요 없습니다.</p>
+  <div class="tbl"><table>
+    <tr><th></th><th>로봇팔 관절 (SO-101 등)</th><th>르키위 바퀴</th></tr>
+    <tr><td>모드</td><td>위치 모드</td><td>속도 모드 (Operating_Mode = 1)</td></tr>
+    <tr><td>영점 homing_offset</td><td>중간 자세에서 측정</td><td>0 고정</td></tr>
+    <tr><td>범위</td><td>관절을 끝까지 움직여 기록</td><td>0 ~ 4095 전체</td></tr>
+    <tr><td>사람 작업</td><td>자세 잡기 · 끝까지 돌리기</td><td>'c' 입력 한 번</td></tr>
+  </table></div>
+  <div class="step"><div class="n">1</div><div class="b">host를 처음 실행하면 캘리브레이션을 묻습니다 (다음 6·7단계 명령 사용).
+    <p>파일이 없으면 자동 생성, 파일이 있으면 <span class="kbd">Enter</span> = 기존 파일 사용 / <span class="kbd">c</span> + <span class="kbd">Enter</span> = 새로 생성.</p></div></div>
+  <div class="step"><div class="n">2</div><div class="b">저장 위치 확인
+    <div class="code"><span class="where">Pi5</span><button class="copy">복사</button><pre>ls ~/.cache/huggingface/lerobot/calibration/robots/lekiwi/
+cat ~/.cache/huggingface/lerobot/calibration/robots/lekiwi/my_lekiwi.json</pre></div>
+    <p>파일 이름 = <code>--robot.id</code>. id를 바꾸면 "파일 없음"으로 다시 캘리브레이션을 묻는 이유가 이것입니다.</p></div></div>
+  <div class="callout ok"><b class="t">✅ 합격 기준</b>json에 세 바퀴 모두 <code>"homing_offset": 0, "range_min": 0, "range_max": 4095</code></div>
+</section>
+
+<!-- 6. 바퀴 점검 -->
+<section>
+  <h2><span class="no">6</span>바퀴 점검 — check_wheels.py</h2>
+  <p class="lead">원격 주행 전에 <b>Pi5 안에서 직접</b> 바퀴를 돌려 봅니다. 여기서 문제가 없으면 이후 문제는 "네트워크 쪽"으로 좁혀집니다.</p>
+  <div class="code"><span class="where">Pi5 (바퀴 띄운 상태)</span><button class="copy">복사</button><pre>python3 check_wheels.py            # 진단만: 포트·ID·전압·온도
+python3 check_wheels.py --spin     # 바퀴 하나씩 정/역방향
+python3 check_wheels.py --move     # 좌·우·전·후 방향 확인
+python3 check_wheels.py --turn     # 제자리 좌·우회전</pre></div>
+  <div class="tbl"><table>
+    <tr><th>점검</th><th class="pass">정상</th><th class="fail">이상 → 조치</th></tr>
+    <tr><td>ID 스캔</td><td>7·8·9 모두 ✅</td><td>누락 → 체인 케이블 · 12V · 3단계 재실행</td></tr>
+    <tr><td>전압</td><td>11~13V</td><td>10V 미만 → 배터리 충전</td></tr>
+    <tr><td>온도</td><td>50°C 미만</td><td>과열 → 전원 끄고 10분 휴식, 바퀴 걸림 확인</td></tr>
+    <tr><td>--move 방향</td><td>화면 문구와 실제 방향 일치</td><td>좌우 바뀜 → 4단계 ID 매칭 재확인</td></tr>
+  </table></div>
+</section>
+
+<!-- 7. 네트워크 -->
+<section>
+  <h2><span class="no">7</span>원격 접속 · 네트워크 확인</h2>
+  <div class="step"><div class="n">1</div><div class="b">같은 망인지 확인
+    <div class="code"><span class="where">NUC</span><button class="copy">복사</button><pre>ip -4 addr | grep inet      # NUC IP가 192.168.50.x 인지
+ping -c 3 192.168.50.111    # Pi5 응답 확인</pre></div></div></div>
+  <div class="step"><div class="n">2</div><div class="b">host 실행 (Pi5)
+    <div class="code"><span class="where">Pi5</span><button class="copy">복사</button><pre>conda activate lerobot
+python -m lerobot.robots.lekiwi.lekiwi_host \
+  --robot.id=my_lekiwi \
+  --host.connection_time_s=86400 \
+  --host.watchdog_timeout_ms=5000 \
+  --robot.cameras='{}'</pre></div>
+    <div class="tbl"><table>
+      <tr><th>옵션</th><th>뜻</th></tr>
+      <tr><td><code>--robot.id</code></td><td>로봇 이름표 = 캘리브레이션 파일 이름</td></tr>
+      <tr><td><code>connection_time_s=86400</code></td><td>24시간 동안 대기 (기본값은 짧아서 수업 중 host가 꺼짐)</td></tr>
+      <tr><td><code>watchdog_timeout_ms=5000</code></td><td>명령이 5초 끊기면 바퀴 자동 정지 — 안전장치</td></tr>
+      <tr><td><code>--robot.cameras='{}'</code></td><td>오늘은 카메라 끄기 (영상 전송 부하·장치 번호 충돌 방지)</td></tr>
+    </table></div></div></div>
+  <div class="step"><div class="n">3</div><div class="b">포트가 열렸는지 확인
+    <div class="code"><span class="where">Pi5 (다른 SSH 창)</span><button class="copy">복사</button><pre>ss -tlnp | grep -E '5555|5556'
+sudo nft list ruleset | head -30   # ufw가 inactive여도 nftables·Docker가 막을 수 있음</pre></div></div></div>
+  <div class="callout warn"><b class="t">⚠️ "No command available" 경고가 계속 찍히는 건 정상</b>client가 아직 연결 안 됐다는 뜻입니다. 워치독 문구 "Stopping the base"도 명령이 없을 때 나오는 정상 로그입니다.</div>
+</section>
+
+<!-- 8. 키보드 -->
+<section>
+  <h2><span class="no">8</span>실습 ③-1 키보드 주행</h2>
+  <div class="grid">
+    <div class="card"><b>키 배치</b><br>
+      <span class="kbd">W</span> 전진 <span class="kbd">S</span> 후진 <span class="kbd">A</span> 좌이동 <span class="kbd">D</span> 우이동<br>
+      <span class="kbd">Z</span> 좌회전 <span class="kbd">X</span> 우회전<br>
+      <span class="kbd">R</span> 빨리 <span class="kbd">F</span> 천천히 (3단계, 시작은 slow)<br>
+      <span class="kbd">Ctrl</span>+<span class="kbd">C</span> 종료</div>
+    <div class="card"><b>실행 전 수정 2곳</b> (<code>teleoperate_base_keyboard.py</code>)
+      <div class="code"><button class="copy">복사</button><pre>remote_ip="192.168.50.111",  # 우리 팀 Pi5 IP
+id="my_lekiwi",              # host의 --robot.id와 동일</pre></div></div>
+  </div>
+  <div class="code"><span class="where">NUC — 모니터 앞 데스크톱 터미널</span><button class="copy">복사</button><pre>conda activate lerobot
+python teleoperate_base_keyboard.py</pre></div>
+  <div class="callout warn"><b class="t">⚠️ 키보드는 SSH 창에서 안 됩니다</b>LeRobot 키보드 입력(pynput)은 화면(X/Wayland)이 있어야 키를 읽습니다. NUC 모니터 앞의 터미널에서 실행하고, 그 창을 클릭해 포커스를 둔 채 누르세요. Wayland에서 키가 안 먹으면 로그인 화면에서 "Ubuntu on Xorg"를 선택합니다.</div>
+  <div class="callout ok"><b class="t">✅ 합격 기준</b>W·A·S·D·Z·X 6방향이 모두 맞는 방향으로 움직이고, 키를 떼면 멈춤</div>
+</section>
+
+<!-- 9. 조이스틱 -->
+<section>
+  <h2><span class="no">9</span>실습 ③-2 조이스틱 주행</h2>
+  <div class="step"><div class="n">1</div><div class="b">조이스틱 인식 확인
+    <div class="code"><span class="where">NUC</span><button class="copy">복사</button><pre>ls /dev/input/js*            # js0 가 보여야 함
+sudo apt install -y joystick
+jstest /dev/input/js0        # 스틱을 움직이며 축 번호 확인</pre></div></div></div>
+  <div class="tbl"><table>
+    <tr><th>스틱</th><th>축(axis)</th><th>명령</th><th>최대값</th></tr>
+    <tr><td>왼쪽 상하</td><td>1</td><td>x.vel 전진·후진 (위로 밀면 음수 → 부호 반전)</td><td>0.3 m/s</td></tr>
+    <tr><td>왼쪽 좌우</td><td>0</td><td>y.vel 횡이동</td><td>0.3 m/s</td></tr>
+    <tr><td>오른쪽 좌우</td><td>3</td><td>theta.vel 회전 (axis 5는 트리거라 사용 금지)</td><td>60 °/s</td></tr>
+  </table></div>
+  <p>데드존 0.15 = 스틱을 살짝 건드린 정도(15% 미만)는 무시 → 로봇이 혼자 슬금슬금 움직이는 것 방지. 명령은 50Hz(0.02초)마다 보냅니다.</p>
+  <div class="code"><span class="where">NUC</span><button class="copy">복사</button><pre>conda activate lerobot
+python teleop_joystick_2.py</pre></div>
+  <div class="callout idea"><b class="t">💡 조이스틱은 SSH에서도 됩니다</b>스크립트가 <code>SDL_VIDEODRIVER=dummy</code>로 화면 없이 pygame을 켜기 때문입니다. 단, 조이스틱은 <b>스크립트를 실행하는 컴퓨터</b>에 꽂혀 있어야 합니다.</div>
+  <div class="callout warn"><b class="t">⚠️ 컨트롤러마다 축 번호가 다릅니다</b>jstest 결과 오른쪽 스틱 좌우가 2번이면 <code>get_axis(3)</code>을 <code>get_axis(2)</code>로 바꾸세요.</div>
+</section>
+
+<!-- 10. 트러블슈팅 -->
+<section>
+  <h2><span class="no">10</span>트러블슈팅 — 위에서부터 순서대로</h2>
+  <div class="tbl"><table>
+    <tr><th>#</th><th>증상</th><th>원인</th><th>조치</th></tr>
+    <tr><td>1</td><td><code>/dev/ttyACM0</code> 없음</td><td>USB·12V 전원</td><td>케이블 재연결 → <code>lerobot-find-port</code></td></tr>
+    <tr><td>2</td><td>Permission denied (포트)</td><td>dialout 그룹 없음</td><td><code>sudo usermod -aG dialout $USER</code> 후 재접속</td></tr>
+    <tr><td>3</td><td>포트 사용 중 / 스크립트 멈춤</td><td>host가 이미 포트 점유</td><td>host Ctrl+C 후 점검 스크립트 실행 (동시 실행 불가)</td></tr>
+    <tr><td>4</td><td>모터 1~2개만 보임</td><td>ID 중복 · 체인 단선</td><td>모터 하나씩 꽂고 3단계 재실행</td></tr>
+    <tr><td>5</td><td>client가 연결 후 반응 없음</td><td>IP 오타 · 다른 망 · 방화벽</td><td>ping → <code>ss -tlnp</code> → nftables 확인</td></tr>
+    <tr><td>6</td><td>방향이 뒤섞임</td><td>ID↔위치 불일치</td><td>identify_wheels.py 재실행 → lekiwi.py 수정</td></tr>
+    <tr><td>7</td><td>몇 초 뒤 혼자 멈춤</td><td>워치독 동작 (명령 끊김)</td><td>client 루프 동작 확인, Wi-Fi 신호 확인</td></tr>
+    <tr><td>8</td><td>키보드 무반응</td><td>SSH 창에서 실행 · 포커스 없음</td><td>NUC 데스크톱 터미널에서 실행</td></tr>
+    <tr><td>9</td><td>No joystick detected</td><td>USB 인식 실패</td><td><code>ls /dev/input/js*</code>, 다른 USB 포트</td></tr>
+    <tr><td>10</td><td>host가 갑자기 종료</td><td>connection_time_s 기본값</td><td><code>--host.connection_time_s=86400</code></td></tr>
+    <tr><td>11</td><td>한쪽 바퀴만 약함·과열</td><td>전압 저하 · 바퀴 걸림</td><td>check_wheels 전압·온도, 볼트 조임 확인</td></tr>
+  </table></div>
+</section>
+
+<!-- 11. 최종 체크 -->
+<section>
+  <h2><span class="no">11</span>오늘의 최종 합격 체크 (팀별)</h2>
+  <div class="card"><ul class="check">
+    <li><label><input type="checkbox">베이스 조립 완료, 케이블 고정</label></li>
+    <li><label><input type="checkbox">모터 ID 7·8·9 설정 완료</label></li>
+    <li><label><input type="checkbox">identify_wheels.py 결과와 lekiwi.py 일치</label></li>
+    <li><label><input type="checkbox">캘리브레이션 json 생성 (my_lekiwi.json)</label></li>
+    <li><label><input type="checkbox">check_wheels.py 전압·온도 정상, --move 방향 일치</label></li>
+    <li><label><input type="checkbox">NUC → Pi5 ping · SSH 성공</label></li>
+    <li><label><input type="checkbox">키보드 6방향 주행 성공</label></li>
+    <li><label><input type="checkbox">조이스틱 전진·횡이동·회전 성공</label></li>
+  </ul></div>
+</section>
+
+<!-- 12. 팀 토의 -->
+<section>
+  <h2><span class="no">12</span>💬 팀 토의 — 우리 공장이라면?</h2>
+  <div class="grid">
+    <div class="card"><b>Q1. 워치독 5초는 적절한가?</b><br>교육실에선 5초, 원본은 0.5초입니다. 사람이 오가는 공장 AGV라면 몇 초가 맞을까요? 짧으면 무엇이 불편하고, 길면 무엇이 위험할까요?</div>
+    <div class="card"><b>Q2. 오늘 가장 오래 막힌 곳은?</b><br>하드웨어(전원·케이블)·설정(ID·포트)·네트워크 중 어디였나요? 우리 회사 설비 도입 때도 같은 곳에서 막히지 않을까요?</div>
+    <div class="card"><b>Q3. 키보드 vs 조이스틱</b><br>2주차에 이 조작 기록이 AI 학습 데이터가 됩니다. 어떤 입력 방식이 "좋은 시연 데이터"를 만들까요?</div>
+  </div>
+</section>
+
+</main>
+<footer>제타위성로보틱스 · 2026 스마트팩토리 피지컬 AI 현장 혁신 실전교육 · 2차 재직자 과정 1주차 금요일</footer>
+
+<script>
+document.querySelectorAll('.copy').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    var t=btn.parentElement.querySelector('pre').innerText;
+    function done(){btn.textContent='복사됨 ✓';setTimeout(function(){btn.textContent='복사'},1500)}
+    if(navigator.clipboard){navigator.clipboard.writeText(t).then(done,function(){fallback()})}else{fallback()}
+    function fallback(){var a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{document.execCommand('copy')}catch(e){}document.body.removeChild(a);done()}
+  });
+});
+</script>
+</body>
+</html>
