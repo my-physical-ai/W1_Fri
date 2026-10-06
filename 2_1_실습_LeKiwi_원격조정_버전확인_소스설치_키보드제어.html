@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>실습 2-1 — LeKiwi 원격조정: 르로봇 버전 확인 · 소스 업데이트 · 키보드 제어</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --primary:#2563EB;--primary-l:#DBEAFE;--secondary:#7C3AED;--secondary-l:#EDE9FE;
+  --success:#059669;--success-l:#D1FAE5;--warning:#D97706;--warning-l:#FEF3C7;
+  --danger:#DC2626;--danger-l:#FEE2E2;--teal:#0891B2;--teal-l:#CCFBF1;
+  --surface:#F8FAFC;--card:#FFFFFF;--text:#1E293B;--muted:#64748B;--border:#E2E8F0;
+  --code-bg:#0F172A;--code-tx:#E2E8F0;
+}
+body{font-family:'Noto Sans KR',sans-serif;color:var(--text);background:var(--surface);line-height:1.75}
+code,pre,.mono{font-family:'JetBrains Mono',monospace}
+.container{max-width:920px;margin:0 auto;padding:0 16px}
+section{padding:2.6rem 0;border-bottom:1px solid var(--border)}
+
+/* Hero */
+.hero{background:linear-gradient(135deg,#164E63,#22D3EE);color:#fff;padding:3.2rem 0 2.8rem}
+.pills{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.1rem}
+.pill{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.35);padding:.25rem .8rem;border-radius:999px;font-size:.8rem}
+.hero h1{font-size:clamp(1.7rem,4.5vw,2.5rem);font-weight:900;line-height:1.25}
+.hero p{margin-top:.8rem;opacity:.95}
+
+/* Headings */
+h2{font-size:1.6rem;font-weight:700;margin-bottom:.4rem}
+h2 .no{display:inline-block;background:var(--primary);color:#fff;border-radius:10px;padding:0 .6rem;margin-right:.5rem;font-size:1.1rem;vertical-align:middle}
+.lead{color:var(--muted);margin-bottom:1.4rem}
+h3{font-size:1.1rem;margin:1.4rem 0 .6rem}
+
+/* Cards */
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:1.2rem 1.3rem;margin:1rem 0;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:1rem}
+
+/* Callouts */
+.callout{border-left:5px solid var(--c,var(--primary));background:var(--cl,var(--primary-l));border-radius:10px;padding:.9rem 1.1rem;margin:1rem 0}
+.callout.warn{--c:var(--warning);--cl:var(--warning-l)}
+.callout.danger{--c:var(--danger);--cl:var(--danger-l)}
+.callout.ok{--c:var(--success);--cl:var(--success-l)}
+.callout.idea{--c:var(--secondary);--cl:var(--secondary-l)}
+.callout.teal{--c:var(--teal);--cl:var(--teal-l)}
+.callout b.t{display:block;margin-bottom:.2rem}
+
+/* Steps */
+.step{display:flex;gap:.9rem;margin:1rem 0}
+.step .n{flex:0 0 34px;height:34px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem}
+.step .b{flex:1;min-width:0}
+
+/* Code */
+.code{position:relative;margin:.6rem 0}
+.code pre{background:var(--code-bg);color:var(--code-tx);padding:1rem 1.1rem;border-radius:10px;overflow-x:auto;font-size:.84rem;line-height:1.6}
+.code .where{position:absolute;left:.7rem;top:-.7rem;background:var(--secondary);color:#fff;font-size:.72rem;padding:.05rem .55rem;border-radius:6px}
+.code .nuc{background:var(--primary)}
+.code .pi{background:var(--success)}
+.copy{position:absolute;right:.5rem;top:.5rem;background:#334155;color:#fff;border:0;border-radius:6px;padding:.2rem .6rem;font-size:.75rem;cursor:pointer}
+.copy:hover{background:var(--primary)}
+
+/* Tables */
+table{width:100%;border-collapse:collapse;font-size:.9rem;margin:.8rem 0;background:var(--card)}
+th,td{border:1px solid var(--border);padding:.55rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--primary-l);font-weight:600}
+.tbl{overflow-x:auto}
+
+/* Flow diagram */
+.flow{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;margin:1rem 0;justify-content:center}
+.flow-box{padding:.5rem 1rem;border-radius:10px;font-size:.85rem;font-weight:500;text-align:center;border:2px solid var(--border);background:#fff}
+.flow-arrow{font-size:1.2rem;color:var(--primary)}
+
+/* File tree */
+.tree{background:var(--code-bg);color:var(--code-tx);padding:1rem 1.3rem;border-radius:10px;font-size:.84rem;line-height:1.7;overflow-x:auto}
+.tree .hl{color:#22D3EE;font-weight:600}
+.tree .comment{color:#6B7280}
+
+/* Checklist */
+.check li{list-style:none;margin:.35rem 0}
+.check input{margin-right:.5rem;transform:scale(1.2)}
+
+/* Print */
+@media print{
+  .hero{background:#164E63!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  section{page-break-inside:avoid}
+  .code pre{font-size:.75rem}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== HERO ===== -->
+<div class="hero">
+<div class="container">
+  <div class="pills">
+    <span class="pill">🤖 Physical AI 실습</span>
+    <span class="pill">📡 원격조정</span>
+    <span class="pill">⏱ 90분</span>
+    <span class="pill">🔧 NUC + 라즈베리파이</span>
+  </div>
+  <h1>실습 2-1 — LeKiwi 원격조정<br>르로봇 버전 확인 · 소스 업데이트 · 키보드 제어</h1>
+  <p>NUC(PC)에서 키보드로 라즈베리파이의 LeKiwi 바퀴를 원격 제어합니다.<br>
+  르로봇 버전 확인부터 소스 업데이트, X11 설정, 실행까지 한 번에!</p>
+</div>
+</div>
+
+<div class="container">
+
+<!-- ===== 0. 전체 구조 ===== -->
+<section>
+<h2><span class="no">0</span> 전체 구조 한눈에 보기</h2>
+<p class="lead">NUC(PC)에서 키보드를 눌러 → Wi-Fi로 → 라즈베리파이의 바퀴를 움직입니다</p>
+
+<div class="flow">
+  <div class="flow-box" style="border-color:var(--primary);background:var(--primary-l)">💻 <b>NUC (PC)</b><br><small>teleoperate_base_keyboard.py</small><br><small>키보드 WASD 입력</small></div>
+  <span class="flow-arrow">→ ZMQ (Wi-Fi) →</span>
+  <div class="flow-box" style="border-color:var(--success);background:var(--success-l)">🍓 <b>라즈베리파이</b><br><small>lekiwi_host 실행</small><br><small>바퀴 모터 제어</small></div>
+</div>
+
+<div class="callout teal">
+  <b class="t">📂 소스 파일 8개를 어디에 넣는지가 핵심!</b>
+  아래 표를 먼저 확인하고, 단계별로 따라하세요. 파일 위치가 틀리면 <code>import error</code>가 납니다.
+</div>
+
+<!-- File placement table -->
+<h3>📦 소스 파일 → 설치 위치 매핑표</h3>
+<div class="tbl">
+<table>
+<thead>
+<tr><th>파일명</th><th>설치 위치 (라즈베리파이)</th><th>설치 위치 (NUC)</th><th>역할</th></tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>config_lekiwi.py</code></td>
+  <td><code style="color:var(--success)">~/lerobot/src/lerobot/robots/lekiwi/</code></td>
+  <td><code style="color:var(--primary)">~/lerobot/src/lerobot/robots/lekiwi/</code></td>
+  <td>타임아웃·카메라 설정 (양쪽 동일)</td>
+</tr>
+<tr>
+  <td><code>lekiwi.py</code></td>
+  <td><code style="color:var(--success)">~/lerobot/src/lerobot/robots/lekiwi/</code></td>
+  <td>❌ 불필요</td>
+  <td>바퀴 전용 모터 제어 (호스트만)</td>
+</tr>
+<tr>
+  <td><code>lekiwi_client.py</code></td>
+  <td>❌ 불필요</td>
+  <td><code style="color:var(--primary)">~/lerobot/src/lerobot/robots/lekiwi/</code></td>
+  <td>ZMQ 클라이언트 (PC만)</td>
+</tr>
+<tr>
+  <td><code>lekiwi_host.py</code></td>
+  <td><code style="color:var(--success)">~/lerobot/src/lerobot/robots/lekiwi/</code></td>
+  <td>❌ 불필요</td>
+  <td>ZMQ 호스트 (라즈베리파이만)</td>
+</tr>
+<tr>
+  <td><code>teleoperate_base_keyboard.py</code></td>
+  <td>❌ 불필요</td>
+  <td><code style="color:var(--primary)">~/lerobot/examples/lekiwi/</code></td>
+  <td>✅ 실행 스크립트 (PC에서 실행)</td>
+</tr>
+<tr>
+  <td><code>identify_wheels.py</code></td>
+  <td><code style="color:var(--success)">~/lerobot/examples/lekiwi/</code></td>
+  <td>❌ 불필요</td>
+  <td>바퀴 ID 매칭 도구</td>
+</tr>
+<tr>
+  <td><code>check_wheels.py</code></td>
+  <td><code style="color:var(--success)">~/lerobot/examples/lekiwi/</code></td>
+  <td>❌ 불필요</td>
+  <td>바퀴 모터 진단 도구</td>
+</tr>
+<tr>
+  <td><code>teleop_joystick_2.py</code></td>
+  <td>❌ 불필요</td>
+  <td><code style="color:var(--primary)">~/lerobot/examples/lekiwi/</code></td>
+  <td>조이스틱 제어 (선택)</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout warn">
+  <b class="t">⚠️ config_lekiwi.py는 양쪽 모두!</b>
+  이 파일은 NUC과 라즈베리파이 <b>양쪽에 동일하게</b> 덮어씌워야 합니다. 카메라 설정과 타임아웃 값이 일치해야 통신 에러가 안 납니다.
+</div>
+</section>
+
+<!-- ===== 1. 르로봇 버전 확인 ===== -->
+<section>
+<h2><span class="no">1</span> 르로봇(LeRobot) 버전 확인</h2>
+<p class="lead">NUC과 라즈베리파이 양쪽에서 르로봇 버전을 확인합니다. 버전이 다르면 통신 프로토콜 불일치로 에러가 납니다.</p>
+
+<h3>🖥️ NUC에서 확인</h3>
+<div class="code"><span class="where nuc">NUC 터미널</span><pre>
+# 르로봇 가상환경 활성화
+conda activate lerobot
+
+# 방법 1: pip로 버전 확인
+pip show lerobot
+# 출력 예시:
+# Name: lerobot
+# Version: 0.1.0.dev (또는 특정 버전)
+# Location: /home/zeta/lerobot/src
+
+# 방법 2: git 커밋으로 확인 (소스 설치인 경우)
+cd ~/lerobot
+git log --oneline -1
+# 출력 예시: a1b2c3d (HEAD -> main) Add teleop support
+
+# 방법 3: Python에서 직접 확인
+python -c "import lerobot; print(lerobot.__version__)"
+</pre></div>
+
+<h3>🍓 라즈베리파이에서 확인</h3>
+<div class="code"><span class="where pi">라즈베리파이 (SSH)</span><pre>
+# SSH로 접속
+ssh zeta01@라즈베리파이IP
+
+# 가상환경 활성화
+conda activate lerobot
+
+# 버전 확인 (동일한 방법)
+cd ~/lerobot
+git log --oneline -1
+pip show lerobot
+</pre></div>
+
+<div class="callout idea">
+  <b class="t">💡 버전 일치 확인 방법</b>
+  양쪽에서 <code>git log --oneline -1</code>의 커밋 해시(예: <code>a1b2c3d</code>)가 <b>동일</b>해야 합니다.<br>
+  다르면 → 아래 「2. 르로봇 업그레이드」를 실행하세요.
+</div>
+
+<!-- Version comparison -->
+<h3>📊 버전 비교표</h3>
+<table>
+<thead><tr><th>항목</th><th>NUC</th><th>라즈베리파이</th><th>일치?</th></tr></thead>
+<tbody>
+<tr><td><code>git log --oneline -1</code></td><td>___________</td><td>___________</td><td>☐ Yes / ☐ No</td></tr>
+<tr><td><code>pip show lerobot</code> Version</td><td>___________</td><td>___________</td><td>☐ Yes / ☐ No</td></tr>
+<tr><td>Python 버전 <code>python --version</code></td><td>___________</td><td>___________</td><td>☐ Yes / ☐ No</td></tr>
+</tbody>
+</table>
+</section>
+
+<!-- ===== 2. 르로봇 업그레이드 ===== -->
+<section>
+<h2><span class="no">2</span> 르로봇(LeRobot) 업그레이드</h2>
+<p class="lead">버전이 다르거나 최신 기능이 필요할 때 업그레이드합니다. NUC과 라즈베리파이 양쪽 동일하게!</p>
+
+<h3>⬆️ 업그레이드 절차 (양쪽 동일)</h3>
+
+<div class="step">
+  <div class="n">1</div>
+  <div class="b">
+    <b>현재 변경사항 백업</b>
+    <div class="code"><pre>
+cd ~/lerobot
+
+# 현재 변경한 파일 확인
+git status
+
+# 변경사항이 있으면 백업 (stash)
+git stash save "업그레이드 전 백업"
+</pre></div>
+  </div>
+</div>
+
+<div class="step">
+  <div class="n">2</div>
+  <div class="b">
+    <b>최신 소스 가져오기</b>
+    <div class="code"><pre>
+# 최신 코드 내려받기
+git pull origin main
+
+# 의존성 업데이트
+pip install -e ".[feetech]" --break-system-packages
+</pre></div>
+  </div>
+</div>
+
+<div class="step">
+  <div class="n">3</div>
+  <div class="b">
+    <b>업그레이드 확인</b>
+    <div class="code"><pre>
+# 버전 확인
+git log --oneline -1
+pip show lerobot
+</pre></div>
+  </div>
+</div>
+
+<div class="step">
+  <div class="n">4</div>
+  <div class="b">
+    <b>백업한 변경사항 복원 (필요시)</b>
+    <div class="code"><pre>
+# 백업한 내용 복원
+git stash pop
+
+# 충돌이 있으면 수동 해결 필요
+# 이번 실습에서는 커스텀 소스를 덮어쓸 것이므로 복원하지 않아도 됩니다
+</pre></div>
+  </div>
+</div>
+
+<div class="callout danger">
+  <b class="t">🚨 업그레이드 후 반드시 커스텀 소스를 다시 덮어씌우세요!</b>
+  <code>git pull</code>하면 우리가 수정한 <code>config_lekiwi.py</code>, <code>lekiwi.py</code> 등이 원본으로 돌아갑니다.
+  아래 「3. 소스 파일 업데이트」를 반드시 다시 실행하세요.
+</div>
+</section>
+
+<!-- ===== 3. 소스 파일 업데이트 ===== -->
+<section>
+<h2><span class="no">3</span> 소스 파일 업데이트 (가장 중요!)</h2>
+<p class="lead">다운로드한 <code>teleoperate_base_keyboard.zip</code>의 파일들을 정확한 위치에 복사합니다.</p>
+
+<h3>📂 파일 경로 구조</h3>
+<div class="tree">
+~/lerobot/
+├── src/lerobot/robots/lekiwi/     <span class="comment">← 프레임워크 핵심 파일</span>
+│   ├── <span class="hl">config_lekiwi.py</span>              <span class="comment">← ⭐ 덮어쓰기 (양쪽)</span>
+│   ├── <span class="hl">lekiwi.py</span>                     <span class="comment">← ⭐ 덮어쓰기 (파이만)</span>
+│   ├── <span class="hl">lekiwi_host.py</span>                <span class="comment">← ⭐ 덮어쓰기 (파이만)</span>
+│   ├── <span class="hl">lekiwi_client.py</span>              <span class="comment">← ⭐ 덮어쓰기 (NUC만)</span>
+│   └── __init__.py                    <span class="comment">← 건드리지 마세요</span>
+│
+└── examples/lekiwi/                   <span class="comment">← 실행 스크립트</span>
+    ├── <span class="hl">teleoperate_base_keyboard.py</span>  <span class="comment">← ⭐ 새로 추가 (NUC만)</span>
+    ├── <span class="hl">identify_wheels.py</span>            <span class="comment">← ⭐ 새로 추가 (파이만)</span>
+    ├── <span class="hl">check_wheels.py</span>               <span class="comment">← ⭐ 새로 추가 (파이만)</span>
+    └── <span class="hl">teleop_joystick_2.py</span>          <span class="comment">← 새로 추가 (NUC만, 선택)</span>
+</div>
+
+<h3>🍓 라즈베리파이 — 파일 복사 명령</h3>
+<div class="callout">
+  <b class="t">📌 ZIP 파일을 먼저 라즈베리파이로 전송하세요</b>
+  NUC에서 <code>scp</code>로 보내거나, USB 메모리로 복사합니다.
+</div>
+
+<div class="code"><span class="where pi">라즈베리파이 (SSH)</span><pre>
+# 1. ZIP 파일이 있는 곳으로 이동
+cd ~/Downloads  # 또는 USB 마운트 경로
+
+# 2. 압축 풀기
+unzip teleoperate_base_keyboard.zip -d ~/teleop_src/
+
+# 3. 프레임워크 파일 덮어쓰기 (⚠️ 원본이 교체됩니다!)
+cp ~/teleop_src/config_lekiwi.py  ~/lerobot/src/lerobot/robots/lekiwi/config_lekiwi.py
+cp ~/teleop_src/lekiwi.py         ~/lerobot/src/lerobot/robots/lekiwi/lekiwi.py
+cp ~/teleop_src/lekiwi_host.py    ~/lerobot/src/lerobot/robots/lekiwi/lekiwi_host.py
+
+# 4. 유틸리티 스크립트 복사
+cp ~/teleop_src/identify_wheels.py ~/lerobot/examples/lekiwi/
+cp ~/teleop_src/check_wheels.py    ~/lerobot/examples/lekiwi/
+
+# 5. 복사 확인
+ls -la ~/lerobot/src/lerobot/robots/lekiwi/config_lekiwi.py
+ls -la ~/lerobot/src/lerobot/robots/lekiwi/lekiwi.py
+ls -la ~/lerobot/examples/lekiwi/identify_wheels.py
+echo "✅ 라즈베리파이 파일 업데이트 완료"
+</pre></div>
+
+<h3>🖥️ NUC — 파일 복사 명령</h3>
+<div class="code"><span class="where nuc">NUC 터미널</span><pre>
+# 1. 압축 풀기
+cd ~/Downloads
+unzip teleoperate_base_keyboard.zip -d ~/teleop_src/
+
+# 2. 프레임워크 파일 덮어쓰기
+cp ~/teleop_src/config_lekiwi.py    ~/lerobot/src/lerobot/robots/lekiwi/config_lekiwi.py
+cp ~/teleop_src/lekiwi_client.py    ~/lerobot/src/lerobot/robots/lekiwi/lekiwi_client.py
+
+# 3. 실행 스크립트 복사
+cp ~/teleop_src/teleoperate_base_keyboard.py ~/lerobot/examples/lekiwi/
+cp ~/teleop_src/teleop_joystick_2.py         ~/lerobot/examples/lekiwi/
+
+# 4. 복사 확인
+ls -la ~/lerobot/src/lerobot/robots/lekiwi/config_lekiwi.py
+ls -la ~/lerobot/examples/lekiwi/teleoperate_base_keyboard.py
+echo "✅ NUC 파일 업데이트 완료"
+</pre></div>
+
+<div class="callout warn">
+  <b class="t">⚠️ teleoperate_base_keyboard.py에서 IP 주소 수정 필수!</b>
+  NUC에 복사한 후 <code>remote_ip</code>를 라즈베리파이 IP로 변경해야 합니다.
+  <div class="code"><pre>
+nano ~/lerobot/examples/lekiwi/teleoperate_base_keyboard.py
+
+# 15번째 줄 수정:
+remote_ip="192.168.50.111",  # ← 본인 라즈베리파이 IP로 변경!
+</pre></div>
+</div>
+</section>
+
+<!-- ===== 4. NUC X11 설정 ===== -->
+<section>
+<h2><span class="no">4</span> NUC: X11 디스플레이 설정 (우분투 필수)</h2>
+<p class="lead">키보드 제어 라이브러리(pynput)는 Wayland에서 동작하지 않습니다. 반드시 X11으로!</p>
+
+<div class="step">
+  <div class="n">1</div>
+  <div class="b">
+    <b>현재 세션 확인</b>
+    <div class="code"><span class="where nuc">NUC 터미널</span><pre>
+echo $XDG_SESSION_TYPE
+# wayland ← 이러면 키보드가 안 됩니다!
+# x11    ← 이러면 OK, 5단계로 건너뛰세요
+</pre></div>
+  </div>
+</div>
+
+<div class="step">
+  <div class="n">2</div>
+  <div class="b">
+    <b>X11로 영구 전환 (한 번만 설정)</b>
+    <div class="code"><span class="where nuc">NUC 터미널</span><pre>
+sudo nano /etc/gdm3/custom.conf
+
+# 아래 줄을 찾아서 수정:
+#   #WaylandEnable=true  ← 이것을
+#   WaylandEnable=false  ← 이렇게 변경 (# 제거 + true를 false로)
+
+# nano 저장: Ctrl+O → Enter → Ctrl+X
+
+sudo reboot
+</pre></div>
+  </div>
+</div>
+
+<div class="step">
+  <div class="n">3</div>
+  <div class="b">
+    <b>재부팅 후 확인</b>
+    <div class="code"><span class="where nuc">NUC 터미널</span><pre>
+echo $XDG_SESSION_TYPE
+# x11 ← 이렇게 나오면 성공!
+</pre></div>
+  </div>
+</div>
+
+<div class="step">
+  <div class="n">4</div>
+  <div class="b">
+    <b>pynput 설치</b>
+    <div class="code"><span class="where nuc">NUC 터미널</span><pre>
+conda activate lerobot
+pip install pynput
+
+# 설치 확인
+pip list | grep pynput
+# pynput  1.7.x  ← 출력되면 OK
+</pre></div>
+  </div>
+</div>
+
+<div class="callout danger">
+  <b class="t">🚨 이 단계를 건너뛰면 키보드가 절대 안 됩니다!</b>
+  Wayland 환경에서 pynput은 <b>에러 없이 조용히 실패</b>합니다. 팔은 되는데 바퀴만 안 되면 99% 이 문제입니다.
+</div>
+</section>
+
+<!-- ===== 5. 바퀴 ID 확인 ===== -->
+<section>
+<h2><span class="no">5</span> 라즈베리파이: 바퀴 모터 ID 확인</h2>
+<p class="lead">바퀴 3개의 모터 ID가 lekiwi.py의 설정과 맞는지 확인합니다</p>
+
+<div class="step">
+  <div class="n">1</div>
+  <div class="b">
+    <b>바퀴 ID 매칭 실행 (로봇 바퀴를 받침 위에 띄운 상태에서)</b>
+    <div class="code"><span class="where pi">라즈베리파이 (SSH)</span><pre>
+conda activate lerobot
+cd ~/lerobot/examples/lekiwi
+
+# 바퀴를 하나씩 돌려서 어떤 ID가 어느 위치인지 확인
+python3 identify_wheels.py
+</pre></div>
+  </div>
+</div>
+
+<div class="step">
+  <div class="n">2</div>
+  <div class="b">
+    <b>lekiwi.py 상단의 ID 값을 결과에 맞게 수정</b>
+    <div class="code"><span class="where pi">라즈베리파이 (SSH)</span><pre>
+nano ~/lerobot/src/lerobot/robots/lekiwi/lekiwi.py
+
+# 52~54줄 수정 (identify_wheels.py 결과에 맞게):
+WHEEL_ID_LEFT  = 7    # ← 좌전 바퀴 ID
+WHEEL_ID_BACK  = 8    # ← 후방 바퀴 ID
+WHEEL_ID_RIGHT = 9    # ← 우전 바퀴 ID
+</pre></div>
+  </div>
+</div>
+
+<div class="callout ok">
+  <b class="t">✅ 빠른 진단: check_wheels.py</b>
+  <code>python3 check_wheels.py --spin</code>으로 각 바퀴를 개별 회전시켜 하드웨어 동작을 빠르게 확인할 수 있습니다.
+</div>
+</section>
+
+<!-- ===== 6. 실행! ===== -->
+<section>
+<h2><span class="no">6</span> 실행: 키보드 원격조정</h2>
+<p class="lead">드디어 실행! 반드시 <b>라즈베리파이 먼저 → NUC 나중에</b> 순서를 지키세요.</p>
+
+<div class="step">
+  <div class="n" style="background:var(--success)">1</div>
+  <div class="b">
+    <b>🍓 라즈베리파이: 호스트 실행 (먼저!)</b>
+    <div class="code"><span class="where pi">라즈베리파이 터미널 (SSH)</span><pre>
+conda activate lerobot
+
+python -m lerobot.robots.lekiwi.lekiwi_host \
+    --robot.id=my_lekiwi
+</pre></div>
+    <div class="callout ok">
+      <b class="t">✅ config_lekiwi.py에 이미 설정됨</b>
+      이번 소스에서는 <code>connection_time_s=86400</code>, <code>watchdog_timeout_ms=5000</code>이 config_lekiwi.py에 직접 포함되어 있어서 CLI 옵션 없이도 24시간 유지됩니다.
+    </div>
+  </div>
+</div>
+
+<div class="step">
+  <div class="n" style="background:var(--primary)">2</div>
+  <div class="b">
+    <b>🖥️ NUC: 클라이언트 실행</b>
+    <div class="code"><span class="where nuc">NUC 터미널</span><pre>
+conda activate lerobot
+cd ~/lerobot/examples/lekiwi
+
+python teleoperate_base_keyboard.py
+</pre></div>
+    <p>성공하면 이 메시지가 나옵니다:</p>
+    <div class="code"><pre>
+✅ LeKiwi keyboard teleoperation (BASE ONLY) started
+   W/A/S/D : forward / left / backward / right (x, y)
+   Z/X     : turn left / turn right (theta)
+   R/F     : speed up / speed down
+   Ctrl+C  : quit
+</pre></div>
+  </div>
+</div>
+
+<div class="step">
+  <div class="n" style="background:var(--secondary)">3</div>
+  <div class="b">
+    <b>🎮 키보드 조작!</b>
+    <div class="grid">
+      <div class="card" style="text-align:center">
+        <div style="font-size:2rem;margin-bottom:.5rem">⬆️</div>
+        <b>W</b> 전진
+      </div>
+      <div class="card" style="text-align:center">
+        <div style="font-size:2rem;margin-bottom:.5rem">⬇️</div>
+        <b>S</b> 후진
+      </div>
+      <div class="card" style="text-align:center">
+        <div style="font-size:2rem;margin-bottom:.5rem">⬅️</div>
+        <b>A</b> 좌측
+      </div>
+      <div class="card" style="text-align:center">
+        <div style="font-size:2rem;margin-bottom:.5rem">➡️</div>
+        <b>D</b> 우측
+      </div>
+    </div>
+    <div class="grid" style="margin-top:.5rem">
+      <div class="card" style="text-align:center">
+        <b>Z</b> 좌회전 &nbsp;&nbsp; <b>X</b> 우회전
+      </div>
+      <div class="card" style="text-align:center">
+        <b>R</b> 속도↑ &nbsp;&nbsp; <b>F</b> 속도↓
+      </div>
+    </div>
+    <table style="margin-top:1rem">
+      <thead><tr><th>속도 단계</th><th>이동 (m/s)</th><th>회전 (°/s)</th><th>R/F 전환</th></tr></thead>
+      <tbody>
+        <tr><td>🐢 Slow (기본)</td><td>0.1</td><td>30</td><td>시작 속도</td></tr>
+        <tr><td>🐇 Medium</td><td>0.2</td><td>60</td><td>R 한 번</td></tr>
+        <tr><td>🏎️ Fast</td><td>0.3</td><td>90</td><td>R 두 번</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="step">
+  <div class="n" style="background:var(--danger)">4</div>
+  <div class="b">
+    <b>🛑 종료: Ctrl+C</b>
+    <p>NUC 터미널에서 <code>Ctrl+C</code>를 누르면 안전하게 종료됩니다.</p>
+  </div>
+</div>
+</section>
+
+<!-- ===== 7. 트러블슈팅 ===== -->
+<section>
+<h2><span class="no">7</span> 🔧 트러블슈팅</h2>
+<p class="lead">문제가 생기면 여기서 찾으세요</p>
+
+<div class="card">
+  <h3>❌ "Timeout waiting for LeKiwi Host to connect expired."</h3>
+  <p><b>원인:</b> 라즈베리파이 호스트가 먼저 실행 중이지 않거나, IP가 다름</p>
+  <p><b>해결:</b></p>
+  <ul>
+    <li>라즈베리파이에서 <code>hostname -I</code>로 IP 확인</li>
+    <li><code>teleoperate_base_keyboard.py</code>의 <code>remote_ip</code> 수정</li>
+    <li>NUC에서 <code>ping 라즈베리파이IP</code>로 네트워크 확인</li>
+  </ul>
+</div>
+
+<div class="card">
+  <h3>❌ 키보드 WASD 눌러도 바퀴 무반응 (에러 없음)</h3>
+  <p><b>원인:</b> Wayland 환경 또는 pynput 미설치</p>
+  <p><b>해결:</b></p>
+  <ul>
+    <li><code>echo $XDG_SESSION_TYPE</code> → <code>wayland</code>이면 X11로 전환 (4단계)</li>
+    <li><code>pip list | grep pynput</code> → 출력 없으면 <code>pip install pynput</code></li>
+  </ul>
+</div>
+
+<div class="card">
+  <h3>❌ "Cycle time reached." + 호스트 자동 종료</h3>
+  <p><b>원인:</b> config_lekiwi.py가 원본(기본값 30초)인 상태</p>
+  <p><b>해결:</b> 3단계의 소스 업데이트를 다시 수행하여 수정된 config_lekiwi.py를 덮어쓰세요</p>
+</div>
+
+<div class="card">
+  <h3>❌ "Overload error!" + "Aborted"</h3>
+  <p><b>원인:</b> 팔 모터에 과도한 부하 (바퀴 전용 모드에서는 거의 발생하지 않음)</p>
+  <p><b>해결:</b> 전원을 껐다 켜거나, 모터 에러 리셋 스크립트 실행</p>
+</div>
+
+<div class="card">
+  <h3>❌ "ModuleNotFoundError: No module named 'lerobot.robots.lekiwi'"</h3>
+  <p><b>원인:</b> 가상환경 미활성화 또는 르로봇 미설치</p>
+  <p><b>해결:</b> <code>conda activate lerobot</code> 후 <code>pip install -e ".[feetech]"</code></p>
+</div>
+</section>
+
+<!-- ===== 8. 실습 체크리스트 ===== -->
+<section>
+<h2><span class="no">8</span> ✅ 실습 완료 체크리스트</h2>
+<p class="lead">모든 항목에 체크하면 실습 완료!</p>
+
+<div class="card">
+  <h3>환경 설정</h3>
+  <ul class="check">
+    <li><input type="checkbox"> NUC 르로봇 버전 확인 완료</li>
+    <li><input type="checkbox"> 라즈베리파이 르로봇 버전 확인 완료</li>
+    <li><input type="checkbox"> 양쪽 버전 일치 확인 (또는 업그레이드 완료)</li>
+    <li><input type="checkbox"> NUC: <code>XDG_SESSION_TYPE</code> = <code>x11</code> 확인</li>
+    <li><input type="checkbox"> NUC: pynput 설치 확인</li>
+    <li><input type="checkbox"> 네트워크: <code>ping</code> 테스트 성공</li>
+  </ul>
+
+  <h3>소스 업데이트</h3>
+  <ul class="check">
+    <li><input type="checkbox"> 라즈베리파이: config_lekiwi.py 복사 완료</li>
+    <li><input type="checkbox"> 라즈베리파이: lekiwi.py 복사 완료</li>
+    <li><input type="checkbox"> 라즈베리파이: lekiwi_host.py 복사 완료</li>
+    <li><input type="checkbox"> NUC: config_lekiwi.py 복사 완료</li>
+    <li><input type="checkbox"> NUC: lekiwi_client.py 복사 완료</li>
+    <li><input type="checkbox"> NUC: teleoperate_base_keyboard.py 복사 완료</li>
+    <li><input type="checkbox"> NUC: teleoperate_base_keyboard.py의 IP 주소 수정 완료</li>
+  </ul>
+
+  <h3>하드웨어</h3>
+  <ul class="check">
+    <li><input type="checkbox"> identify_wheels.py로 바퀴 ID 확인 완료</li>
+    <li><input type="checkbox"> lekiwi.py의 WHEEL_ID 값 수정 완료</li>
+  </ul>
+
+  <h3>실행</h3>
+  <ul class="check">
+    <li><input type="checkbox"> 라즈베리파이 호스트 실행 (먼저)</li>
+    <li><input type="checkbox"> NUC 클라이언트 실행 (나중에)</li>
+    <li><input type="checkbox"> W 키로 전진 확인</li>
+    <li><input type="checkbox"> A/D 키로 좌우 이동 확인</li>
+    <li><input type="checkbox"> Z/X 키로 회전 확인</li>
+    <li><input type="checkbox"> R/F 키로 속도 변환 확인</li>
+    <li><input type="checkbox"> Ctrl+C로 안전 종료 확인</li>
+  </ul>
+</div>
+</section>
+
+</div><!-- container -->
+
+<!-- Footer -->
+<footer style="text-align:center;padding:2rem;color:var(--muted);font-size:.85rem;border-top:1px solid var(--border);margin-top:2rem">
+  <b>Physical AI 실습 교육자료</b> · 빅맨 · 제타위성로보틱스<br>
+  LeRobot Framework by HuggingFace 🤗 · 2026
+</footer>
+
+</body>
+</html>

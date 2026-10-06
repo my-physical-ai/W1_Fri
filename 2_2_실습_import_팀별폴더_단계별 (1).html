@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>실습 2-2 — Python import 이해 · src 구조 · 팀별 폴더 구성</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --primary:#2563EB;--primary-l:#DBEAFE;--secondary:#7C3AED;--secondary-l:#EDE9FE;
+  --success:#059669;--success-l:#D1FAE5;--warning:#D97706;--warning-l:#FEF3C7;
+  --danger:#DC2626;--danger-l:#FEE2E2;
+  --surface:#F8FAFC;--card:#FFFFFF;--text:#1E293B;--muted:#64748B;--border:#E2E8F0;
+  /* ★ 흰 바탕 코드 전용 색 */
+  --code-bg:#FFFFFF;--code-tx:#0F172A;--code-border:#CBD5E1;--code-head:#F1F5F9;
+}
+body{font-family:'Noto Sans KR',sans-serif;color:var(--text);background:var(--surface);line-height:1.75;font-size:16px}
+code,pre,.mono{font-family:'JetBrains Mono',monospace}
+.container{max-width:940px;margin:0 auto;padding:0 18px}
+section{padding:2.6rem 0;border-bottom:1px solid var(--border)}
+
+/* ── 헤더 ── */
+.hero{background:linear-gradient(135deg,#1E3A8A,#2563EB);color:#fff;padding:3rem 0 2.6rem}
+.pills{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem}
+.pill{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);padding:.25rem .8rem;border-radius:999px;font-size:.82rem}
+.hero h1{font-size:clamp(1.7rem,4.5vw,2.4rem);font-weight:900;line-height:1.3}
+.hero p{margin-top:.8rem;opacity:.95}
+
+/* ── 순서 지도(목차) ── */
+.roadmap{display:flex;flex-wrap:wrap;gap:.6rem;margin:1.4rem 0 0}
+.roadmap a{display:flex;align-items:center;gap:.5rem;background:#fff;color:var(--text);text-decoration:none;border-radius:10px;padding:.45rem .9rem;font-weight:700;font-size:.9rem;box-shadow:0 2px 6px rgba(0,0,0,.12)}
+.roadmap a .n{background:var(--primary);color:#fff;border-radius:50%;width:1.6rem;height:1.6rem;display:inline-flex;align-items:center;justify-content:center;font-size:.85rem}
+.roadmap .arrow{color:#fff;align-self:center;font-weight:900}
+
+/* ── 단원 제목 (큰 번호) ── */
+h2{font-size:1.6rem;font-weight:900;margin-bottom:.4rem;display:flex;align-items:center;gap:.7rem}
+h2 .no{background:var(--primary);color:#fff;border-radius:12px;min-width:2.6rem;height:2.6rem;display:inline-flex;align-items:center;justify-content:center;font-size:1.3rem}
+.lead{color:var(--muted);margin-bottom:1.4rem}
+h3{font-size:1.15rem;margin:1.4rem 0 .6rem;font-weight:700}
+
+/* ── 비유 박스 ── */
+.analogy{background:linear-gradient(135deg,#FEF3C7,#FDE68A);border:2px solid #F59E0B;border-radius:14px;padding:1.2rem 1.3rem;margin:1.2rem 0;display:flex;gap:1rem}
+.analogy .icon{font-size:2.2rem;flex-shrink:0}
+.analogy .title{font-weight:900;color:#92400E;margin-bottom:.3rem}
+
+/* ── 알림 박스 ── */
+.callout{border-left:5px solid var(--c,var(--primary));background:var(--cl,var(--primary-l));border-radius:10px;padding:.9rem 1.1rem;margin:1rem 0}
+.callout.warn{--c:var(--warning);--cl:var(--warning-l)} .callout.danger{--c:var(--danger);--cl:var(--danger-l)}
+.callout.ok{--c:var(--success);--cl:var(--success-l)}
+.callout b.t{display:block;margin-bottom:.2rem}
+
+/* ── 실습 단계 (작은 번호 + 세로 연결선) ── */
+.steps{position:relative;margin:1.2rem 0}
+.step{position:relative;display:flex;gap:1rem;padding-bottom:1.6rem}
+.step:not(:last-child)::before{content:"";position:absolute;left:1.15rem;top:2.6rem;bottom:0;width:3px;background:var(--primary-l)}
+.step .num{flex-shrink:0;width:2.3rem;height:2.3rem;border-radius:50%;background:var(--primary);color:#fff;font-weight:900;display:flex;align-items:center;justify-content:center;font-size:1rem;box-shadow:0 0 0 4px var(--primary-l)}
+.step .body{flex:1;min-width:0}
+.step .body h4{font-size:1.08rem;font-weight:900;margin:.2rem 0 .3rem}
+.step .why{color:var(--muted);font-size:.92rem;margin-bottom:.5rem}
+.result{background:var(--success-l);border:1px dashed var(--success);border-radius:8px;padding:.5rem .8rem;font-size:.88rem;margin-top:.5rem}
+.result b{color:var(--success)}
+
+/* ══ ★ 흰 바탕 코드 블록 ══ */
+.code{margin:.7rem 0;border:2px solid var(--code-border);border-left:6px solid var(--accent,var(--primary));border-radius:12px;background:var(--code-bg);overflow:hidden;box-shadow:0 2px 10px rgba(15,23,42,.06)}
+.code.pi{--accent:#DB2777} .code.file{--accent:var(--secondary)} .code.pc{--accent:var(--primary)}
+.code-head{display:flex;justify-content:space-between;align-items:center;gap:.5rem;background:var(--code-head);border-bottom:1px solid var(--code-border);padding:.45rem .8rem}
+.code-head .where{font-weight:700;font-size:.85rem;color:var(--accent,var(--primary))}
+.code pre{background:var(--code-bg);color:var(--code-tx);padding:1rem 1.1rem;overflow-x:auto;font-size:.92rem;line-height:1.75;font-weight:500;white-space:pre}
+.code pre .cm{color:#047857;font-style:italic;font-weight:400}   /* 주석: 진한 초록 */
+.code pre .mk{background:#FEF08A;color:#0F172A;font-weight:700;border-radius:3px;padding:0 .15rem} /* 바꿔야 할 값 */
+.code pre .kw{color:#1D4ED8;font-weight:700}                      /* 핵심 명령 */
+
+/* 복사 버튼: 항상 보이게 */
+.copy-btn{background:#fff;color:var(--text);border:1.5px solid var(--code-border);border-radius:7px;padding:.28rem .7rem;font-size:.8rem;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;white-space:nowrap;transition:all .15s}
+.copy-btn:hover{background:var(--primary);color:#fff;border-color:var(--primary)}
+.copy-btn.copied{background:var(--success);color:#fff;border-color:var(--success)}
+
+/* ══ ★ 흰 바탕 폴더 트리 ══ */
+.vtree{margin:1rem 0;border:2px solid var(--code-border);border-left:6px solid var(--warning);border-radius:12px;background:#fff;overflow:hidden;box-shadow:0 2px 10px rgba(15,23,42,.06)}
+.vtree pre{padding:1.2rem 1.3rem;font-size:.92rem;line-height:1.95;color:#64748B;font-weight:600;overflow-x:auto;white-space:pre}
+.vtree .folder{color:#B45309;font-weight:700}
+.vtree .file{color:#0F172A;font-weight:500}
+.vtree .hl{color:#1D4ED8;font-weight:900;background:#DBEAFE;border-radius:3px;box-shadow:0 0 0 2px #DBEAFE} /* padding 금지: 열 정렬 깨짐 */
+.vtree .danger{color:#DC2626;font-weight:700}
+.vtree .ok{color:#059669;font-weight:700}
+.vtree .comment{color:#64748B;font-style:italic}
+
+/* ── 표 ── */
+.tbl{width:100%;border-collapse:collapse;margin:1rem 0;font-size:.9rem;background:#fff}
+.tbl th{background:#1E293B;color:#fff;padding:.6rem;text-align:left}
+.tbl td{padding:.6rem;border-bottom:1px solid var(--border)}
+.tbl-wrap{overflow-x:auto}
+
+/* ── 체크리스트 ── */
+.check li{list-style:none;padding:.35rem 0}
+.check li::before{content:"☐ ";color:var(--primary);font-weight:900}
+
+
+/* ══ ★ NUC + 라즈베리파이 통합 화면 ══ */
+.mtree .folder{color:#B45309;font-weight:700}.mtree .file{color:#0F172A;font-weight:500}
+.mtree .hl{color:#1D4ED8;font-weight:900;background:#DBEAFE;border-radius:3px;box-shadow:0 0 0 2px #DBEAFE}
+.mtree .danger{color:#DC2626;font-weight:700}.mtree .ok{color:#059669;font-weight:700}.mtree .comment{color:#64748B;font-style:italic}
+.nuc{--m:#2563EB;--ml:#EFF6FF} .pi{--m:#DB2777;--ml:#FDF2F8}
+/* (1) 시스템 지도: [NUC] ⇄ [Pi5] */
+.dual-map{display:grid;grid-template-columns:minmax(0,1fr) 150px minmax(0,1fr);margin:1.2rem 0;align-items:stretch}
+.machine{background:#fff;border:3px solid var(--m);border-radius:16px;overflow:hidden;box-shadow:0 4px 14px rgba(15,23,42,.08)}
+.m-head{background:var(--m);color:#fff;padding:.8rem 1rem}
+.m-head .m-name{font-weight:900;font-size:1.15rem}.m-head .m-sub{font-size:.85rem;opacity:.95}
+.m-body{padding:.9rem 1rem}
+.m-role{font-size:.88rem;margin-bottom:.6rem;padding-left:1.1rem}
+.mtree{font-family:'JetBrains Mono',monospace;font-size:.82rem;line-height:1.85;white-space:pre;overflow-x:auto;color:#64748B;font-weight:600;background:var(--ml);border-radius:10px;padding:.7rem .8rem}
+.links{display:flex;flex-direction:column;justify-content:center;gap:1.1rem;padding:0 .5rem}
+.link{text-align:center;font-size:.78rem;font-weight:800;color:var(--c,#1E293B);line-height:1.35}
+.link .bar{height:4px;background:var(--c,#1E293B);border-radius:2px;position:relative;margin:.35rem 6px}
+.link .bar::after,.link .bar::before{content:"";position:absolute;top:-5px;border:7px solid transparent}
+.link.r .bar::after,.link.both .bar::after{right:-8px;border-left-color:var(--c,#1E293B);border-right:0}
+.link.l .bar::before,.link.both .bar::before{left:-8px;border-right-color:var(--c,#1E293B);border-left:0}
+.link small{display:block;font-weight:500;color:var(--muted)}
+/* (2) 2열 순서표: 번호 | NUC | Pi5 */
+.flow{margin:1.2rem 0;border:2px solid var(--code-border);border-radius:14px;overflow:hidden;background:#fff}
+.flow-head,.flow-row{display:grid;grid-template-columns:3.4rem minmax(0,1fr) minmax(0,1fr)}
+.flow-head>div{padding:.7rem;font-weight:900;color:#fff;text-align:center;font-size:.95rem}
+.flow-head .fh-n{background:#1E293B}.flow-head .nuc,.flow-head .pi{background:var(--m)}
+.flow-row{border-top:2px solid var(--border)}
+.flow-row .fn{display:flex;justify-content:center;padding-top:.9rem;background:#F8FAFC}
+.flow-row .fn span{width:2.2rem;height:2.2rem;border-radius:50%;background:#1E293B;color:#fff;font-weight:900;display:flex;align-items:center;justify-content:center}
+.cell{padding:.8rem .9rem;min-width:0;border-left:2px solid var(--border)}
+.cell.on{background:var(--ml);border-top:4px solid var(--m)}
+.cell.idle{background:repeating-linear-gradient(45deg,#fff,#fff 8px,#F8FAFC 8px,#F8FAFC 16px);color:#94A3B8;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700;text-align:center}
+.cell h4{font-size:1rem;font-weight:900;margin-bottom:.2rem}
+.cell .why{color:var(--muted);font-size:.86rem;margin-bottom:.3rem}
+.cell .code pre{font-size:.84rem;white-space:pre-wrap;word-break:break-all} /* 좁은 칸: 화면에서만 줄바꿈, 복사는 한 줄 그대로 */
+.hop{display:inline-block;background:#FEF3C7;border:1.5px solid #F59E0B;color:#92400E;border-radius:999px;padding:.1rem .7rem;font-size:.8rem;font-weight:800;margin-top:.4rem}
+@media (max-width:760px){
+  .dual-map{grid-template-columns:1fr}.links{flex-direction:row;flex-wrap:wrap;justify-content:center;padding:.8rem 0}
+  .link .bar{display:none}
+  .flow-head{display:none}.flow-row{grid-template-columns:2.8rem minmax(0,1fr)}
+  .cell.idle{display:none}.cell.on::before{content:attr(data-m);display:block;font-weight:900;color:var(--m);font-size:.8rem;margin-bottom:.2rem}
+}
+
+footer{text-align:center;color:var(--muted);font-size:.85rem;padding:2rem 0}
+@media (max-width:640px){.step{gap:.7rem}.code pre,.vtree pre{font-size:.82rem}}
+@media print{.copy-btn{display:none}.hero{-webkit-print-color-adjust:exact;print-color-adjust:exact}section{page-break-inside:avoid}}
+</style>
+</head>
+<body>
+<header class="hero"><div class="container">
+  <div class="pills"><span class="pill">🐍 Python 기초</span><span class="pill">📁 프로젝트 구조</span><span class="pill">👥 팀별 폴더</span><span class="pill">⏱ 60분</span></div>
+  <h1>실습 2-2 — Python import 이해 · src 구조 · 팀별 폴더 구성</h1>
+  <p>번호 순서대로 따라 하면 팀 폴더를 만들고, 내 팀 로봇을 직접 움직일 수 있어요!</p>
+  <nav class="roadmap">
+    <a href="#s1"><span class="n">1</span>import 이해</a><span class="arrow">→</span>
+    <a href="#s2"><span class="n">2</span>점(.)과 -m</a><span class="arrow">→</span>
+    <a href="#s3"><span class="n">3</span>NUC·Pi5 한눈에</a><span class="arrow">→</span>
+    <a href="#s4"><span class="n">4</span>다운로드→팀 폴더</a><span class="arrow">→</span>
+    <a href="#s5"><span class="n">5</span>실행하기</a><span class="arrow">→</span>
+    <a href="#s6"><span class="n">6</span>최종 점검</a>
+  </nav>
+</div></header>
+
+<main class="container">
+
+<section id="s1">
+  <h2><span class="no">1</span>.py 파일은 "도구 상자"</h2>
+  <p class="lead">라이브러리도, 옆에 있는 파일도 전부 똑같은 .py 파일이에요.</p>
+  <div class="analogy"><div class="icon">🧰</div><div>
+    <div class="title">옆 사람 도구 상자에서 빌려오기!</div>
+    .py 파일은 도구 상자, 안의 함수는 도구예요. <b>import</b>는 "옆 사람 도구 상자에서 드라이버 빌려올게!"라는 뜻입니다.
+    <br>💡 <b>실제로는</b> — <code>import time</code>도 Python 설치 폴더의 <code>time.py</code>에서 함수를 가져오는 거예요.
+  </div></div>
+
+  <div class="steps">
+    <div class="step"><div class="num">1</div><div class="body">
+      <h4>도구 상자 파일 만들기</h4>
+      <p class="why">왜? 함수를 담아둘 "도구 상자"가 먼저 있어야 빌려 쓸 수 있어요.</p>
+      <div class="code file">
+        <div class="code-head"><span class="where">📄 calculator.py</span><button class="copy-btn" onclick="copyCode(this)">📋 복사</button></div>
+<pre><span class="cm"># calculator.py — 계산 도구가 들어있는 파일</span>
+def add(a, b):
+    return a + b
+
+def multiply(a, b):
+    return a * b</pre>
+      </div>
+    </div></div>
+
+    <div class="step"><div class="num">2</div><div class="body">
+      <h4>도구 빌려 쓰는 파일 만들기</h4>
+      <p class="why">왜? 같은 폴더의 calculator.py에서 함수를 가져오는 연습이에요.</p>
+      <div class="code file">
+        <div class="code-head"><span class="where">📄 main.py (calculator.py와 같은 폴더)</span><button class="copy-btn" onclick="copyCode(this)">📋 복사</button></div>
+<pre><span class="cm"># main.py — calculator.py의 도구를 빌려 씁니다</span>
+from calculator import add, multiply
+
+result = add(3, 5)         <span class="cm"># → 8</span>
+result2 = multiply(4, 6)   <span class="cm"># → 24</span>
+print(result, result2)</pre>
+      </div>
+    </div></div>
+
+    <div class="step"><div class="num">3</div><div class="body">
+      <h4>실행해 보기</h4>
+      <p class="why">왜? import가 진짜 되는지 눈으로 확인해요.</p>
+      <div class="code pc">
+        <div class="code-head"><span class="where">💻 NUC 터미널</span><button class="copy-btn" onclick="copyCode(this)">📋 복사</button></div>
+<pre>python main.py</pre>
+      </div>
+      <div class="result"><b>✅ 이렇게 나오면 성공:</b> <code>8 24</code></div>
+    </div></div>
+  </div>
+  <div class="callout ok"><b class="t">✅ 핵심</b>라이브러리든 옆 파일이든 원리는 100% 같아요. import = "그 파일의 코드를 여기서 쓰겠다".</div>
+</section>
+
+<section id="s2">
+  <h2><span class="no">2</span>점(.)의 비밀과 -m</h2>
+  <p class="lead"><code>from .config_lekiwi import …</code>의 점(.)은 "우리 집에 있는"이라는 뜻이에요.</p>
+  <div class="analogy"><div class="icon">🏠</div><div>
+    <div class="title">아파트 한 집에 사는 가족</div>
+    <code>lekiwi/</code> 폴더는 아파트 한 집, 안의 .py 파일들은 같은 집 가족이에요. 점(.)은 "우리 집에 사는"이라는 뜻!
+  </div></div>
+  <div class="code file">
+    <div class="code-head"><span class="where">📄 lekiwi_host.py 안의 한 줄</span><button class="copy-btn" onclick="copyCode(this)">📋 복사</button></div>
+<pre>from .config_lekiwi import LeKiwiConfig, LeKiwiHostConfig
+<span class="cm">#    ↑ 점(.) = "우리 집(같은 폴더)에 있는"</span></pre>
+  </div>
+  <div class="tbl-wrap"><table class="tbl">
+    <tr><th>실행 방법</th><th>Python의 반응</th><th>결과</th></tr>
+    <tr><td><code>python lekiwi_host.py</code></td><td>"점(.)? 너 집이 어딘데?"</td><td>💥 에러</td></tr>
+    <tr><td><code>python -m lerobot.robots.lekiwi.lekiwi_host</code></td><td>"lekiwi 폴더에 사는 애구나!"</td><td>✅ 성공</td></tr>
+  </table></div>
+  <div class="callout"><b class="t">💡 -m 은 "주소 등록"</b>Python에게 "이 파일은 lerobot → robots → lekiwi 집에 살아"라고 알려줘야 점(.)이 어디인지 알 수 있어요.</div>
+</section>
+
+<section id="s3">
+  <h2><span class="no">3</span>NUC와 라즈베리파이5 한눈에 보기</h2>
+  <p class="lead">두 컴퓨터가 각자 무슨 일을 하고, 어떻게 연결되는지 먼저 그림으로 봐요.</p>
+  <div class="analogy"><div class="icon">🎮</div><div>
+    <div class="title">NUC = 조종기, 라즈베리파이5 = 로봇의 뇌</div>
+    NUC에서 키보드를 누르면 Wi-Fi로 라즈베리파이에 명령이 가고, 파이가 바퀴 모터를 돌려요. 파이는 카메라 영상을 다시 NUC로 보내 줍니다.
+    <br>💡 <b>실제로는</b> — 이 주고받기를 <b>ZMQ</b>가 하고, 파이를 원격으로 조작하는 건 <b>SSH</b>, 파일 보내기는 <b>scp</b>예요.
+  </div></div>
+
+  <div class="dual-map">
+    <div class="machine nuc"><div class="m-head"><div class="m-name">💻 NUC</div><div class="m-sub">조종석 · 수강생이 앉는 자리</div></div>
+      <div class="m-body"><ul class="m-role"><li>zip 다운로드 · 팀 폴더 관리</li><li>키보드 제어 실행 (클라이언트)</li></ul>
+<pre class="mtree"><span class="folder">~/</span>
+├── <span class="folder">Downloads/</span>          <span class="comment"># ① 여기서 풀기</span>
+│   ├── <span class="file">teleoperate_base_keyboard.zip</span>
+│   └── <span class="folder">teleop/</span>         <span class="comment"># 푼 파일</span>
+├── <span class="folder">lerobot/src/…/lekiwi/</span> <span class="danger"># 🚫 공용</span>
+└── <span class="hl">team1/</span>              <span class="ok"># ② 복사 대상</span>
+    ├── <span class="file">teleoperate_base_keyboard.py</span>
+    └── <span class="file">teleop_joystick_2.py</span></pre></div></div>
+    <div class="links">
+      <div class="link r" style="--c:#1E293B">SSH 접속 ➜<div class="bar"></div><small>NUC에서 파이 조작</small></div>
+      <div class="link r" style="--c:#D97706">scp 파일 전송 ➜<div class="bar"></div><small>zip 보내기</small></div>
+      <div class="link both" style="--c:#059669">ZMQ 통신 ⇄<div class="bar"></div><small>명령 ➜<br>⬅ 영상·상태</small></div>
+    </div>
+    <div class="machine pi"><div class="m-head"><div class="m-name">🍓 라즈베리파이5</div><div class="m-sub">로봇 몸체 · 팀1 = 192.168.0.41</div></div>
+      <div class="m-body"><ul class="m-role"><li>호스트 실행 (모터·카메라)</li><li>바퀴 테스트</li></ul>
+<pre class="mtree"><span class="folder">~/</span>
+├── <span class="folder">Downloads/</span>          <span class="comment"># ① 받아서 풀기</span>
+│   ├── <span class="file">teleoperate_base_keyboard.zip</span>
+│   └── <span class="folder">teleop/</span>
+├── <span class="folder">lerobot/src/…/lekiwi/</span> <span class="danger"># 🚫 공용</span>
+└── <span class="hl">team1/</span>              <span class="ok"># ② 복사 대상</span>
+    ├── <span class="file">check_wheels.py</span>
+    └── <span class="file">identify_wheels.py</span></pre></div></div>
+  </div>
+
+  <div class="tbl-wrap"><table class="tbl">
+    <tr><th>팀</th><th>폴더 (두 기기 모두)</th><th>NUC IP</th><th>파이 IP</th></tr>
+    <tr><td>👨‍🏫 강사</td><td>~/team0/</td><td><code>192.168.0.2</code></td><td>—</td></tr>
+    <tr><td>🔵 팀1</td><td>~/team1/</td><td><code>192.168.0.11</code></td><td><code>192.168.0.41</code></td></tr>
+    <tr><td>🟢 팀2</td><td>~/team2/</td><td><code>192.168.0.12</code></td><td><code>192.168.0.42</code></td></tr>
+    <tr><td>🟡 팀3</td><td>~/team3/</td><td><code>192.168.0.13</code></td><td><code>192.168.0.43</code></td></tr>
+    <tr><td>🟠 팀4</td><td>~/team4/</td><td><code>192.168.0.14</code></td><td><code>192.168.0.44</code></td></tr>
+  </table></div>
+  <div class="callout danger"><b class="t">⚠️ lerobot/src/ 는 두 기기 모두 공용 (강사만 수정)</b>팀마다 다른 값(IP 등)은 반드시 <code>~/teamN/</code> 안에서 바꾸세요.</div>
+</section>
+<section id="s4">
+  <h2><span class="no">4</span>실습: 다운로드에서 팀 폴더로</h2>
+  <p class="lead">번호 순서대로! 색이 칠해진 칸이 "지금 일하는 컴퓨터"예요.</p>
+  <div class="flow"><div class="flow-head"><div class="fh-n">#</div><div class="nuc">💻 NUC 터미널</div><div class="pi">🍓 라즈베리파이5 (NUC에서 연 SSH 창)</div></div><div class="flow-row"><div class="fn"><span>1</span></div><div class="cell on nuc" data-m="💻 NUC"><h4>다운로드 폴더 이름 확인</h4><p class="why">왜? 한국어 우분투는 Downloads가 아니라 "다운로드"일 수 있어요.</p><div class="code pc"><div class="code-head"><span class="where">💻 NUC</span><button class="copy-btn" onclick="copyCode(this)">📋 복사</button></div>
+<pre>ls ~
+<span class="cm"># Downloads 또는 다운로드 중 있는 것을 사용</span></pre></div><div class="result"><b>✅ 성공:</b> 목록에 Downloads 보임</div></div><div class="cell idle">⏳ 대기</div></div><div class="flow-row"><div class="fn"><span>2</span></div><div class="cell on nuc" data-m="💻 NUC"><h4>다운로드 안에서 압축 풀기</h4><p class="why">왜? 따로 폴더를 만들지 않고 받은 자리에서 바로 풀어요.</p><div class="code pc"><div class="code-head"><span class="where">💻 NUC</span><button class="copy-btn" onclick="copyCode(this)">📋 복사</button></div>
+<pre>cd ~/Downloads
+unzip -o teleoperate_base_keyboard.zip -d teleop
+ls teleop</pre></div><div class="result"><b>✅ 성공:</b> .py 파일 4개 보임<br><small>폴더가 하나 더 보이면 그 안으로 한 단계 더 들어가요</small></div></div><div class="cell idle">⏳ 대기</div></div><div class="flow-row"><div class="fn"><span>3</span></div><div class="cell on nuc" data-m="💻 NUC"><h4>다운로드 → 팀 폴더로 복사</h4><p class="why">왜? 팀 폴더에는 NUC에서 실행할 파일만 넣어요.</p><div class="code pc"><div class="code-head"><span class="where">💻 NUC (팀1 예시)</span><button class="copy-btn" onclick="copyCode(this)">📋 복사</button></div>
+<pre>mkdir -p ~/<span class="mk">team1</span>
+cp ~/Downloads/teleop/teleoperate_base_keyboard.py ~/<span class="mk">team1</span>/
+cp ~/Downloads/teleop/teleop_joystick_2.py         ~/<span class="mk">team1</span>/</pre></div></div><div class="cell idle">⏳ 대기</div></div><div class="flow-row"><div class="fn"><span>4</span></div><div class="cell on nuc" data-m="💻 NUC"><h4>⭐ 내 팀 IP로 수정</h4><p class="why">왜? IP가 틀리면 다른 팀 로봇이 움직여요!</p><div class="code pc"><div class="code-head"><span class="where">💻 NUC</span><button class="copy-btn" onclick="copyCode(this)">📋 복사</button></div>
+<pre>nano ~/<span class="mk">team1</span>/teleoperate_base_keyboard.py
+<span class="cm"># 이 줄을 내 팀 파이 IP로</span>
+remote_ip="<span class="mk">192.168.0.41</span>"</pre></div><div class="callout warn" style="margin:.5rem 0 0;padding:.5rem .8rem"><b>nano 저장:</b> Ctrl+O → Enter → Ctrl+X</div></div><div class="cell idle">⏳ 대기</div></div><div class="flow-row"><div class="fn"><span>5</span></div><div class="cell on nuc" data-m="💻 NUC"><h4>zip을 파이 다운로드로 보내기</h4><p class="why">왜? 파이에는 아직 파일이 없어요. NUC에서 그대로 보내 줍니다.</p><div class="code pc"><div class="code-head"><span class="where">💻 NUC</span><button class="copy-btn" onclick="copyCode(this)">📋 복사</button></div>
+<pre>ssh zeta01@<span class="mk">192.168.0.41</span> "mkdir -p ~/Downloads"
+scp ~/Downloads/teleoperate_base_keyboard.zip zeta01@<span class="mk">192.168.0.41</span>:~/Downloads/</pre></div><span class="hop">➜ 파이 ~/Downloads 도착</span></div><div class="cell idle">📥 zip 받는 중…</div></div><div class="flow-row"><div class="fn"><span>6</span></div><div class="cell idle">⌨️ 이 창은 그대로 두고<br>새 터미널 창으로 SSH 접속</div><div class="cell on pi" data-m="🍓 라즈베리파이5"><h4>SSH 접속 후 똑같이 풀기</h4><p class="why">왜? NUC와 똑같은 방법이라 헷갈리지 않아요.</p><div class="code pc"><div class="code-head"><span class="where">💻 새 터미널 창 → 접속 (먼저)</span><button class="copy-btn" onclick="copyCode(this)">📋 복사</button></div>
+<pre>ssh zeta01@<span class="mk">192.168.0.41</span></pre></div><div class="code pi"><div class="code-head"><span class="where">🍓 Pi5 (접속된 뒤)</span><button class="copy-btn" onclick="copyCode(this)">📋 복사</button></div>
+<pre>cd ~/Downloads
+unzip -o teleoperate_base_keyboard.zip -d teleop
+ls teleop</pre></div></div></div><div class="flow-row"><div class="fn"><span>7</span></div><div class="cell idle">⏳ 대기</div><div class="cell on pi" data-m="🍓 라즈베리파이5"><h4>다운로드 → 파이 팀 폴더로 복사</h4><p class="why">왜? 파이 팀 폴더에는 바퀴 테스트 파일만 넣어요.</p><div class="code pi"><div class="code-head"><span class="where">🍓 Pi5 (SSH)</span><button class="copy-btn" onclick="copyCode(this)">📋 복사</button></div>
+<pre>mkdir -p ~/<span class="mk">team1</span>
+cp ~/Downloads/teleop/check_wheels.py    ~/<span class="mk">team1</span>/
+cp ~/Downloads/teleop/identify_wheels.py ~/<span class="mk">team1</span>/</pre></div><div class="result"><b>✅ 성공:</b> <code>ls ~/team1</code> → 파일 2개</div></div></div></div>
+</section>
+<section id="s5">
+  <h2><span class="no">5</span>실습: 두 기기 함께 실행하기</h2>
+  <p class="lead">순서가 핵심! 파이 먼저 → NUC 나중.</p>
+  <div class="flow"><div class="flow-head"><div class="fh-n">#</div><div class="nuc">💻 NUC 터미널</div><div class="pi">🍓 라즈베리파이5 (NUC에서 연 SSH 창)</div></div><div class="flow-row"><div class="fn"><span>1</span></div><div class="cell idle">⏳ 파이 호스트가 켜질 때까지 대기</div><div class="cell on pi" data-m="🍓 라즈베리파이5"><h4>호스트 켜기 (먼저!)</h4><p class="why">왜? 호스트는 src/ 공용 코드라 -m 이 필요해요. 팀 폴더로 cd 하지 않아요.</p><div class="code pi"><div class="code-head"><span class="where">🍓 Pi5 (SSH)</span><button class="copy-btn" onclick="copyCode(this)">📋 복사</button></div>
+<pre>python -m lerobot.robots.lekiwi.lekiwi_host --robot.id=my_lekiwi</pre></div><span class="hop">⇄ ZMQ 연결 대기 중</span></div></div><div class="flow-row"><div class="fn"><span>2</span></div><div class="cell on nuc" data-m="💻 NUC"><h4>키보드 제어 실행 (나중에)</h4><p class="why">왜? 팀 폴더의 독립 스크립트라 파일 이름으로 실행해요.</p><div class="code pc"><div class="code-head"><span class="where">💻 NUC</span><button class="copy-btn" onclick="copyCode(this)">📋 복사</button></div>
+<pre>cd ~/<span class="mk">team1</span>
+python teleoperate_base_keyboard.py</pre></div><span class="hop">⇄ 파이와 연결됨</span></div><div class="cell idle">🟢 호스트 실행 중<br>창 그대로 두기</div></div><div class="flow-row"><div class="fn"><span>3</span></div><div class="cell idle">키보드 제어 종료 (Ctrl+C)</div><div class="cell on pi" data-m="🍓 라즈베리파이5"><h4>바퀴 테스트</h4><p class="why">왜? 바퀴가 제대로 도는지 팀별로 확인해요. (호스트는 Ctrl+C로 먼저 끄기)</p><div class="code pi"><div class="code-head"><span class="where">🍓 Pi5 (SSH)</span><button class="copy-btn" onclick="copyCode(this)">📋 복사</button></div>
+<pre>cd ~/<span class="mk">team1</span>
+python3 check_wheels.py --spin</pre></div><div class="result"><b>✅ 성공:</b> 바퀴 3개가 차례로 회전</div></div></div></div>
+</section>
+<section id="s6">
+  <h2><span class="no">6</span>최종 점검</h2>
+  <p class="lead">아래를 모두 체크하면 실습 2-2 완료!</p>
+  <ul class="check">
+    <li>💻 NUC ~/team1 에 teleoperate_base_keyboard.py 가 있고 remote_ip가 내 팀 IP다</li>
+    <li>🍓 파이 ~/team1 에 check_wheels.py, identify_wheels.py 가 있다</li>
+    <li>두 기기 모두 ~/Downloads/teleop/ 에서 복사했다 (다른 폴더 안 만듦)</li>
+    <li>호스트는 <code>python -m …</code>, 팀 스크립트는 <code>python 파일.py</code>로 실행했다</li>
+  </ul>
+  <h3>🔧 자주 나는 오류</h3>
+  <div class="tbl-wrap"><table class="tbl">
+    <tr><th>메시지</th><th>원인</th><th>해결</th></tr>
+    <tr><td><code>No such file or directory</code> (cp)</td><td>Downloads 이름이 다르거나 zip 안에 폴더가 한 단계 더 있음</td><td><code>ls ~</code>, <code>ls ~/Downloads/teleop</code>로 경로 확인</td></tr>
+    <tr><td><code>unzip: command not found</code></td><td>파이에 unzip 미설치</td><td><code>sudo apt install unzip</code></td></tr>
+    <tr><td><code>scp: … No such file or directory</code></td><td>파이에 ~/Downloads 없음</td><td>5번의 <code>mkdir -p ~/Downloads</code> 먼저</td></tr>
+    <tr><td>로봇이 안 움직임 / 다른 팀 로봇이 움직임</td><td>remote_ip 오타</td><td>4번 다시 확인</td></tr>
+    <tr><td><code>attempted relative import</code></td><td>호스트를 파일 이름으로 실행</td><td><code>python -m lerobot.robots…</code>로 실행</td></tr>
+  </table></div>
+</section>
+</main>
+<footer>Physical AI 실습 교육자료 · 제타위성로보틱스 · LeRobot Framework by HuggingFace 🤗</footer>
+
+<script>
+function copyCode(btn){
+  const box = btn.closest('.code, .vtree');
+  const text = box.querySelector('pre').innerText;
+  const done = () => { const o = btn.textContent; btn.textContent = '✅ 복사됨'; btn.classList.add('copied');
+    setTimeout(()=>{ btn.textContent = o; btn.classList.remove('copied'); }, 1500); };
+  const fallback = () => { const t = document.createElement('textarea'); t.value = text;
+    t.style.position='fixed'; t.style.opacity='0'; document.body.appendChild(t); t.select();
+    try{ document.execCommand('copy'); done(); }catch(e){ alert('복사 실패: 직접 드래그해서 복사하세요'); }
+    document.body.removeChild(t); };
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, fallback);
+  else fallback();
+}
+</script>
+</body>
+</html>
